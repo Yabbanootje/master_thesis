@@ -13,7 +13,6 @@ custom_cfgs = {
         'update_iters': 1,
     },
     'logger_cfgs': {
-        # 'log_dir': ".\\runs",
         'use_wandb': False,
     },
 }
@@ -22,5 +21,3 @@ agent = omnisafe.Agent('TRPO', env_id, custom_cfgs=custom_cfgs)
 agent.learn()
 
 agent.plot(smooth=1)
-# Issue is in the fact that the file path uses \\ (instead of /) and 381 of plotter they seperate on /
-# to get the filename
