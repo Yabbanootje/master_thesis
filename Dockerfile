@@ -1,7 +1,7 @@
 FROM python:3.10
 
-ADD test.py .
+# ADD test.py .
 
 RUN pip install omnisafe
 
-CMD ["python", "./test.py"]
+CMD ["python", "./app/test.py"]

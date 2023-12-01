@@ -1,9 +1,9 @@
 # master_thesis
 
-## Build the image using
+## Build the image
 
 docker build -t image_name .
 
-## Run the container using
+## Run the container
 
-docker run --mount type=bind,source="$(pwd)",target=/runs python-test
+docker run --mount type=bind,source="$(pwd)",target=/app image_name

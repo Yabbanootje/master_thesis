@@ -13,6 +13,7 @@ custom_cfgs = {
         'update_iters': 1,
     },
     'logger_cfgs': {
+        'log_dir': "./app/results",
         'use_wandb': False,
     },
 }
