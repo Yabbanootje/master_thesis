@@ -5,8 +5,8 @@
         "torch_threads": 16,
         "vector_env_nums": 1,
         "parallel": 1,
-        "total_steps": 2048,
-        "epochs": 2
+        "total_steps": 3072,
+        "epochs": 3
     },
     "algo_cfgs": {
         "steps_per_epoch": 1024,
@@ -72,7 +72,7 @@
     },
     "exp_increment_cfgs": {
         "train_cfgs": {
-            "total_steps": 2048,
+            "total_steps": 3072,
             "vector_env_nums": 1,
             "parallel": 1
         },
