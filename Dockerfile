@@ -4,6 +4,8 @@ RUN pip install omnisafe
 
 RUN pip install IPython
 
+RUN 
+
 #TODO: move all requirements to requirements.txt and replace above lines such that everything from the text file is installed
 
 SHELL ["/bin/bash", "-c"]

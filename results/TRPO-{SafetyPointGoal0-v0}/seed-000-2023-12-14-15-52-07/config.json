@@ -81,11 +81,10 @@
             "update_iters": 1
         },
         "logger_cfgs": {
-            "log_dir": "./app/results",
-            "use_wandb": false
+            "log_dir": "./app/results"
         }
     },
-    "exp_name": "TRPO-{SafetyPointGoal1-v0}",
-    "env_id": "SafetyPointGoal1-v0",
+    "exp_name": "TRPO-{SafetyPointGoal0-v0}",
+    "env_id": "SafetyPointGoal0-v0",
     "algo": "TRPO"
 }
