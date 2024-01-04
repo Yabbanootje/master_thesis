@@ -1,7 +1,7 @@
 """Goal level 0."""
 
 # Introduce the required objects
-from safety_gymnasium.assets.geoms import Goal, Apples, Hazards
+from safety_gymnasium.assets.geoms import Goal, Hazards
 # Need to inherit from BaseTask
 from safety_gymnasium.bases.base_task import BaseTask
 

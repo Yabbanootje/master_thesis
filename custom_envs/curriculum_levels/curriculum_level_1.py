@@ -1,7 +1,7 @@
 """Goal level 0."""
 
 # Introduce the required objects
-from safety_gymnasium.assets.geoms import Goal, Apples, Hazards
+from safety_gymnasium.assets.geoms import Goal, Hazards
 # Need to inherit from BaseTask
 from safety_gymnasium.bases.base_task import BaseTask
 
@@ -20,9 +20,12 @@ class CurriculumLevel1(BaseTask):
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
         self._add_geoms(Goal(keepout = 0, locations=[(0, 0)])) # placements=[(-0.1, -0.1, 0.1, 0.1)]))
-        # self._add_geoms(Apples(num=2, size=0.3, locations=[(-1, -1), (1, 1)])) # placements=[(-1, -0.5, 0.5, 1), (-0.5, -1, 1, 0.5)]))
         self._add_geoms(Hazards(keepout = 0, num=7, locations=[(-1, -1), (1, 1), (-1, 1), (1, -1), 
                                                   (0, -1), (0, 1), (1, 0)]))
+                                                               
+        # - in x is to the right
+        # - in y is to the top
+        # (0, 0) is in the middle
 
         # Calculate the specific data members needed for the reward
         self.last_dist_goal = None
