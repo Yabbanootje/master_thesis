@@ -53,9 +53,45 @@ class CurriculumEnv(CMDP):
     need_time_limit_wrapper: bool = False
 
     _support_envs: ClassVar[list[str]] = [
-        'Curriculum0-v0',
-        'Curriculum1-v0',
-        'Curriculum2-v0',
+        "SafetyPointCurriculum0-v0",
+        "SafetyPointCurriculum0Vision-v0",
+        "SafetyPointCurriculum0Debug-v0",
+        "SafetyCarCurriculum0-v0",
+        "SafetyCarCurriculum0Vision-v0",
+        "SafetyCarCurriculum0Debug-v0",
+        "SafetyDoggoCurriculum0-v0",
+        "SafetyDoggoCurriculum0Vision-v0",
+        "SafetyRacecarCurriculum0-v0",
+        "SafetyRacecarCurriculum0Vision-v0",
+        "SafetyRacecarCurriculum0Debug-v0",
+        "SafetyAntCurriculum0-v0",
+        "SafetyAntCurriculum0Vision-v0",
+        "SafetyPointCurriculum1-v0",
+        "SafetyPointCurriculum1Vision-v0",
+        "SafetyPointCurriculum1Debug-v0",
+        "SafetyCarCurriculum1-v0",
+        "SafetyCarCurriculum1Vision-v0",
+        "SafetyCarCurriculum1Debug-v0",
+        "SafetyDoggoCurriculum1-v0",
+        "SafetyDoggoCurriculum1Vision-v0",
+        "SafetyRacecarCurriculum1-v0",
+        "SafetyRacecarCurriculum1Vision-v0",
+        "SafetyRacecarCurriculum1Debug-v0",
+        "SafetyAntCurriculum1-v0",
+        "SafetyAntCurriculum1Vision-v0",
+        "SafetyPointCurriculum2-v0",
+        "SafetyPointCurriculum2Vision-v0",
+        "SafetyPointCurriculum2Debug-v0",
+        "SafetyCarCurriculum2-v0",
+        "SafetyCarCurriculum2Vision-v0",
+        "SafetyCarCurriculum2Debug-v0",
+        "SafetyDoggoCurriculum2-v0",
+        "SafetyDoggoCurriculum2Vision-v0",
+        "SafetyRacecarCurriculum2-v0",
+        "SafetyRacecarCurriculum2Vision-v0",
+        "SafetyRacecarCurriculum2Debug-v0",
+        "SafetyAntCurriculum2-v0",
+        "SafetyAntCurriculum2Vision-v0",
     ]
 
     def __init__(
@@ -69,6 +105,8 @@ class CurriculumEnv(CMDP):
         super().__init__(env_id)
         self._num_envs = num_envs
         self._device = torch.device(device)
+
+        self.steps = 0
 
         if num_envs > 1:
             self._env = safety_gymnasium.vector.make(env_id=env_id, num_envs=num_envs, **kwargs)
@@ -125,6 +163,15 @@ class CurriculumEnv(CMDP):
         obs, reward, cost, terminated, truncated, info = self._env.step(
             action.detach().cpu().numpy(),
         )
+
+        if self.steps < 3:
+            print("obs:", obs)
+            print("reward:", reward)
+            print("cost:", cost)
+            print("terminated:", terminated)
+            print("truncated:", truncated)
+            print("info:", info)
+            self.steps += 1
         obs, reward, cost, terminated, truncated = (
             torch.as_tensor(x, dtype=torch.float32, device=self._device)
             for x in (obs, reward, cost, terminated, truncated)

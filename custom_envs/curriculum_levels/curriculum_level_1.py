@@ -1,13 +1,12 @@
 """Goal level 0."""
 
 # Introduce the required objects
-from safety_gymnasium.assets.geoms import Goal
-from safety_gymnasium.assets.geoms import Apples
+from safety_gymnasium.assets.geoms import Goal, Apples, Hazards
 # Need to inherit from BaseTask
 from safety_gymnasium.bases.base_task import BaseTask
 
 
-class CurriculumLevel0(BaseTask):
+class CurriculumLevel1(BaseTask):
     """An agent must navigate to a goal."""
 
     def __init__(self, config):
@@ -16,14 +15,19 @@ class CurriculumLevel0(BaseTask):
         # Define randomness of the environment
         # If the variable is not assigned specifically to each object
         # then the global area specified here is used by default
-        self.placements_conf.extents = [-1, -1, 1, 1]
+        self.placements_conf.extents = [-2, -2, 2, 2]
 
         # Instantiate and register the object
-        self._add_geoms(Goal(keepout=0.305, placements=(0, 0)))
-        self._add_geoms(Apples(num=2, size=0.3, placements=[(-1, -1), (1, 1)]))
+        # placement = xmin, ymin, xmax, ymax
+        self._add_geoms(Goal(keepout = 0, locations=[(0, 0)])) # placements=[(-0.1, -0.1, 0.1, 0.1)]))
+        # self._add_geoms(Apples(num=2, size=0.3, locations=[(-1, -1), (1, 1)])) # placements=[(-1, -0.5, 0.5, 1), (-0.5, -1, 1, 0.5)]))
+        self._add_geoms(Hazards(keepout = 0, num=7, locations=[(-1, -1), (1, 1), (-1, 1), (1, -1), 
+                                                  (0, -1), (0, 1), (1, 0)]))
 
         # Calculate the specific data members needed for the reward
         self.last_dist_goal = None
+
+        self._is_load_static_geoms = False
 
     def calculate_reward(self):
         """Determine reward depending on the agent and tasks."""
