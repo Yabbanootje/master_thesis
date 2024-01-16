@@ -6,6 +6,10 @@ RUN pip install IPython
 
 #TODO: move all requirements to requirements.txt and replace above lines such that everything from the text file is installed
 
+ADD custom_envs/tasks/__init__.py /usr/local/lib/python3.10/site-packages/safety_gymnasium/tasks/__init__.py
+
+# ADD custom_envs/__init__.py /usr/local/lib/python3.10/site-packages/safety_gymnasium/__init__.py
+
 SHELL ["/bin/bash", "-c"]
 
 RUN apt-get update && \
