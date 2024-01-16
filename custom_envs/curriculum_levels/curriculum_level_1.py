@@ -20,7 +20,7 @@ class CurriculumLevel1(BaseTask):
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
         self._add_geoms(Goal(keepout = 0, locations=[(0, 0)])) # placements=[(-0.1, -0.1, 0.1, 0.1)]))
-        self._add_geoms(Hazards(keepout = 0, num=7, locations=[(-1, -1), (1, 1), (-1, 1), (1, -1), 
+        self._add_geoms(Hazards(size = 0.25, keepout = 0, num=7, locations=[(-1, -1), (1, 1), (-1, 1), (1, -1), 
                                                   (0, -1), (0, 1), (1, 0)]))
                                                                
         # - in x is to the right

@@ -12,6 +12,8 @@ class CurriculumLevel0(BaseTask):
     def __init__(self, config):
         super().__init__(config=config)
 
+        print("config:", config)
+
         # Define randomness of the environment
         # If the variable is not assigned specifically to each object
         # then the global area specified here is used by default
@@ -20,9 +22,9 @@ class CurriculumLevel0(BaseTask):
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
         self._add_geoms(Goal(keepout = 0, locations=[(0, 0)])) # placements=[(-0.1, -0.1, 0.1, 0.1)]))
-        self._add_geoms(Hazards(keepout = 0, num=7, locations=[(-1.5, -1.5), (1.5, 1.5), (-1.5, 1.5), (1.5, -1.5), 
+        self._add_geoms(Hazards(size = 0.25, keepout = 0, num=7, locations=[(-1.5, -1.5), (1.5, 1.5), (-1.5, 1.5), (1.5, -1.5), 
                                                   (0, -1.5), (0, 1.5), (1.5, 0)]))
-                                                               
+        
         # - in x is to the right
         # - in y is to the top
         # (0, 0) is in the middle

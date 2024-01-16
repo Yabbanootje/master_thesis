@@ -29,7 +29,8 @@ from safety_gymnasium import vector, wrappers
 from safety_gymnasium.utils.registration import make, register
 from safety_gymnasium.version import __version__
 
-print("-------------------------------------------------------------")
+# from safety_gymnasium.builder import Builder
+# from safety_gymnasium.utils.task_utils import get_task_class_nameov
 
 __all__ = [
     'register',
@@ -118,6 +119,20 @@ def __combine(tasks, agents, max_episode_steps):
 # Goal Environments
 # ----------------------------------------
 goal_tasks = {'Curriculum0': {}, 'Curriculum1': {}, 'Curriculum2': {}}
-__combine(goal_tasks, robots, max_episode_steps=1000)
 
-print("---------------------------------------------------------")
+# class CustomBuilder(Builder):
+#     def __init__(self, tasks):
+#         super.__init__()
+#         self.tasks = tasks
+
+#     def _get_task(self):
+#             class_name = get_task_class_name(self.task_id)
+#             if class_name in self.tasks:
+#                 task_class = self.tasks[class_name]
+#                 task = task_class(config=self.config)
+#                 task.build_observation_space()
+#             else:
+#                 task = super()._get_task()    
+#             return task
+    
+__combine(goal_tasks, robots, max_episode_steps=1000)

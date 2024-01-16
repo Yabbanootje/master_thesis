@@ -20,8 +20,8 @@ class CurriculumLevel2(BaseTask):
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
         self._add_geoms(Goal(keepout = 0, locations=[(0, 0)])) # placements=[(-0.1, -0.1, 0.1, 0.1)]))
-        self._add_geoms(Hazards(keepout = 0, num=7, locations=[(-0.55, -0.55), (0.55, 0.55), (-0.55, 0.55), (0.55, -0.55), 
-                                                               (0, -0.55), (0, 0.55), (0.55, 0)]))
+        self._add_geoms(Hazards(size = 0.25, keepout = 0, num=7, locations=[(-0.5, -0.5), (0.5, 0.5), (-0.5, 0.5), (0.5, -0.5), 
+                                                               (0, -0.5), (0, 0.5), (0.5, 0)]))
                                                                
         # - in x is to the right
         # - in y is to the top

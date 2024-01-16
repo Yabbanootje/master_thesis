@@ -92,6 +92,8 @@ class CurriculumEnv(CMDP):
         "SafetyRacecarCurriculum2Debug-v0",
         "SafetyAntCurriculum2-v0",
         "SafetyAntCurriculum2Vision-v0",
+
+        "SafetyPointBaseline2-v0"
     ]
 
     def __init__(
@@ -106,7 +108,18 @@ class CurriculumEnv(CMDP):
         self._num_envs = num_envs
         self._device = torch.device(device)
 
-        self.steps = 0
+        self._kwargs = kwargs
+        self._steps = 0
+        self._curriculum = True
+        self._rendering = False
+
+        print("env_id was:", env_id)
+
+        if env_id == "SafetyPointBaseline2-v0":
+            self._curriculum = False
+            env_id = "SafetyPointCurriculum2-v0"
+
+        self._original_env_id = env_id
 
         if num_envs > 1:
             self._env = safety_gymnasium.vector.make(env_id=env_id, num_envs=num_envs, **kwargs)
@@ -128,6 +141,7 @@ class CurriculumEnv(CMDP):
             ), 'Only support Box observation space.'
             self._action_space = self._env.action_space
             self._observation_space = self._env.observation_space
+
         self._metadata = self._env.metadata
 
     def step(
@@ -163,15 +177,9 @@ class CurriculumEnv(CMDP):
         obs, reward, cost, terminated, truncated, info = self._env.step(
             action.detach().cpu().numpy(),
         )
+        
+        self._steps += 1
 
-        if self.steps < 3:
-            print("obs:", obs)
-            print("reward:", reward)
-            print("cost:", cost)
-            print("terminated:", terminated)
-            print("truncated:", truncated)
-            print("info:", info)
-            self.steps += 1
         obs, reward, cost, terminated, truncated = (
             torch.as_tensor(x, dtype=torch.float32, device=self._device)
             for x in (obs, reward, cost, terminated, truncated)
@@ -207,6 +215,18 @@ class CurriculumEnv(CMDP):
             observation: Agent's observation of the current environment.
             info: Some information logged by the environment.
         """
+        if self._rendering:
+            self._env = safety_gymnasium.make(id=self._original_env_id, autoreset=True, **self._kwargs)
+        elif self._curriculum:
+            if self._steps == 0:
+                print("Changed env to level 0")
+                self._env = safety_gymnasium.make(id="SafetyPointCurriculum0-v0", autoreset=True, **self._kwargs)
+            if self._steps == 10000:
+                print("Changed env to level 1")
+                self._env = safety_gymnasium.make(id="SafetyPointCurriculum1-v0", autoreset=True, **self._kwargs)
+            if self._steps == 20000:
+                print("Changed env to level 2")
+                self._env = safety_gymnasium.make(id="SafetyPointCurriculum2-v0", autoreset=True, **self._kwargs)
         obs, info = self._env.reset(seed=seed, options=options)
         return torch.as_tensor(obs, dtype=torch.float32, device=self._device), info
 
@@ -237,6 +257,7 @@ class CurriculumEnv(CMDP):
             The render frames: we recommend to use `np.ndarray`
                 which could construct video by moviepy.
         """
+        self._rendering = True
         return self._env.render()
 
     def close(self) -> None:
