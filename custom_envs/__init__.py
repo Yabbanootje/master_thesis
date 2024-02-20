@@ -29,8 +29,12 @@ from safety_gymnasium import vector, wrappers
 from safety_gymnasium.utils.registration import make, register
 from safety_gymnasium.version import __version__
 
-# from safety_gymnasium.builder import Builder
-# from safety_gymnasium.utils.task_utils import get_task_class_nameov
+from safety_gymnasium.builder import Builder
+from safety_gymnasium.utils.task_utils import get_task_class_name
+
+from custom_envs.curriculum_levels.curriculum_level_0 import CurriculumLevel0
+from custom_envs.curriculum_levels.curriculum_level_1 import CurriculumLevel1
+from custom_envs.curriculum_levels.curriculum_level_2 import CurriculumLevel2
 
 __all__ = [
     'register',
@@ -84,7 +88,8 @@ def __combine(tasks, agents, max_episode_steps):
 
             __register_helper(
                 env_id=env_id,
-                entry_point='safety_gymnasium.builder:Builder',
+                # entry_point='safety_gymnasium.builder:Builder',
+                entry_point='custom_envs.__init__:CustomBuilder',
                 spec_kwargs={'config': combined_config, 'task_id': env_id},
                 max_episode_steps=max_episode_steps,
             )
@@ -120,19 +125,28 @@ def __combine(tasks, agents, max_episode_steps):
 # ----------------------------------------
 goal_tasks = {'Curriculum0': {}, 'Curriculum1': {}, 'Curriculum2': {}}
 
-# class CustomBuilder(Builder):
-#     def __init__(self, tasks):
-#         super.__init__()
-#         self.tasks = tasks
+class CustomBuilder(Builder):
+    # def __init__(self):
+    #     super.__init__()
+    #     self.tasks = {
 
-#     def _get_task(self):
-#             class_name = get_task_class_name(self.task_id)
-#             if class_name in self.tasks:
-#                 task_class = self.tasks[class_name]
-#                 task = task_class(config=self.config)
-#                 task.build_observation_space()
-#             else:
-#                 task = super()._get_task()    
-#             return task
+    #     }
+
+    def _get_task_from_string(self, class_name):
+        if class_name == "CurriculumLevel0":
+            return CurriculumLevel0
+        elif class_name == "CurriculumLevel1":
+            return CurriculumLevel1
+        elif class_name == "CurriculumLevel2":
+            return CurriculumLevel2
+        else:
+            return super()._get_task()
+
+    def _get_task(self):
+            class_name = get_task_class_name(self.task_id)
+            task_class = self._get_task_from_string(class_name)
+            task = task_class(config=self.config)
+            task.build_observation_space()
+            return task
     
 __combine(goal_tasks, robots, max_episode_steps=1000)

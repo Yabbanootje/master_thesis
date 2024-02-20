@@ -25,6 +25,8 @@ class CurriculumLevel0(BaseTask):
         self._add_geoms(Hazards(size = 0.25, keepout = 0, num=7, locations=[(-1.5, -1.5), (1.5, 1.5), (-1.5, 1.5), (1.5, -1.5), 
                                                   (0, -1.5), (0, 1.5), (1.5, 0)]))
         
+        # self.agent.locations = [(-1.5, 0)]
+        
         # - in x is to the right
         # - in y is to the top
         # (0, 0) is in the middle
@@ -51,7 +53,7 @@ class CurriculumLevel0(BaseTask):
         # Task-specific reset mechanism
         # Called at env.reset()
         # Used to reset specific member variables
-        pass
+        print("-------- resetting in safety gymnasium 0")
 
     def specific_step(self):
         # Task-specific step mechanism

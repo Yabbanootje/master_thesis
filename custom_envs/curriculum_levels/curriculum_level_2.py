@@ -22,6 +22,9 @@ class CurriculumLevel2(BaseTask):
         self._add_geoms(Goal(keepout = 0, locations=[(0, 0)])) # placements=[(-0.1, -0.1, 0.1, 0.1)]))
         self._add_geoms(Hazards(size = 0.25, keepout = 0, num=7, locations=[(-0.5, -0.5), (0.5, 0.5), (-0.5, 0.5), (0.5, -0.5), 
                                                                (0, -0.5), (0, 0.5), (0.5, 0)]))
+        
+        # self.agent.locations = [(-1.5, 0)]
+        self._steps = 0
                                                                
         # - in x is to the right
         # - in y is to the top
@@ -40,6 +43,9 @@ class CurriculumLevel2(BaseTask):
         reward += (self.last_dist_goal - dist_goal) * self.goal.reward_distance
         self.last_dist_goal = dist_goal
 
+        # print("reward of a single step:", reward)
+        # print("reward of reaching the goal", self.goal.reward_goal)
+
         if self.goal_achieved:
             reward += self.goal.reward_goal
 
@@ -49,13 +55,20 @@ class CurriculumLevel2(BaseTask):
         # Task-specific reset mechanism
         # Called at env.reset()
         # Used to reset specific member variables
-        pass
+        print("-------- resetting in safety gymnasium 2 with nr. of steps:", self._steps)
+        # if self._steps > 100:
+        #     print("trying to change geoms during step")
+        #     self._geoms = {}
+        #     self._add_geoms(Goal(keepout = 0, locations=[(0, 0)])) # placements=[(-0.1, -0.1, 0.1, 0.1)]))
 
     def specific_step(self):
         # Task-specific step mechanism
         # Called at env.step()
         # Used to change the value of member variables over time
-        pass
+        self._steps += 1
+        # if self._steps == 10:
+        #     print("trying to change agent location during step")
+            # self.agent.locations = [(-0.5, 0)]
 
     def update_world(self):
         """Build a new goal position, maybe with resampling due to hazards."""

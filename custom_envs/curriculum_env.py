@@ -215,6 +215,8 @@ class CurriculumEnv(CMDP):
             observation: Agent's observation of the current environment.
             info: Some information logged by the environment.
         """
+        print("---- resseting in omnisafe")
+
         if self._rendering:
             self._env = safety_gymnasium.make(id=self._original_env_id, autoreset=True, **self._kwargs)
         elif self._curriculum:
@@ -227,7 +229,10 @@ class CurriculumEnv(CMDP):
             if self._steps == 20000:
                 print("Changed env to level 2")
                 self._env = safety_gymnasium.make(id="SafetyPointCurriculum2-v0", autoreset=True, **self._kwargs)
+
+        # options does absolutely nothing
         obs, info = self._env.reset(seed=seed, options=options)
+        # self._env.task.agent.locations = [(-1.5, 0)]
         return torch.as_tensor(obs, dtype=torch.float32, device=self._device), info
 
     def set_seed(self, seed: int) -> None:

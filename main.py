@@ -1,7 +1,6 @@
 import omnisafe
 import torch
 import os
-import safety_gymnasium
 import random as rand
 import pandas as pd
 import numpy as np
@@ -10,13 +9,9 @@ import matplotlib.pyplot as plt
 from custom_envs.curriculum_env import CurriculumEnv
 
 steps_per_epoch = 1000
-epochs = 40
+epochs = 1
 
-def test(random, folder):
-    # register(id="Curriculum0-v0", entry_point="custom_envs.curriculum_level_0:CurriculumLevel0")
-
-    # safety_gymnasium.vector.make(env_id="Curriculum0-v0", num_envs=1)
-
+def test(random, folder, num_videos):
     baseline_env_id = 'SafetyPointBaseline2-v0'
     curr_env_id = 'SafetyPointCurriculum2-v0'
 
@@ -25,7 +20,6 @@ def test(random, folder):
     else:
         seed = 0
 
-    # env_id = "SafetyPointGoal0-v0"
     baseline_custom_cfgs = {
         'seed': seed,
         'train_cfgs': {
@@ -36,7 +30,8 @@ def test(random, folder):
         'algo_cfgs': {
             'steps_per_epoch': steps_per_epoch,
             'update_iters': 1,
-            'cost_limit': 10.0,
+            # 'cost_limit': 10.0,
+            'penalty_coef': 0.01,
         },
         'logger_cfgs': {
             'log_dir': "./app/results/" + folder + "/baseline",
@@ -44,9 +39,9 @@ def test(random, folder):
             # 'use_wandb': True,
             # 'wandb_project': "TODO",
         },
-        # 'lagrange_cfgs': {
-        #     'cost_limit': 10.0,
-        # },
+        'lagrange_cfgs': {
+            'cost_limit': 10.0,
+        },
     }
 
     curr_custom_cfgs = {
@@ -59,7 +54,9 @@ def test(random, folder):
         'algo_cfgs': {
             'steps_per_epoch': steps_per_epoch,
             'update_iters': 1,
-            'cost_limit': 10.0,
+            # 'cost_limit': 10.0,
+            'penalty_coef': 0.01, # use costs also as a negative reward
+            # 'use_cost': True, # mainly for updating the cost-critic
         },
         'logger_cfgs': {
             'log_dir': "./app/results/" + folder + "/curriculum",
@@ -67,22 +64,22 @@ def test(random, folder):
             # 'use_wandb': True,
             # 'wandb_project': "TODO",
         },
-        # 'lagrange_cfgs': {
-        #     'cost_limit': 10.0,
-        # },
+        'lagrange_cfgs': {
+            'cost_limit': 10.0,
+        },
     }
 
-    baseline_agent = omnisafe.Agent('PPOEarlyTerminated', baseline_env_id, custom_cfgs=baseline_custom_cfgs)
-    curr_agent = omnisafe.Agent('PPOEarlyTerminated', curr_env_id, custom_cfgs=curr_custom_cfgs)
+    baseline_agent = omnisafe.Agent('PPOLag', baseline_env_id, custom_cfgs=baseline_custom_cfgs)
+    curr_agent = omnisafe.Agent('PPOLag', curr_env_id, custom_cfgs=curr_custom_cfgs)
 
-    def print_agent_params(agent):
-        scan_dir = os.scandir(os.path.join(agent.agent.logger.log_dir, 'torch_save'))
-        for item in scan_dir:
-            if item.is_file() and item.name.split('.')[-1] == 'pt':
-                model_path = os.path.join(agent.agent.logger.log_dir, 'torch_save', item.name)
-                model_params = torch.load(model_path)
-                for thingy in model_params['pi']:
-                    print(thingy, model_params['pi'][thingy].size())
+    # def print_agent_params(agent):
+    #     scan_dir = os.scandir(os.path.join(agent.agent.logger.log_dir, 'torch_save'))
+    #     for item in scan_dir:
+    #         if item.is_file() and item.name.split('.')[-1] == 'pt':
+    #             model_path = os.path.join(agent.agent.logger.log_dir, 'torch_save', item.name)
+    #             model_params = torch.load(model_path)
+    #             for thingy in model_params['pi']:
+    #                 print(thingy, model_params['pi'][thingy].size())
 
     # print_agent_params(agent=agent)
 
@@ -95,12 +92,10 @@ def test(random, folder):
 
         agent.render(num_episodes=episodes, render_mode='rgb_array', width=256, height=256)
 
-    get_multiple_videos(agent=baseline_agent, episodes=3)
-    get_multiple_videos(agent=curr_agent, episodes=4)
+    get_multiple_videos(agent=baseline_agent, episodes=num_videos)
+    get_multiple_videos(agent=curr_agent, episodes=num_videos + 1)
 
-    # How is the starting position of the agent determined?
-
-def nice_plot(folder):
+def nice_plot(folder, include_weak=False):
     baseline_algorithms = os.scandir("app/results/" + folder + "/baseline")
     curr_algorithms = os.scandir("app/results/" + folder + "/curriculum")
 
@@ -132,6 +127,12 @@ def nice_plot(folder):
         rewardsc.append(dfc['Metrics/EpRet'].to_numpy())
         costsc.append(dfc['Metrics/EpCost'].to_numpy())
 
+    # script_dir = os.path.dirname(__file__)
+    # results_dir = os.path.join(script_dir, 'Results/')
+
+    if not os.path.isdir("app/figures/" + folder):
+        os.makedirs("app/figures/" + folder)
+
     mean_rewards = np.mean(rewards, axis=0)
     mean_costs = np.mean(costs, axis=0)
     mean_rewardsc = np.mean(rewardsc, axis=0)
@@ -142,34 +143,48 @@ def nice_plot(folder):
     std_rewardsc = np.std(rewardsc, axis=0)
     std_costsc = np.std(costsc, axis=0)
 
-    ticks = np.arange(len(mean_rewards), step=5)
-    ticks[0] = 1
+    # ticks = np.arange(len(mean_rewards), step=5)
+    # ticks[0] = 1
 
     plt.plot(np.arange(1, len(mean_rewards) + 1), mean_rewards, label = "Baseline")
     plt.fill_between(x=np.arange(1, len(mean_rewards) + 1), y1=mean_rewards-std_rewards, y2=mean_rewards+std_rewards, alpha=0.2)
-    plt.plot(np.arange(1, len(mean_rewards) + 1), mean_rewardsc, label = "Curriculum")
+    plt.plot(np.arange(1, len(mean_rewards) + 1), mean_rewardsc, label = "Curriculum Strong")
     plt.fill_between(x=np.arange(1, len(mean_rewards) + 1), y1=mean_rewardsc-std_rewardsc, y2=mean_rewardsc+std_rewardsc, alpha=0.2)
+    if include_weak:
+        plt.plot(np.arange(1, len(mean_rewards) + 1 - 20), mean_rewardsc[20:], label = "Curriculum Weak")
+        plt.fill_between(x=np.arange(1, len(mean_rewards) + 1 - 20), y1=(mean_rewardsc-std_rewardsc)[20:], y2=(mean_rewardsc+std_rewardsc)[20:], alpha=0.2)
+    plt.axvline(x = 10, color = "gray", linestyle = '-')
+    plt.axvline(x = 20, color = "gray", linestyle = '-')
     plt.legend()
+    plt.grid()
     plt.title("Rewards of agent using curriculum and baseline agent")
     plt.xlabel("x1000 Steps")
     plt.ylabel("Reward")
-    plt.savefig("app/figures/rewards.png")
+    plt.savefig("app/figures/" + folder + "/rewards.png")
     plt.show()
 
     plt.figure()
     plt.plot(np.arange(1, len(mean_rewards) + 1), mean_costs, label = "Baseline")
     plt.fill_between(x=np.arange(1, len(mean_rewards) + 1), y1=mean_costs-std_costs, y2=mean_costs+std_costs, alpha=0.2)
-    plt.plot(np.arange(1, len(mean_rewards) + 1), mean_costsc, label = "Curriculum")
+    plt.plot(np.arange(1, len(mean_rewards) + 1), mean_costsc, label = "Curriculum Strong")
     plt.fill_between(x=np.arange(1, len(mean_rewards) + 1), y1=mean_costsc-std_costsc, y2=mean_costsc+std_costsc, alpha=0.2)
+    if include_weak:
+        plt.plot(np.arange(1, len(mean_rewards) + 1 - 20), mean_costsc[20:], label = "Curriculum Weak")
+        plt.fill_between(x=np.arange(1, len(mean_rewards) + 1 - 20), y1=(mean_costsc-std_costsc)[20:], y2=(mean_costsc+std_costsc)[20:], alpha=0.2)
+    plt.axhline(y = 10, color = 'r', linestyle = '-') 
+    plt.axvline(x = 10, color = "gray", linestyle = '-')
+    plt.axvline(x = 20, color = "gray", linestyle = '-')
     plt.legend()
+    plt.grid()
     plt.title("Costs of agent using curriculum and baseline agent")
     plt.xlabel("x1000 Steps")
     plt.ylabel("Cost")
-    plt.savefig("app/figures/costs.png")
+    plt.savefig("app/figures/" + folder + "/costs.png")
     plt.show()
 
 if __name__ == '__main__':
     folder = "test-early"
-    for i in range(5, folder):
-        test(True)
-    nice_plot(folder)
+    num_videos = 1
+    # for i in range(1):
+    #     test(True, folder, num_videos)
+    nice_plot(folder, include_weak=True)
