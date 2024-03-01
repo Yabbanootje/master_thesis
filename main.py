@@ -12,7 +12,7 @@ steps_per_epoch = 1000
 epochs = 1
 
 def test(random, folder, num_videos):
-    baseline_env_id = 'SafetyPointBaseline2-v0'
+    baseline_env_id = 'SafetyPointCurriculum2-v0'
     curr_env_id = 'SafetyPointCurriculum2-v0'
 
     if random:
@@ -183,8 +183,8 @@ def nice_plot(folder, include_weak=False):
     plt.show()
 
 if __name__ == '__main__':
-    folder = "test-early"
+    folder = "test-fork_server"
     num_videos = 1
-    # for i in range(1):
-    #     test(True, folder, num_videos)
-    nice_plot(folder, include_weak=True)
+    for i in range(1):
+        test(True, folder, num_videos)
+    # nice_plot(folder, include_weak=True)
