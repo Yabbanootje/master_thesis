@@ -217,18 +217,18 @@ class CurriculumEnv(CMDP):
         """
         print("---- resseting in omnisafe")
 
-        if self._rendering:
-            self._env = safety_gymnasium.make(id=self._original_env_id, autoreset=True, **self._kwargs)
-        elif self._curriculum:
-            if self._steps == 0:
-                print("Changed env to level 0")
-                self._env = safety_gymnasium.make(id="SafetyPointCurriculum0-v0", autoreset=True, **self._kwargs)
-            if self._steps == 10000:
-                print("Changed env to level 1")
-                self._env = safety_gymnasium.make(id="SafetyPointCurriculum1-v0", autoreset=True, **self._kwargs)
-            if self._steps == 20000:
-                print("Changed env to level 2")
-                self._env = safety_gymnasium.make(id="SafetyPointCurriculum2-v0", autoreset=True, **self._kwargs)
+        # if self._rendering:
+        #     self._env = safety_gymnasium.make(id=self._original_env_id, autoreset=True, **self._kwargs)
+        # elif self._curriculum:
+        #     if self._steps == 0:
+        #         print("Changed env to level 0")
+        #         self._env = safety_gymnasium.make(id="SafetyPointCurriculum0-v0", autoreset=True, **self._kwargs)
+        #     if self._steps == 10000:
+        #         print("Changed env to level 1")
+        #         self._env = safety_gymnasium.make(id="SafetyPointCurriculum1-v0", autoreset=True, **self._kwargs)
+        #     if self._steps == 20000:
+        #         print("Changed env to level 2")
+        #         self._env = safety_gymnasium.make(id="SafetyPointCurriculum2-v0", autoreset=True, **self._kwargs)
 
         # options does absolutely nothing
         obs, info = self._env.reset(seed=seed, options=options)

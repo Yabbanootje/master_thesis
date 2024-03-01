@@ -1,8 +1,11 @@
 FROM python:3.10
 
-RUN pip install omnisafe
+# RUN pip install omnisafe
 
-RUN pip install IPython
+# RUN pip install IPython
+
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
 
 #TODO: move all requirements to requirements.txt and replace above lines such that everything from the text file is installed
 
