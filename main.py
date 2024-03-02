@@ -9,10 +9,11 @@ import matplotlib.pyplot as plt
 from custom_envs.curriculum_env import CurriculumEnv
 
 steps_per_epoch = 1000
-epochs = 1
+epochs = 40
+safe_freq = int(epochs / 2)
 
 def test(random, folder, num_videos):
-    baseline_env_id = 'SafetyPointCurriculum2-v0'
+    baseline_env_id = 'SafetyPointCurriculum1-v0'
     curr_env_id = 'SafetyPointCurriculum2-v0'
 
     if random:
@@ -31,11 +32,11 @@ def test(random, folder, num_videos):
             'steps_per_epoch': steps_per_epoch,
             'update_iters': 1,
             # 'cost_limit': 10.0,
-            'penalty_coef': 0.01,
+            # 'penalty_coef': 0.01,
         },
         'logger_cfgs': {
             'log_dir': "./app/results/" + folder + "/baseline",
-            'save_model_freq': epochs,
+            'save_model_freq': safe_freq,
             # 'use_wandb': True,
             # 'wandb_project': "TODO",
         },
@@ -55,12 +56,12 @@ def test(random, folder, num_videos):
             'steps_per_epoch': steps_per_epoch,
             'update_iters': 1,
             # 'cost_limit': 10.0,
-            'penalty_coef': 0.01, # use costs also as a negative reward
+            # 'penalty_coef': 0.01, # use costs also as a negative reward
             # 'use_cost': True, # mainly for updating the cost-critic
         },
         'logger_cfgs': {
             'log_dir': "./app/results/" + folder + "/curriculum",
-            'save_model_freq': epochs,
+            'save_model_freq': safe_freq,
             # 'use_wandb': True,
             # 'wandb_project': "TODO",
         },
@@ -183,8 +184,8 @@ def nice_plot(folder, include_weak=False):
     plt.show()
 
 if __name__ == '__main__':
-    folder = "test-fork_server"
-    num_videos = 1
-    for i in range(1):
+    folder = "test-zero_hazards"
+    num_videos = 3
+    for i in range(5):
         test(True, folder, num_videos)
-    # nice_plot(folder, include_weak=True)
+    nice_plot(folder, include_weak=True)
