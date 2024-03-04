@@ -205,7 +205,7 @@ class HMCurriculumEnv(CMDP):
         """
 
         if self._curriculum:
-            if options.get("resetting_for_render") == True:
+            if options != None and options.get("resetting_for_render") == True:
                 print("resetting_for_render is True")
                 self._env = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
             elif self._steps == 10000:
