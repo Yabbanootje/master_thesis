@@ -191,7 +191,6 @@ class HMCurriculumEnv(CMDP):
         self,
         seed: int | None = None,
         options: dict[str, Any] | None = None,
-        resetting_for_render = False,
     ) -> tuple[torch.Tensor, dict[str, Any]]:
         """Reset the environment.
 
@@ -206,7 +205,7 @@ class HMCurriculumEnv(CMDP):
         """
 
         if self._curriculum:
-            if resetting_for_render:
+            if options.get("resetting_for_render") == True:
                 print("resetting_for_render is True")
                 self._env = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
             elif self._steps == 10000:
@@ -228,7 +227,7 @@ class HMCurriculumEnv(CMDP):
                 print("Changed env to level Target")
                 self._env = safety_gymnasium.make(id="SafetyPointHMT-v0", autoreset=True, **self._kwargs)
 
-        print("env is:", type(self._env).__name__)
+        print("env is:", self._env)
 
         # options does absolutely nothing
         obs, info = self._env.reset(seed=seed, options=options)
