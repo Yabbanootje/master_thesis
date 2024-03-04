@@ -11,7 +11,7 @@ from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 
 steps_per_epoch = 1000
 epochs = 40
-safe_freq = epochs
+safe_freq = 10
 
 def test(random, folder, num_videos):
     baseline_env_id = 'SafetyPointHMT-v0'
