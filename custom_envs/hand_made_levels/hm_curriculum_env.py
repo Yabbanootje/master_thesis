@@ -205,7 +205,7 @@ class HMCurriculumEnv(CMDP):
 
         if self._curriculum:
             if options != None and options.get("resetting_for_render") == True:
-                self._env = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
+                self._env = safety_gymnasium.make(id="SafetyPointHM3-v0", autoreset=True, **self._kwargs)
             elif self._steps == 10000:
                 print("Changed env to level 1")
                 self._env = safety_gymnasium.make(id="SafetyPointHM1-v0", autoreset=True, **self._kwargs)
@@ -215,15 +215,15 @@ class HMCurriculumEnv(CMDP):
             elif self._steps == 30000:
                 print("Changed env to level 3")
                 self._env = safety_gymnasium.make(id="SafetyPointHM3-v0", autoreset=True, **self._kwargs)
-            elif self._steps == 40000:
-                print("Changed env to level 4")
-                self._env = safety_gymnasium.make(id="SafetyPointHM4-v0", autoreset=True, **self._kwargs)
-            elif self._steps == 50000:
-                print("Changed env to level 5")
-                self._env = safety_gymnasium.make(id="SafetyPointHM5-v0", autoreset=True, **self._kwargs)
-            elif self._steps == 60000:
-                print("Changed env to level Target")
-                self._env = safety_gymnasium.make(id="SafetyPointHMT-v0", autoreset=True, **self._kwargs)
+            # elif self._steps == 40000:
+            #     print("Changed env to level 4")
+            #     self._env = safety_gymnasium.make(id="SafetyPointHM4-v0", autoreset=True, **self._kwargs)
+            # elif self._steps == 50000:
+            #     print("Changed env to level 5")
+            #     self._env = safety_gymnasium.make(id="SafetyPointHM5-v0", autoreset=True, **self._kwargs)
+            # elif self._steps == 60000:
+            #     print("Changed env to level Target")
+            #     self._env = safety_gymnasium.make(id="SafetyPointHMT-v0", autoreset=True, **self._kwargs)
 
         obs, info = self._env.reset(seed=seed, options=options)
         # self._env.task.agent.locations = [(-1.5, 0)]

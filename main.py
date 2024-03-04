@@ -10,11 +10,11 @@ import matplotlib.pyplot as plt
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 
 steps_per_epoch = 1000
-epochs = 40
+epochs = 50
 safe_freq = 10
 
 def test(random, folder, num_videos):
-    baseline_env_id = 'SafetyPointHMT-v0'
+    baseline_env_id = 'SafetyPointHM3-v0'
     curr_env_id = 'SafetyPointHM0-v0'
 
     if random:
@@ -148,6 +148,7 @@ def nice_plot(folder, include_weak=False):
     # ticks = np.arange(len(mean_rewards), step=5)
     # ticks[0] = 1
 
+    plt.figure()
     plt.plot(np.arange(1, len(mean_rewards) + 1), mean_rewards, label = "Baseline")
     plt.fill_between(x=np.arange(1, len(mean_rewards) + 1), y1=mean_rewards-std_rewards, y2=mean_rewards+std_rewards, alpha=0.2)
     plt.plot(np.arange(1, len(mean_rewards) + 1), mean_rewardsc, label = "Curriculum Strong")
@@ -185,7 +186,7 @@ def nice_plot(folder, include_weak=False):
     plt.show()
 
 if __name__ == '__main__':
-    folder = "test-half_curriculum"
+    folder = "test-half_curriculum-2"
     num_videos = 3
     for i in range(3):
         test(True, folder, num_videos)
