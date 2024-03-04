@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 
 steps_per_epoch = 1000
-epochs = 1
+epochs = 40
 safe_freq = epochs
 
 def test(random, folder, num_videos):
@@ -71,7 +71,7 @@ def test(random, folder, num_videos):
         },
     }
 
-    # baseline_agent = omnisafe.Agent('PPOLag', baseline_env_id, custom_cfgs=baseline_custom_cfgs)
+    baseline_agent = omnisafe.Agent('PPOLag', baseline_env_id, custom_cfgs=baseline_custom_cfgs)
     curr_agent = omnisafe.Agent('PPOLag', curr_env_id, custom_cfgs=curr_custom_cfgs)
 
     # def print_agent_params(agent):
@@ -94,7 +94,7 @@ def test(random, folder, num_videos):
 
         agent.render(num_episodes=episodes, render_mode='rgb_array', width=256, height=256)
 
-    # get_multiple_videos(agent=baseline_agent, episodes=num_videos)
+    get_multiple_videos(agent=baseline_agent, episodes=num_videos)
     get_multiple_videos(agent=curr_agent, episodes=num_videos)
 
 def nice_plot(folder, include_weak=False):
@@ -185,8 +185,8 @@ def nice_plot(folder, include_weak=False):
     plt.show()
 
 if __name__ == '__main__':
-    folder = "test-render"
-    num_videos = 1
-    for i in range(1):
+    folder = "test-half_curriculum"
+    num_videos = 3
+    for i in range(3):
         test(True, folder, num_videos)
-    # nice_plot(folder, include_weak=True)
+    nice_plot(folder, include_weak=True)

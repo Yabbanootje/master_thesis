@@ -61,8 +61,6 @@ class HMLevel1(BaseTask):
         else:
             wall_positions = [tuple(map(sum, zip((0.0, i * step_size), middle_wall))) for i in range(-1,2)]
         wall_positions = [tuple(map(sum, zip(pos, goal_position))) for pos in wall_positions]
-        
-        print("wall:", wall_positions)
 
         return corners + closed_entry_points + wall_positions
 
@@ -86,11 +84,12 @@ class HMLevel1(BaseTask):
         # Task-specific reset mechanism
         # Called at env.reset()
         # Used to reset specific member variables
-        print("-------- resetting in safety gymnasium 2 with nr. of steps:", self._steps)
+        # print("-------- resetting in safety gymnasium 2 with nr. of steps:", self._steps)
         # if self._steps > 100:
         #     print("trying to change geoms during step")
         #     self._geoms = {}
         #     self._add_geoms(Goal(keepout = 0, locations=[(0, 0)])) # placements=[(-0.1, -0.1, 0.1, 0.1)]))
+        pass
 
     def specific_step(self):
         # Task-specific step mechanism

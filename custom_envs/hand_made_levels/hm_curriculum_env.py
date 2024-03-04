@@ -106,7 +106,6 @@ class HMCurriculumEnv(CMDP):
         self._curriculum = False
 
         if "HM0" in env_id:
-            print("curriculum = True")
             self._curriculum = True
 
         if num_envs > 1:
@@ -206,7 +205,6 @@ class HMCurriculumEnv(CMDP):
 
         if self._curriculum:
             if options != None and options.get("resetting_for_render") == True:
-                print("resetting_for_render is True")
                 self._env = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
             elif self._steps == 10000:
                 print("Changed env to level 1")
@@ -227,9 +225,6 @@ class HMCurriculumEnv(CMDP):
                 print("Changed env to level Target")
                 self._env = safety_gymnasium.make(id="SafetyPointHMT-v0", autoreset=True, **self._kwargs)
 
-        print("env is:", self._env)
-
-        # options does absolutely nothing
         obs, info = self._env.reset(seed=seed, options=options)
         # self._env.task.agent.locations = [(-1.5, 0)]
         return torch.as_tensor(obs, dtype=torch.float32, device=self._device), info
