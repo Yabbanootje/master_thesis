@@ -106,6 +106,7 @@ class HMCurriculumEnv(CMDP):
         self._curriculum = False
 
         if "HM0" in env_id:
+            print("curriculum = True")
             self._curriculum = True
 
         if num_envs > 1:
@@ -206,6 +207,7 @@ class HMCurriculumEnv(CMDP):
 
         if self._curriculum:
             if resetting_for_render:
+                print("resetting_for_render is True")
                 self._env = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
             elif self._steps == 10000:
                 print("Changed env to level 1")
@@ -225,6 +227,8 @@ class HMCurriculumEnv(CMDP):
             elif self._steps == 60000:
                 print("Changed env to level Target")
                 self._env = safety_gymnasium.make(id="SafetyPointHMT-v0", autoreset=True, **self._kwargs)
+
+        print("env is:", type(self._env).__name__)
 
         # options does absolutely nothing
         obs, info = self._env.reset(seed=seed, options=options)
