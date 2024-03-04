@@ -21,7 +21,7 @@ class HMLevel2(BaseTask):
         goal_location = (0, 0)
         geom_radius = 0.25
         # self.agent.placements = [3, -2, 4, 2]
-        self.agent.locations = [(4, 0)]
+        self.agent.locations = [(1, 0)]
         # locations = self.randomized_locations(goal_location, hazard_radius)
         locations = [(1.5, 0)]
 
