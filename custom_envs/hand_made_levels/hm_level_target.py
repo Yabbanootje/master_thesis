@@ -1,4 +1,4 @@
-"""Goal level 0."""
+"""Goal level Target."""
 
 # Introduce the required objects
 from safety_gymnasium.assets.geoms import Goal, Hazards
@@ -7,7 +7,7 @@ from safety_gymnasium.bases.base_task import BaseTask
 import random
 
 
-class CurriculumLevel2(BaseTask):
+class HMLevelTarget(BaseTask):
     """An agent must navigate to a goal."""
 
     def __init__(self, config):
@@ -16,18 +16,21 @@ class CurriculumLevel2(BaseTask):
         # Define randomness of the environment
         # If the variable is not assigned specifically to each object
         # then the global area specified here is used by default
-        self.placements_conf.extents = [-2, -2, 2, 2]
+        self.placements_conf.extents = [-5, -5, 5, 5]
 
         goal_location = (0, 0)
-        hazard_radius = 0.25
-        locations = self.randomized_locations(goal_location, hazard_radius)
+        geom_radius = 0.25
+        # self.agent.placements = [3, -2, 4, 2]
+        self.agent.locations = [(1, 0)]
+        # locations = self.randomized_locations(goal_location, geom_radius)
+        locations = [(-0.5, -0.5), (0.5, 0.5), (-0.5, 0.5), (0.5, -0.5), (0, -0.5), (0, 0.5), (0.5, 0), 
+                      (-1.5, 0), (-1.5, 0.5), (-1.5, -0.5)]
 
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
-        self._add_geoms(Goal(keepout = 0, locations=[goal_location])) # placements=[(-0.1, -0.1, 0.1, 0.1)]))
-        self._add_geoms(Hazards(size = hazard_radius, keepout = 0, num=0, locations=locations))
+        self._add_geoms(Goal(size = geom_radius, keepout = 0, locations=[goal_location]))
+        self._add_geoms(Hazards(size = geom_radius, keepout = 0, num = len(locations), locations = locations))
         
-        # self.agent.locations = [(-1.5, 0)]
         self._steps = 0
                                                                
         # - in x is to the right
@@ -45,21 +48,15 @@ class CurriculumLevel2(BaseTask):
         corners = [(-step_size, -step_size), (step_size, step_size), (-step_size, step_size), (step_size, -step_size)]
         corners = [tuple(map(sum, zip(pos, goal_position))) for pos in corners]
 
-        print("corners:", corners)
-
         # choose a random entry point to the goal
         possible_entry_points = [(0.0, -step_size), (0.0, step_size), (-step_size, 0.0), (step_size, 0.0)]
         entry_point = random.choice(possible_entry_points)
         possible_entry_points.remove(entry_point)
         closed_entry_points = [tuple(map(sum, zip(pos, goal_position))) for pos in possible_entry_points]
-
-        print("entry:", entry_point)
-        print("closed:", closed_entry_points)
         
         # build a wall of hazards on the side of the entry point,
         # so that the agent cannot get to the entry point in a straight line
         middle_wall = tuple([3 * coord for coord in entry_point])
-        print("middle", middle_wall)
         if middle_wall[0] == 0.0:
             wall_positions = [tuple(map(sum, zip((i * step_size, 0.0), middle_wall))) for i in range(-1,2)]
         else:

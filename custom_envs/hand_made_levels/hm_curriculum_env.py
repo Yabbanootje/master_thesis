@@ -20,14 +20,13 @@ from typing import Any, ClassVar
 
 import numpy as np
 import safety_gymnasium
-from safety_gymnasium.utils.registration import register
 import torch
 
 from omnisafe.envs.core import CMDP, env_register
 from omnisafe.typing import DEVICE_CPU, Box
 
 @env_register
-class CurriculumEnv(CMDP):
+class HMCurriculumEnv(CMDP):
     """Curriculum Environment.
 
     Args:
@@ -53,47 +52,41 @@ class CurriculumEnv(CMDP):
     need_time_limit_wrapper: bool = False
 
     _support_envs: ClassVar[list[str]] = [
-        "SafetyPointCurriculum0-v0",
-        "SafetyPointCurriculum0Vision-v0",
-        "SafetyPointCurriculum0Debug-v0",
-        "SafetyCarCurriculum0-v0",
-        "SafetyCarCurriculum0Vision-v0",
-        "SafetyCarCurriculum0Debug-v0",
-        "SafetyDoggoCurriculum0-v0",
-        "SafetyDoggoCurriculum0Vision-v0",
-        "SafetyRacecarCurriculum0-v0",
-        "SafetyRacecarCurriculum0Vision-v0",
-        "SafetyRacecarCurriculum0Debug-v0",
-        "SafetyAntCurriculum0-v0",
-        "SafetyAntCurriculum0Vision-v0",
-        "SafetyPointCurriculum1-v0",
-        "SafetyPointCurriculum1Vision-v0",
-        "SafetyPointCurriculum1Debug-v0",
-        "SafetyCarCurriculum1-v0",
-        "SafetyCarCurriculum1Vision-v0",
-        "SafetyCarCurriculum1Debug-v0",
-        "SafetyDoggoCurriculum1-v0",
-        "SafetyDoggoCurriculum1Vision-v0",
-        "SafetyRacecarCurriculum1-v0",
-        "SafetyRacecarCurriculum1Vision-v0",
-        "SafetyRacecarCurriculum1Debug-v0",
-        "SafetyAntCurriculum1-v0",
-        "SafetyAntCurriculum1Vision-v0",
-        "SafetyPointCurriculum2-v0",
-        "SafetyPointCurriculum2Vision-v0",
-        "SafetyPointCurriculum2Debug-v0",
-        "SafetyCarCurriculum2-v0",
-        "SafetyCarCurriculum2Vision-v0",
-        "SafetyCarCurriculum2Debug-v0",
-        "SafetyDoggoCurriculum2-v0",
-        "SafetyDoggoCurriculum2Vision-v0",
-        "SafetyRacecarCurriculum2-v0",
-        "SafetyRacecarCurriculum2Vision-v0",
-        "SafetyRacecarCurriculum2Debug-v0",
-        "SafetyAntCurriculum2-v0",
-        "SafetyAntCurriculum2Vision-v0",
-
-        "SafetyPointBaseline2-v0"
+        "SafetyPointHM0-v0",
+        "SafetyCarHM0-v0",
+        "SafetyDoggoHM0-v0",
+        "SafetyRacecarHM0-v0",
+        "SafetyAntHM0-v0",
+        "SafetyPointHM1-v0",
+        "SafetyCarHM1-v0",
+        "SafetyDoggoHM1-v0",
+        "SafetyRacecarHM1-v0",
+        "SafetyAntHM1-v0",
+        "SafetyPointHM2-v0",
+        "SafetyCarHM2-v0",
+        "SafetyDoggoHM2-v0",
+        "SafetyRacecarHM2-v0",
+        "SafetyAntHM2-v0",
+        "SafetyPointHM3-v0",
+        "SafetyCarHM3-v0",
+        "SafetyDoggoHM3-v0",
+        "SafetyRacecarHM3-v0",
+        "SafetyAntHM3-v0",
+        "SafetyPointHM4-v0",
+        "SafetyCarHM4-v0",
+        "SafetyDoggoHM4-v0",
+        "SafetyRacecarHM4-v0",
+        "SafetyAntHM4-v0",
+        "SafetyPointHM5-v0",
+        "SafetyCarHM5-v0",
+        "SafetyDoggoHM5-v0",
+        "SafetyRacecarHM5-v0",
+        "SafetyAntHM5-v0",
+        "SafetyPointHMT-v0",
+        "SafetyCarHMT-v0",
+        "SafetyDoggoHMT-v0",
+        "SafetyRacecarHMT-v0",
+        "SafetyAntHMT-v0",
     ]
 
     def __init__(
@@ -110,16 +103,10 @@ class CurriculumEnv(CMDP):
 
         self._kwargs = kwargs
         self._steps = 0
-        self._curriculum = True
-        self._rendering = False
+        self._curriculum = False
 
-        print("env_id was:", env_id)
-
-        if env_id == "SafetyPointBaseline2-v0":
-            self._curriculum = False
-            env_id = "SafetyPointCurriculum2-v0"
-
-        self._original_env_id = env_id
+        if "HM0" in env_id:
+            self._curriculum = True
 
         if num_envs > 1:
             self._env = safety_gymnasium.vector.make(env_id=env_id, num_envs=num_envs, **kwargs)
@@ -203,6 +190,7 @@ class CurriculumEnv(CMDP):
         self,
         seed: int | None = None,
         options: dict[str, Any] | None = None,
+        resetting_for_render = False,
     ) -> tuple[torch.Tensor, dict[str, Any]]:
         """Reset the environment.
 
@@ -215,20 +203,28 @@ class CurriculumEnv(CMDP):
             observation: Agent's observation of the current environment.
             info: Some information logged by the environment.
         """
-        print("---- resseting in omnisafe")
 
-        # if self._rendering:
-        #     self._env = safety_gymnasium.make(id=self._original_env_id, autoreset=True, **self._kwargs)
-        # elif self._curriculum:
-        #     if self._steps == 0:
-        #         print("Changed env to level 0")
-        #         self._env = safety_gymnasium.make(id="SafetyPointCurriculum0-v0", autoreset=True, **self._kwargs)
-        #     if self._steps == 10000:
-        #         print("Changed env to level 1")
-        #         self._env = safety_gymnasium.make(id="SafetyPointCurriculum1-v0", autoreset=True, **self._kwargs)
-        #     if self._steps == 20000:
-        #         print("Changed env to level 2")
-        #         self._env = safety_gymnasium.make(id="SafetyPointCurriculum2-v0", autoreset=True, **self._kwargs)
+        if self._curriculum:
+            if resetting_for_render:
+                self._env = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
+            elif self._steps == 10000:
+                print("Changed env to level 1")
+                self._env = safety_gymnasium.make(id="SafetyPointHM1-v0", autoreset=True, **self._kwargs)
+            elif self._steps == 20000:
+                print("Changed env to level 2")
+                self._env = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
+            elif self._steps == 30000:
+                print("Changed env to level 3")
+                self._env = safety_gymnasium.make(id="SafetyPointHM3-v0", autoreset=True, **self._kwargs)
+            elif self._steps == 40000:
+                print("Changed env to level 4")
+                self._env = safety_gymnasium.make(id="SafetyPointHM4-v0", autoreset=True, **self._kwargs)
+            elif self._steps == 50000:
+                print("Changed env to level 5")
+                self._env = safety_gymnasium.make(id="SafetyPointHM5-v0", autoreset=True, **self._kwargs)
+            elif self._steps == 60000:
+                print("Changed env to level Target")
+                self._env = safety_gymnasium.make(id="SafetyPointHMT-v0", autoreset=True, **self._kwargs)
 
         # options does absolutely nothing
         obs, info = self._env.reset(seed=seed, options=options)
@@ -262,7 +258,6 @@ class CurriculumEnv(CMDP):
             The render frames: we recommend to use `np.ndarray`
                 which could construct video by moviepy.
         """
-        self._rendering = True
         return self._env.render()
 
     def close(self) -> None:

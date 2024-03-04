@@ -6,15 +6,16 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 # from safety_gymnasium.utils.registration import register
-from custom_envs.curriculum_env import CurriculumEnv
+# from custom_envs.preliminary_levels.curriculum_env import CurriculumEnv
+from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 
 steps_per_epoch = 1000
-epochs = 40
-safe_freq = int(epochs / 2)
+epochs = 1
+safe_freq = epochs
 
 def test(random, folder, num_videos):
-    baseline_env_id = 'SafetyPointCurriculum1-v0'
-    curr_env_id = 'SafetyPointCurriculum2-v0'
+    baseline_env_id = 'SafetyPointHMT-v0'
+    curr_env_id = 'SafetyPointHM0-v0'
 
     if random:
         seed = int(rand.random() * 1000)
@@ -70,7 +71,7 @@ def test(random, folder, num_videos):
         },
     }
 
-    baseline_agent = omnisafe.Agent('PPOLag', baseline_env_id, custom_cfgs=baseline_custom_cfgs)
+    # baseline_agent = omnisafe.Agent('PPOLag', baseline_env_id, custom_cfgs=baseline_custom_cfgs)
     curr_agent = omnisafe.Agent('PPOLag', curr_env_id, custom_cfgs=curr_custom_cfgs)
 
     # def print_agent_params(agent):
@@ -93,8 +94,8 @@ def test(random, folder, num_videos):
 
         agent.render(num_episodes=episodes, render_mode='rgb_array', width=256, height=256)
 
-    get_multiple_videos(agent=baseline_agent, episodes=num_videos)
-    get_multiple_videos(agent=curr_agent, episodes=num_videos + 1)
+    # get_multiple_videos(agent=baseline_agent, episodes=num_videos)
+    get_multiple_videos(agent=curr_agent, episodes=num_videos)
 
 def nice_plot(folder, include_weak=False):
     baseline_algorithms = os.scandir("app/results/" + folder + "/baseline")
@@ -184,8 +185,8 @@ def nice_plot(folder, include_weak=False):
     plt.show()
 
 if __name__ == '__main__':
-    folder = "test-zero_hazards"
-    num_videos = 3
-    for i in range(5):
+    folder = "test-render"
+    num_videos = 1
+    for i in range(1):
         test(True, folder, num_videos)
-    nice_plot(folder, include_weak=True)
+    # nice_plot(folder, include_weak=True)

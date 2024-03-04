@@ -32,9 +32,17 @@ from safety_gymnasium.version import __version__
 from safety_gymnasium.builder import Builder
 from safety_gymnasium.utils.task_utils import get_task_class_name
 
-from custom_envs.curriculum_levels.curriculum_level_0 import CurriculumLevel0
-from custom_envs.curriculum_levels.curriculum_level_1 import CurriculumLevel1
-from custom_envs.curriculum_levels.curriculum_level_2 import CurriculumLevel2
+from custom_envs.preliminary_levels.curriculum_level_0 import CurriculumLevel0
+from custom_envs.preliminary_levels.curriculum_level_1 import CurriculumLevel1
+from custom_envs.preliminary_levels.curriculum_level_2 import CurriculumLevel2
+
+from custom_envs.hand_made_levels.hm_level_0 import HMLevel0
+from custom_envs.hand_made_levels.hm_level_1 import HMLevel1
+from custom_envs.hand_made_levels.hm_level_2 import HMLevel2
+from custom_envs.hand_made_levels.hm_level_3 import HMLevel3
+from custom_envs.hand_made_levels.hm_level_4 import HMLevel4
+from custom_envs.hand_made_levels.hm_level_5 import HMLevel5
+from custom_envs.hand_made_levels.hm_level_target import HMLevelTarget
 
 __all__ = [
     'register',
@@ -77,7 +85,7 @@ def __register_helper(env_id, entry_point, spec_kwargs=None, **kwargs):
     )
 
 
-def __combine(tasks, agents, max_episode_steps):
+def __combine(tasks, agents, max_episode_steps, builder_name):
     """Combine tasks and agents together to register environment tasks."""
     for task_name, task_config in tasks.items():
         # Vector inputs
@@ -89,7 +97,7 @@ def __combine(tasks, agents, max_episode_steps):
             __register_helper(
                 env_id=env_id,
                 # entry_point='safety_gymnasium.builder:Builder',
-                entry_point='custom_envs.__init__:CustomBuilder',
+                entry_point='custom_envs.__init__:' + builder_name,
                 spec_kwargs={'config': combined_config, 'task_id': env_id},
                 max_episode_steps=max_episode_steps,
             )
@@ -123,9 +131,9 @@ def __combine(tasks, agents, max_episode_steps):
 
 # Goal Environments
 # ----------------------------------------
-goal_tasks = {'Curriculum0': {}, 'Curriculum1': {}, 'Curriculum2': {}}
+preliminary_goal_tasks = {'Curriculum0': {}, 'Curriculum1': {}, 'Curriculum2': {}}
 
-class CustomBuilder(Builder):
+class CustomBuilderPreliminary(Builder):
     # def __init__(self):
     #     super.__init__()
     #     self.tasks = {
@@ -149,4 +157,41 @@ class CustomBuilder(Builder):
             task.build_observation_space()
             return task
     
-__combine(goal_tasks, robots, max_episode_steps=1000)
+__combine(preliminary_goal_tasks, robots, max_episode_steps=1000, builder_name="CustomBuilderPreliminary")
+
+
+hm_goal_tasks = {'HM0': {}, 'HM1': {}, 'HM2': {}, 'HM3': {}, 'HM4': {}, 'HM5': {}, 'HMT': {}}
+
+class CustomBuilderHandMade(Builder):
+    # def __init__(self):
+    #     super.__init__()
+    #     self.tasks = {
+
+    #     }
+
+    def _get_task_from_string(self, class_name):
+        if class_name == "HMLevel0":
+            return HMLevel0
+        elif class_name == "HMLevel1":
+            return HMLevel1
+        elif class_name == "HMLevel2":
+            return HMLevel2
+        elif class_name == "HMLevel3":
+            return HMLevel3
+        elif class_name == "HMLevel4":
+            return HMLevel4
+        elif class_name == "HMLevel5":
+            return HMLevel5
+        elif class_name == "HMLevelT":
+            return HMLevelTarget
+        else:
+            return super()._get_task()
+
+    def _get_task(self):
+            class_name = get_task_class_name(self.task_id)
+            task_class = self._get_task_from_string(class_name)
+            task = task_class(config=self.config)
+            task.build_observation_space()
+            return task
+    
+__combine(hm_goal_tasks, robots, max_episode_steps=1000, builder_name="CustomBuilderHandMade")

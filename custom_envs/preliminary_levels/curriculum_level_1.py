@@ -1,4 +1,4 @@
-"""Goal level 0."""
+"""Goal level 1."""
 
 # Introduce the required objects
 from safety_gymnasium.assets.geoms import Goal, Hazards
