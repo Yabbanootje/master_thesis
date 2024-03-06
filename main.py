@@ -5,20 +5,18 @@ import random as rand
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import datetime
 # from safety_gymnasium.utils.registration import register
 # from custom_envs.preliminary_levels.curriculum_env import CurriculumEnv
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 
-steps_per_epoch = 1000
-epochs = 50
-safe_freq = 10
-
-def test(random, folder, num_videos):
-    baseline_env_id = 'SafetyPointHM3-v0'
-    curr_env_id = 'SafetyPointHM0-v0'
+def get_configs(folder, cost_limit, random):
+    steps_per_epoch = 1000
+    epochs = 50
+    safe_freq = epochs
 
     if random:
-        seed = int(rand.random() * 1000)
+        seed = int(rand.random() * 10000)
     else:
         seed = 0
 
@@ -32,7 +30,7 @@ def test(random, folder, num_videos):
         'algo_cfgs': {
             'steps_per_epoch': steps_per_epoch,
             'update_iters': 1,
-            # 'cost_limit': 10.0,
+            'cost_limit': cost_limit,
             # 'penalty_coef': 0.01,
         },
         'logger_cfgs': {
@@ -42,7 +40,7 @@ def test(random, folder, num_videos):
             # 'wandb_project': "TODO",
         },
         'lagrange_cfgs': {
-            'cost_limit': 10.0,
+            'cost_limit': cost_limit,
         },
     }
 
@@ -56,7 +54,7 @@ def test(random, folder, num_videos):
         'algo_cfgs': {
             'steps_per_epoch': steps_per_epoch,
             'update_iters': 1,
-            # 'cost_limit': 10.0,
+            'cost_limit': cost_limit,
             # 'penalty_coef': 0.01, # use costs also as a negative reward
             # 'use_cost': True, # mainly for updating the cost-critic
         },
@@ -67,67 +65,70 @@ def test(random, folder, num_videos):
             # 'wandb_project': "TODO",
         },
         'lagrange_cfgs': {
-            'cost_limit': 10.0,
+            'cost_limit': cost_limit,
         },
     }
 
-    baseline_agent = omnisafe.Agent('PPOLag', baseline_env_id, custom_cfgs=baseline_custom_cfgs)
-    curr_agent = omnisafe.Agent('PPOLag', curr_env_id, custom_cfgs=curr_custom_cfgs)
+    return baseline_custom_cfgs, curr_custom_cfgs
 
-    # def print_agent_params(agent):
-    #     scan_dir = os.scandir(os.path.join(agent.agent.logger.log_dir, 'torch_save'))
-    #     for item in scan_dir:
-    #         if item.is_file() and item.name.split('.')[-1] == 'pt':
-    #             model_path = os.path.join(agent.agent.logger.log_dir, 'torch_save', item.name)
-    #             model_params = torch.load(model_path)
-    #             for thingy in model_params['pi']:
-    #                 print(thingy, model_params['pi'][thingy].size())
+def get_agents(algorithms, env_id, cfgs):
+    agents = []
+    for algorithm in algorithms:
+        agents.append(omnisafe.Agent(algorithm, env_id, custom_cfgs=cfgs))
 
-    # print_agent_params(agent=agent)
+    return agents
 
-    def get_multiple_videos(agent, episodes = 1):
-        agent.learn()
+def train_agent(agent, videos = 1):
+    agent.learn()
 
-        agent.plot(smooth=1)
+    agent.plot(smooth=1)
 
-        agent.evaluate(num_episodes=episodes)
+    agent.evaluate(num_episodes=videos)
 
-        agent.render(num_episodes=episodes, render_mode='rgb_array', width=256, height=256)
+    agent.render(num_episodes=videos, render_mode='rgb_array', width=256, height=256)
 
-    get_multiple_videos(agent=baseline_agent, episodes=num_videos)
-    get_multiple_videos(agent=curr_agent, episodes=num_videos)
+def nice_plot(folder, curr_changes, cost_limit, include_weak=False):
+    # Get folder names for all algorithms
+    baseline_dir = "app/results/" + folder + "/baseline"
+    curr_dir = "app/results/" + folder + "/curriculum"
 
-def nice_plot(folder, include_weak=False):
-    baseline_algorithms = os.scandir("app/results/" + folder + "/baseline")
-    curr_algorithms = os.scandir("app/results/" + folder + "/curriculum")
+    baseline_algorithms = [entry.name for entry in os.scandir(baseline_dir)]
+    curr_algorithms = [entry.name for entry in os.scandir(curr_dir)]
 
-    baseline_algorithm = str([algorithm.name for algorithm in baseline_algorithms][0])
-    curr_algorithm = str([algorithm.name for algorithm in curr_algorithms][0])
+    baseline_dfs = {}
+    curr_dfs = {}
 
-    baseline_paths = os.scandir("app/results/" + folder + "/baseline/" + baseline_algorithm)
-    curr_paths = os.scandir("app/results/" + folder + "/curriculum/" + curr_algorithm)
+    for algorithm in baseline_algorithms:
+        paths = [entry.path for entry in os.scandir(os.path.join(baseline_dir, algorithm))]
+        df_list = [pd.read_csv(os.path.join(path, "progress.csv")) for path in paths]
+        baseline_dfs[algorithm] = pd.concat(df_list)
 
-    dfs = []
-    for path in baseline_paths:
-        dfs.append(pd.read_csv("app/results/" + folder + "/baseline/" + baseline_algorithm + "/" + str(path.name) + "/progress.csv"))
+    for algorithm in curr_algorithms:
+        paths = [entry.path for entry in os.scandir(os.path.join(curr_dir, algorithm))]
+        df_list = [pd.read_csv(os.path.join(path, "progress.csv")) for path in paths]
+        curr_dfs[algorithm] = pd.concat(df_list)
 
-    dfcs = []
-    for path in curr_paths:
-        dfcs.append(pd.read_csv("app/results/" + folder + "/curriculum/" + curr_algorithm + "/" + str(path.name) + "/progress.csv"))
+    baseline_rewards_mean = {}
+    baseline_costs_mean = {}
+    baseline_rewards_std = {}
+    baseline_costs_std = {}
 
-    rewards = []
-    costs = []
+    for algorithm, df in baseline_dfs.items():
+        baseline_rewards_mean[algorithm] = df.groupby(df.index)['Metrics/EpRet'].mean().values
+        baseline_costs_mean[algorithm] = df.groupby(df.index)['Metrics/EpCost'].mean().values
+        baseline_rewards_std[algorithm] = df.groupby(df.index)['Metrics/EpRet'].std().values
+        baseline_costs_std[algorithm] = df.groupby(df.index)['Metrics/EpCost'].std().values
 
-    for df in dfs:
-        rewards.append(df['Metrics/EpRet'].to_numpy())
-        costs.append(df['Metrics/EpCost'].to_numpy())
+    curr_rewards_mean = {}
+    curr_costs_mean = {}
+    curr_rewards_std = {}
+    curr_costs_std = {}
 
-    rewardsc = []
-    costsc = []
-
-    for dfc in dfcs:
-        rewardsc.append(dfc['Metrics/EpRet'].to_numpy())
-        costsc.append(dfc['Metrics/EpCost'].to_numpy())
+    for algorithm, df in curr_dfs.items():
+        curr_rewards_mean[algorithm] = df.groupby(df.index)['Metrics/EpRet'].mean().values
+        curr_costs_mean[algorithm] = df.groupby(df.index)['Metrics/EpCost'].mean().values
+        curr_rewards_std[algorithm] = df.groupby(df.index)['Metrics/EpRet'].std().values
+        curr_costs_std[algorithm] = df.groupby(df.index)['Metrics/EpCost'].std().values
 
     # script_dir = os.path.dirname(__file__)
     # results_dir = os.path.join(script_dir, 'Results/')
@@ -135,59 +136,109 @@ def nice_plot(folder, include_weak=False):
     if not os.path.isdir("app/figures/" + folder):
         os.makedirs("app/figures/" + folder)
 
-    mean_rewards = np.mean(rewards, axis=0)
-    mean_costs = np.mean(costs, axis=0)
-    mean_rewardsc = np.mean(rewardsc, axis=0)
-    mean_costsc = np.mean(costsc, axis=0)
-
-    std_rewards = np.std(rewards, axis=0)
-    std_costs = np.std(costs, axis=0)
-    std_rewardsc = np.std(rewardsc, axis=0)
-    std_costsc = np.std(costsc, axis=0)
+    # std_rewards = np.std(rewards, axis=0)
+    # std_costs = np.std(costs, axis=0)
+    # std_rewardsc = np.std(rewardsc, axis=0)
+    # std_costsc = np.std(costsc, axis=0)
 
     # ticks = np.arange(len(mean_rewards), step=5)
     # ticks[0] = 1
 
     plt.figure()
-    plt.plot(np.arange(1, len(mean_rewards) + 1), mean_rewards, label = "Baseline")
-    plt.fill_between(x=np.arange(1, len(mean_rewards) + 1), y1=mean_rewards-std_rewards, y2=mean_rewards+std_rewards, alpha=0.2)
-    plt.plot(np.arange(1, len(mean_rewards) + 1), mean_rewardsc, label = "Curriculum Strong")
-    plt.fill_between(x=np.arange(1, len(mean_rewards) + 1), y1=mean_rewardsc-std_rewardsc, y2=mean_rewardsc+std_rewardsc, alpha=0.2)
-    if include_weak:
-        plt.plot(np.arange(1, len(mean_rewards) + 1 - 20), mean_rewardsc[20:], label = "Curriculum Weak")
-        plt.fill_between(x=np.arange(1, len(mean_rewards) + 1 - 20), y1=(mean_rewardsc-std_rewardsc)[20:], y2=(mean_rewardsc+std_rewardsc)[20:], alpha=0.2)
-    plt.axvline(x = 10, color = "gray", linestyle = '-')
-    plt.axvline(x = 20, color = "gray", linestyle = '-')
+
+    # Plot baseline rewards
+    for algorithm_name in baseline_rewards_mean.keys():
+        plt.plot(np.arange(1, len(baseline_rewards_mean[algorithm_name]) + 1), baseline_rewards_mean[algorithm_name], label="Baseline - " + algorithm_name.split('-')[0])
+        plt.fill_between(x=np.arange(1, len(baseline_rewards_mean[algorithm_name]) + 1),
+                        y1=baseline_rewards_mean[algorithm_name] - baseline_rewards_std[algorithm_name],
+                        y2=baseline_rewards_mean[algorithm_name] + baseline_rewards_std[algorithm_name], alpha=0.2)
+
+    # Plot curriculum rewards
+    for algorithm_name in curr_rewards_mean.keys():
+        plt.plot(np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1), curr_rewards_mean[algorithm_name], label="Curriculum Strong - " + algorithm_name.split('-')[0])
+        plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1),
+                        y1=curr_rewards_mean[algorithm_name] - curr_rewards_std[algorithm_name],
+                        y2=curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name], alpha=0.2)
+
+        if include_weak:
+            plt.plot(np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1 - 20), curr_rewards_mean[algorithm_name][20:], label="Curriculum Weak - " + algorithm_name.split('-')[0])
+            plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1 - 20),
+                            y1=(curr_rewards_mean[algorithm_name] - curr_rewards_std[algorithm_name])[20:],
+                            y2=(curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name])[20:], alpha=0.2)
+
+    for change in curr_changes:
+        plt.axvline(x=change, color="gray", linestyle='-')
+
     plt.legend()
     plt.grid()
     plt.title("Rewards of agent using curriculum and baseline agent")
     plt.xlabel("x1000 Steps")
     plt.ylabel("Reward")
-    plt.savefig("app/figures/" + folder + "/rewards.png")
+    plt.savefig("app/figures/" + folder + "/rewards_new.png")
     plt.show()
 
     plt.figure()
-    plt.plot(np.arange(1, len(mean_rewards) + 1), mean_costs, label = "Baseline")
-    plt.fill_between(x=np.arange(1, len(mean_rewards) + 1), y1=mean_costs-std_costs, y2=mean_costs+std_costs, alpha=0.2)
-    plt.plot(np.arange(1, len(mean_rewards) + 1), mean_costsc, label = "Curriculum Strong")
-    plt.fill_between(x=np.arange(1, len(mean_rewards) + 1), y1=mean_costsc-std_costsc, y2=mean_costsc+std_costsc, alpha=0.2)
-    if include_weak:
-        plt.plot(np.arange(1, len(mean_rewards) + 1 - 20), mean_costsc[20:], label = "Curriculum Weak")
-        plt.fill_between(x=np.arange(1, len(mean_rewards) + 1 - 20), y1=(mean_costsc-std_costsc)[20:], y2=(mean_costsc+std_costsc)[20:], alpha=0.2)
-    plt.axhline(y = 10, color = 'r', linestyle = '-') 
-    plt.axvline(x = 10, color = "gray", linestyle = '-')
-    plt.axvline(x = 20, color = "gray", linestyle = '-')
+
+    # Plot baseline costs
+    for algorithm_name in baseline_costs_mean.keys():
+        plt.plot(np.arange(1, len(baseline_costs_mean[algorithm_name]) + 1), baseline_costs_mean[algorithm_name], label="Baseline - " + algorithm_name.split('-')[0])
+        plt.fill_between(x=np.arange(1, len(baseline_costs_mean[algorithm_name]) + 1),
+                        y1=baseline_costs_mean[algorithm_name] - baseline_costs_std[algorithm_name],
+                        y2=baseline_costs_mean[algorithm_name] + baseline_costs_std[algorithm_name], alpha=0.2)
+
+    # Plot curriculum costs
+    for algorithm_name in curr_costs_mean.keys():
+        plt.plot(np.arange(1, len(curr_costs_mean[algorithm_name]) + 1), curr_costs_mean[algorithm_name], label="Curriculum Strong - " + algorithm_name.split('-')[0])
+        plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1),
+                        y1=curr_costs_mean[algorithm_name] - curr_costs_std[algorithm_name],
+                        y2=curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name], alpha=0.2)
+
+        if include_weak:
+            plt.plot(np.arange(1, len(curr_costs_mean[algorithm_name]) + 1 - 30), curr_costs_mean[algorithm_name][30:], label="Curriculum Weak - " + algorithm_name.split('-')[0])
+            plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1 - 30),
+                            y1=(curr_costs_mean[algorithm_name] - curr_costs_std[algorithm_name])[30:],
+                            y2=(curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name])[30:], alpha=0.2)
+
+    plt.axhline(y=cost_limit, color='r', linestyle='-')
+
+    for change in curr_changes:
+        plt.axvline(x=change, color="gray", linestyle='-')
+
     plt.legend()
     plt.grid()
     plt.title("Costs of agent using curriculum and baseline agent")
     plt.xlabel("x1000 Steps")
     plt.ylabel("Cost")
-    plt.savefig("app/figures/" + folder + "/costs.png")
+    plt.savefig("app/figures/" + folder + "/costs_new.png")
     plt.show()
 
 if __name__ == '__main__':
-    folder = "test-half_curriculum-2"
     num_videos = 3
-    for i in range(3):
-        test(True, folder, num_videos)
-    nice_plot(folder, include_weak=True)
+    cost_limit = 10.0
+    repetitions = 3
+    baseline_algorithms = ["PPOLag"]
+    curr_algorithms = ["PPOLag", "CPO", "P3O"]
+
+    # Get configurations
+    folder = "test-half_curriculum-multi_algos"
+    folder_name = folder + str(datetime.datetime.now()).replace(' ', '-')
+    base_cfgs, curr_cfgs = get_configs(folder=folder_name, cost_limit=cost_limit, random=True)
+
+    # Repeat experiments
+    for i in range(repetitions):
+        # Initialize agents
+        baseline_env_id = 'SafetyPointHM3-v0'
+        curr_env_id = 'SafetyPointHM0-v0'
+
+        baseline_agent = get_agents(baseline_algorithms, baseline_env_id, base_cfgs)
+        curriculum_agents = get_agents(curr_algorithms, curr_env_id, curr_cfgs)
+
+        # Train agents
+        train_agent(baseline_agent, num_videos)
+
+        for curriculum_agent in curriculum_agents:
+            train_agent(curriculum_agent, num_videos)
+
+    # Plot the results
+    curr_changes = [10, 20, 30]
+    nice_plot(folder_name, curr_changes, cost_limit, include_weak=False)
