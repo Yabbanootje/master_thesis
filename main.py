@@ -230,11 +230,12 @@ if __name__ == '__main__':
         baseline_env_id = 'SafetyPointHM3-v0'
         curr_env_id = 'SafetyPointHM0-v0'
 
-        baseline_agent = get_agents(baseline_algorithms, baseline_env_id, base_cfgs)
+        baseline_agents = get_agents(baseline_algorithms, baseline_env_id, base_cfgs)
         curriculum_agents = get_agents(curr_algorithms, curr_env_id, curr_cfgs)
 
         # Train agents
-        train_agent(baseline_agent, num_videos)
+        for baseline_agent in baseline_agents:
+            train_agent(baseline_agent, num_videos)
 
         for curriculum_agent in curriculum_agents:
             train_agent(curriculum_agent, num_videos)
