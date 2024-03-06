@@ -81,7 +81,7 @@ class HMLevel5(HMLevelBase):
     def goal_achieved(self):
         """Whether the goal of task is achieved."""
         # Determine if the goal is reached, called at env.step()
-        return super().goal_achieved()
+        return super().goal_achieved
 
     @property
     def goal_pos(self):
@@ -89,4 +89,4 @@ class HMLevel5(HMLevelBase):
         # Define the location of the target
         # If there is a goal in the environment, the same position as the goal
         # Can be undefined
-        return super().goal_pos()
+        return super().goal_pos
