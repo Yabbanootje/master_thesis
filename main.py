@@ -52,6 +52,8 @@ def get_configs(folder, algos, epochs, cost_limit, random):
         if kwargs.get("lagrange_cfgs"):
             custom_cfg.update({'lagrange_cfgs': {
                 'cost_limit': cost_limit,
+                'lagrangian_multiplier_init': 0.01,
+                'lambda_lr': 0.1,
             },
             })
         if kwargs["algo_cfgs"].get("cost_limit"):
