@@ -60,6 +60,8 @@ def get_configs(folder, algos, epochs, cost_limit, random):
         if kwargs["algo_cfgs"].get("cost_limit"):
             custom_cfg["algo_cfgs"].update({'cost_limit': cost_limit,})
 
+        print("custom_cfg:", custom_cfg)
+
         custom_cfgs.append(custom_cfg)
 
     return custom_cfgs
