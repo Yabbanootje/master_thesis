@@ -15,6 +15,11 @@ from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 def get_configs(folder, algos, epochs, cost_limit, random):
     steps_per_epoch = 1000
     safe_freq = epochs
+    
+    if random:
+        seed = int(rand.random() * 10000)
+    else:
+        seed = 0
 
     custom_cfgs = []
 
@@ -22,11 +27,6 @@ def get_configs(folder, algos, epochs, cost_limit, random):
         # cfg_path = get_yaml_path(algo, "on-policy")
         # kwargs = load_yaml(cfg_path)
         kwargs = get_default_kwargs_yaml(algo, None, "on-policy").todict()
-
-        if random:
-            seed = int(rand.random() * 10000)
-        else:
-            seed = 0
 
         custom_cfg = {
             'seed': seed,
@@ -46,6 +46,14 @@ def get_configs(folder, algos, epochs, cost_limit, random):
                 # 'use_wandb': True,
                 # 'wandb_project': "TODO",
             },
+            'model_cfgs': {
+                'actor': {
+                    'hidden_sizes': [255, 255]
+                },
+                'critic': {
+                    'hidden_sizes': [255, 255]
+                },
+            }
         }
 
         # Add cost_limit depending on specific algorithm
@@ -59,6 +67,8 @@ def get_configs(folder, algos, epochs, cost_limit, random):
                 custom_cfg['lagrange_cfgs'].update({'lambda_lr': 0.05,})
         if kwargs["algo_cfgs"].get("cost_limit"):
             custom_cfg["algo_cfgs"].update({'cost_limit': cost_limit,})
+
+        print(f"{algo}: {custom_cfg}")
 
         custom_cfgs.append(custom_cfg)
 
