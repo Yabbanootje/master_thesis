@@ -15,7 +15,6 @@ class HMLevel0(HMLevelBase):
 
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
-        self._add_geoms(Goal(size = self.geom_radius, keepout = 0, locations=[self.goal_location], reward_goal=self.goal_reward))
         self._add_geoms(Hazards(size = self.geom_radius, keepout = 0, num = 0))
 
     def calculate_reward(self):

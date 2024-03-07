@@ -8,73 +8,63 @@ import matplotlib.pyplot as plt
 import datetime
 # from safety_gymnasium.utils.registration import register
 # from custom_envs.preliminary_levels.curriculum_env import CurriculumEnv
+# from omnisafe.utils.tools import get_yaml_path, load_yaml
+from omnisafe.utils.config import get_default_kwargs_yaml
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 
-def get_configs(folder, cost_limit, random):
+def get_configs(folder, algos, epochs, cost_limit, random):
     steps_per_epoch = 1000
-    epochs = 50
     safe_freq = epochs
 
-    if random:
-        seed = int(rand.random() * 10000)
-    else:
-        seed = 0
+    custom_cfgs = []
 
-    baseline_custom_cfgs = {
-        'seed': seed,
-        'train_cfgs': {
-            'total_steps': epochs * steps_per_epoch,
-            'vector_env_nums': 1,
-            'parallel': 1,
-        },
-        'algo_cfgs': {
-            'steps_per_epoch': steps_per_epoch,
-            'update_iters': 1,
-            'cost_limit': cost_limit,
-            # 'penalty_coef': 0.01,
-        },
-        'logger_cfgs': {
-            'log_dir': "./app/results/" + folder + "/baseline",
-            'save_model_freq': safe_freq,
-            # 'use_wandb': True,
-            # 'wandb_project': "TODO",
-        },
-        'lagrange_cfgs': {
-            'cost_limit': cost_limit,
-        },
-    }
+    for algo in algos:
+        # cfg_path = get_yaml_path(algo, "on-policy")
+        # kwargs = load_yaml(cfg_path)
+        kwargs = get_default_kwargs_yaml(algo, None, "on-policy").todict()
 
-    curr_custom_cfgs = {
-        'seed': seed,
-        'train_cfgs': {
-            'total_steps': epochs * steps_per_epoch,
-            'vector_env_nums': 1,
-            'parallel': 1,
-        },
-        'algo_cfgs': {
-            'steps_per_epoch': steps_per_epoch,
-            'update_iters': 1,
-            'cost_limit': cost_limit,
-            # 'penalty_coef': 0.01, # use costs also as a negative reward
-            # 'use_cost': True, # mainly for updating the cost-critic
-        },
-        'logger_cfgs': {
-            'log_dir': "./app/results/" + folder + "/curriculum",
-            'save_model_freq': safe_freq,
-            # 'use_wandb': True,
-            # 'wandb_project': "TODO",
-        },
-        'lagrange_cfgs': {
-            'cost_limit': cost_limit,
-        },
-    }
+        if random:
+            seed = int(rand.random() * 10000)
+        else:
+            seed = 0
 
-    return baseline_custom_cfgs, curr_custom_cfgs
+        custom_cfg = {
+            'seed': seed,
+            'train_cfgs': {
+                'total_steps': epochs * steps_per_epoch,
+                'vector_env_nums': 1,
+                'parallel': 1,
+            },
+            'algo_cfgs': {
+                'steps_per_epoch': steps_per_epoch,
+                'update_iters': 1,
+                # 'penalty_coef': 0.01,
+            },
+            'logger_cfgs': {
+                'log_dir': "./app/results/" + folder,
+                'save_model_freq': safe_freq,
+                # 'use_wandb': True,
+                # 'wandb_project': "TODO",
+            },
+        }
+
+        # Add cost_limit depending on specific algorithm
+        if kwargs.get("lagrange_cfgs"):
+            custom_cfg.update({'lagrange_cfgs': {
+                'cost_limit': cost_limit,
+            },
+            })
+        if kwargs["algo_cfgs"].get("cost_limit"):
+            custom_cfg["algo_cfgs"].update({'cost_limit': cost_limit,})
+
+        custom_cfgs.append(custom_cfg)
+
+    return custom_cfgs
 
 def get_agents(algorithms, env_id, cfgs):
     agents = []
-    for algorithm in algorithms:
-        agents.append(omnisafe.Agent(algorithm, env_id, custom_cfgs=cfgs))
+    for algorithm, cfg in zip(algorithms, cfgs):
+        agents.append(omnisafe.Agent(algorithm, env_id, custom_cfgs=cfg))
 
     return agents
 
@@ -215,17 +205,21 @@ def nice_plot(folder, curr_changes, cost_limit, include_weak=False):
 if __name__ == '__main__':
     num_videos = 3
     cost_limit = 10.0
+    epochs = 50
     repetitions = 3
     baseline_algorithms = ["PPOLag"]
-    curr_algorithms = ["PPOLag", "CPO", "P3O"]
+    curr_algorithms = ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
 
-    # Get configurations
+    # Create folder
     folder = "test-half_curriculum-multi_algos"
-    folder_name = folder + str(datetime.datetime.now()).replace(' ', '-')
-    base_cfgs, curr_cfgs = get_configs(folder=folder_name, cost_limit=cost_limit, random=True)
+    folder_name = folder + "---" + str(datetime.datetime.now()).replace(' ', '-')
 
     # Repeat experiments
     for i in range(repetitions):
+        # Get configurations
+        base_cfgs = get_configs(folder=folder_name + "/baseline", algos=baseline_algorithms, epochs=epochs, cost_limit=cost_limit, random=True)
+        curr_cfgs = get_configs(folder=folder_name + "/curriculum", algos=curr_algorithms, epochs=epochs, cost_limit=cost_limit, random=True)
+
         # Initialize agents
         baseline_env_id = 'SafetyPointHM3-v0'
         curr_env_id = 'SafetyPointHM0-v0'

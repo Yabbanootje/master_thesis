@@ -20,12 +20,15 @@ class HMLevelBase(BaseTask):
         self.goal_location = (0, 0)
         self.geom_radius = 0.25
         self.goal_reward = 20
+        self.step_penalty = 0.005
         self.lidar_conf.max_dist = 4
         # self.agent.placements = [3, -2, 4, 2]
-        self.agent.locations = [(4, 0)]
+        self.agent.locations = [(3.5, 0)]
         
         self._steps = 0
-                                                               
+
+        self._add_geoms(Goal(size = self.geom_radius, keepout = 0, locations=[self.goal_location], reward_goal=self.goal_reward))
+        self.goal.reward_distance = 2
         # - in x is to the right
         # - in y is to the top
         # (0, 0) is in the middle
@@ -43,8 +46,8 @@ class HMLevelBase(BaseTask):
         reward += (self.last_dist_goal - dist_goal) * self.goal.reward_distance
         self.last_dist_goal = dist_goal
 
-        # print("reward of a single step:", reward)
-        # print("reward of reaching the goal", self.goal.reward_goal)
+        # Punishing longer routes
+        reward -= self.step_penalty
 
         if self.goal_achieved:
             reward += self.goal.reward_goal
