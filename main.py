@@ -136,6 +136,8 @@ def nice_plot(folder, curr_changes, cost_limit, include_weak=False):
 
     # ticks = np.arange(len(mean_rewards), step=5)
     # ticks[0] = 1
+        
+    last_change = curr_changes[-1]
 
     plt.figure()
 
@@ -154,10 +156,10 @@ def nice_plot(folder, curr_changes, cost_limit, include_weak=False):
                         y2=curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name], alpha=0.2)
 
         if include_weak:
-            plt.plot(np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1 - 20), curr_rewards_mean[algorithm_name][20:], label="Curriculum Weak - " + algorithm_name.split('-')[0])
-            plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1 - 20),
-                            y1=(curr_rewards_mean[algorithm_name] - curr_rewards_std[algorithm_name])[20:],
-                            y2=(curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name])[20:], alpha=0.2)
+            plt.plot(np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1 - last_change), curr_rewards_mean[algorithm_name][last_change:], label="Curriculum Weak - " + algorithm_name.split('-')[0])
+            plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1 - last_change),
+                            y1=(curr_rewards_mean[algorithm_name] - curr_rewards_std[algorithm_name])[last_change:],
+                            y2=(curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name])[last_change:], alpha=0.2)
 
     for change in curr_changes:
         plt.axvline(x=change, color="gray", linestyle='-')
@@ -187,10 +189,10 @@ def nice_plot(folder, curr_changes, cost_limit, include_weak=False):
                         y2=curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name], alpha=0.2)
 
         if include_weak:
-            plt.plot(np.arange(1, len(curr_costs_mean[algorithm_name]) + 1 - 30), curr_costs_mean[algorithm_name][30:], label="Curriculum Weak - " + algorithm_name.split('-')[0])
-            plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1 - 30),
-                            y1=(curr_costs_mean[algorithm_name] - curr_costs_std[algorithm_name])[30:],
-                            y2=(curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name])[30:], alpha=0.2)
+            plt.plot(np.arange(1, len(curr_costs_mean[algorithm_name]) + 1 - last_change), curr_costs_mean[algorithm_name][last_change:], label="Curriculum Weak - " + algorithm_name.split('-')[0])
+            plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1 - last_change),
+                            y1=(curr_costs_mean[algorithm_name] - curr_costs_std[algorithm_name])[last_change:],
+                            y2=(curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name])[last_change:], alpha=0.2)
 
     plt.axhline(y=cost_limit, color='r', linestyle='-')
 
@@ -208,8 +210,8 @@ def nice_plot(folder, curr_changes, cost_limit, include_weak=False):
 if __name__ == '__main__':
     num_videos = 3
     cost_limit = 10.0
-    epochs = 50
-    repetitions = 3
+    epochs = 70
+    repetitions = 5
     baseline_algorithms = ["PPOLag"]
     curr_algorithms = ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
 
