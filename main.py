@@ -52,15 +52,13 @@ def get_configs(folder, algos, epochs, cost_limit, random):
         if kwargs.get("lagrange_cfgs"):
             custom_cfg.update({'lagrange_cfgs': {
                 'cost_limit': cost_limit,
-                'lagrangian_multiplier_init': 1,
+                'lagrangian_multiplier_init': 1.0,
             },
             })
             if kwargs["lagrange_cfgs"].get("lambda_lr"):
                 custom_cfg['lagrange_cfgs'].update({'lambda_lr': 0.05,})
         if kwargs["algo_cfgs"].get("cost_limit"):
             custom_cfg["algo_cfgs"].update({'cost_limit': cost_limit,})
-
-        print("custom_cfg:", custom_cfg)
 
         custom_cfgs.append(custom_cfg)
 
