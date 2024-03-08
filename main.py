@@ -14,7 +14,7 @@ from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 
 def get_configs(folder, algos, epochs, cost_limit, random):
     steps_per_epoch = 1000
-    safe_freq = epochs
+    safe_freq = 30
     
     if random:
         seed = int(rand.random() * 10000)
@@ -60,7 +60,7 @@ def get_configs(folder, algos, epochs, cost_limit, random):
         if kwargs.get("lagrange_cfgs"):
             custom_cfg.update({'lagrange_cfgs': {
                 'cost_limit': cost_limit,
-                'lagrangian_multiplier_init': 1.0,
+                'lagrangian_multiplier_init': 0.1,
             },
             })
             if kwargs["lagrange_cfgs"].get("lambda_lr"):
@@ -149,7 +149,7 @@ def nice_plot(folder, curr_changes, cost_limit, include_weak=False):
         
     last_change = curr_changes[-1]
 
-    plt.figure()
+    plt.figure(figsize=(10, 5), dpi=80)
 
     # Plot baseline rewards
     for algorithm_name in baseline_rewards_mean.keys():
@@ -174,15 +174,16 @@ def nice_plot(folder, curr_changes, cost_limit, include_weak=False):
     for change in curr_changes:
         plt.axvline(x=change, color="gray", linestyle='-')
 
-    plt.legend()
+    plt.legend(loc=(1.01, 0.01), ncol = 1)
+    plt.tight_layout(pad = 2)
     plt.grid()
     plt.title("Rewards of agent using curriculum and baseline agent")
     plt.xlabel("x1000 Steps")
     plt.ylabel("Reward")
-    plt.savefig("app/figures/" + folder + "/rewards_new.png")
+    plt.savefig("app/figures/" + folder + "/rewards.png")
     plt.show()
 
-    plt.figure()
+    plt.figure(figsize=(10, 5), dpi=80)
 
     # Plot baseline costs
     for algorithm_name in baseline_costs_mean.keys():
@@ -209,24 +210,25 @@ def nice_plot(folder, curr_changes, cost_limit, include_weak=False):
     for change in curr_changes:
         plt.axvline(x=change, color="gray", linestyle='-')
 
-    plt.legend()
+    plt.legend(loc=(1.01, 0.01), ncol = 1)
+    plt.tight_layout(pad = 2)
     plt.grid()
     plt.title("Costs of agent using curriculum and baseline agent")
     plt.xlabel("x1000 Steps")
     plt.ylabel("Cost")
-    plt.savefig("app/figures/" + folder + "/costs_new.png")
+    plt.savefig("app/figures/" + folder + "/costs.png")
     plt.show()
 
 if __name__ == '__main__':
     num_videos = 3
-    cost_limit = 10.0
-    epochs = 70
-    repetitions = 5
-    baseline_algorithms = ["PPOLag"]
+    cost_limit = 0.0
+    epochs = 150
+    repetitions = 7
+    baseline_algorithms = ["PPO", "PPOLag", "P3O"]
     curr_algorithms = ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
 
     # Create folder
-    folder = "test-half_curriculum-multi_algos"
+    folder = "test-half_curriculum-multi_algos_long"
     folder_name = folder + "---" + str(datetime.datetime.now()).replace(' ', '-')
 
     # Repeat experiments

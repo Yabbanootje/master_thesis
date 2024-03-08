@@ -23,12 +23,12 @@ class HMLevelBase(BaseTask):
         self.step_penalty = 0.005
         self.lidar_conf.max_dist = 4
         # self.agent.placements = [3, -2, 4, 2]
-        self.agent.locations = [(3.5, 0)]
+        self.agent.locations = [(3, 0)]
         
         self._steps = 0
 
         self._add_geoms(Goal(size = self.geom_radius, keepout = 0, locations=[self.goal_location], reward_goal=self.goal_reward))
-        self.goal.reward_distance = 2
+        self.goal.reward_distance = 1
         # - in x is to the right
         # - in y is to the top
         # (0, 0) is in the middle
