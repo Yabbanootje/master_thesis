@@ -311,7 +311,7 @@ if __name__ == '__main__':
     eval_episodes = 3
     cost_limit = 0.0
     epochs = 150
-    repetitions = 7
+    repetitions = 5
     baseline_algorithms = ["PPO", "PPOLag", "P3O"]
     curr_algorithms = ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
 
