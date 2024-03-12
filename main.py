@@ -82,14 +82,15 @@ def get_agents(algorithms, env_id, cfgs):
 
     return agents
 
-def train_agent(agent, videos = 1):
+def train_agent(agent, episodes = 1, make_videos = False):
     agent.learn()
 
     agent.plot(smooth=1)
 
-    agent.evaluate(num_episodes=videos)
+    agent.evaluate(num_episodes=episodes)
 
-    agent.render(num_episodes=videos, render_mode='rgb_array', width=256, height=256)
+    if make_videos:
+        agent.render(num_episodes=episodes, render_mode='rgb_array', width=256, height=256)
 
 def plot_train(folder, curr_changes, cost_limit, include_weak=False):
     # Get folder names for all algorithms
@@ -209,283 +210,105 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False):
     plt.savefig("app/figures/" + folder + "/costs.png")
     plt.show()
 
-def plot_eval(folder, curr_changes, cost_limit, include_weak = False):
-    # Get folder names for all algorithms
+def plot_eval(folder, curr_changes, cost_limit, include_weak=False):
+    def extract_values(pattern, text):
+        return [float(match.group(1)) for match in re.finditer(pattern, text)]
+
+    def process_data(algorithms, directory, rewards_mean, costs_mean, lengths_mean, rewards_std, costs_std, lengths_std, indices):
+        for algorithm in algorithms:
+            seed_paths = [entry.path for entry in os.scandir(os.path.join(directory, algorithm))]
+            video_paths = [os.path.join(path, "video") for path in seed_paths]
+
+            epoch_data = {}
+
+            for path in video_paths:
+                epochs = [entry.name for entry in os.scandir(path)]
+
+                for epoch in epochs:
+                    with open(os.path.join(path, epoch, "result.txt"), 'r') as file:
+                        data = file.read()
+
+                        rewards = extract_values(r'Episode reward: ([\d\.-]+)', data)
+                        costs = extract_values(r'Episode cost: ([\d\.-]+)', data)
+                        lengths = extract_values(r'Episode length: ([\d\.-]+)', data)
+
+                        index = int(epoch.split("-")[1])
+                        if index not in epoch_data:
+                            epoch_data[index] = {'rewards': [], 'costs': [], 'lengths': []}
+                        epoch_data[index]['rewards'].append(rewards)
+                        epoch_data[index]['costs'].append(costs)
+                        epoch_data[index]['lengths'].append(lengths)
+
+            for epoch_number, data in epoch_data.items():
+                rewards_mean[algorithm] = rewards_mean.get(algorithm, []) + [np.mean(data['rewards'])]
+                costs_mean[algorithm] = costs_mean.get(algorithm, []) + [np.mean(data['costs'])]
+                lengths_mean[algorithm] = lengths_mean.get(algorithm, []) + [np.mean(data['lengths'])]
+                rewards_std[algorithm] = rewards_std.get(algorithm, []) + [np.std(data['rewards'])]
+                costs_std[algorithm] = costs_std.get(algorithm, []) + [np.std(data['costs'])]
+                lengths_std[algorithm] = lengths_std.get(algorithm, []) + [np.std(data['lengths'])]
+
+            if len(indices) == 0:
+                for key in epoch_data.keys():
+                    indices.setdefault(key)
+
     baseline_dir = "app/results/" + folder + "/baseline"
     curr_dir = "app/results/" + folder + "/curriculum"
 
     baseline_algorithms = [entry.name for entry in os.scandir(baseline_dir)]
     curr_algorithms = [entry.name for entry in os.scandir(curr_dir)]
 
-    baseline_rewards_mean = {}
-    baseline_costs_mean = {}
-    baseline_lengths_mean = {}
-    baseline_rewards_std = {}
-    baseline_costs_std = {}
-    baseline_lengths_std = {}
+    baseline_rewards_mean, baseline_costs_mean, baseline_lengths_mean = {}, {}, {}
+    baseline_rewards_std, baseline_costs_std, baseline_lengths_std = {}, {}, {}
+    curr_rewards_mean, curr_costs_mean, curr_lengths_mean = {}, {}, {}
+    curr_rewards_std, curr_costs_std, curr_lengths_std = {}, {}, {}
+    indices = {}
+
+    process_data(baseline_algorithms, baseline_dir, baseline_rewards_mean, baseline_costs_mean, baseline_lengths_mean, 
+                 baseline_rewards_std, baseline_costs_std, baseline_lengths_std, indices)
+    process_data(curr_algorithms, curr_dir, curr_rewards_mean, curr_costs_mean, curr_lengths_mean, curr_rewards_std, 
+                 curr_costs_std, curr_lengths_std, indices)
     
-    curr_rewards_mean = {}
-    curr_costs_mean = {}
-    curr_lengths_mean = {}
-    curr_rewards_std = {}
-    curr_costs_std = {}
-    curr_lengths_std = {}
-
-    indices = []
-
-    for algorithm in baseline_algorithms:
-        seed_paths = [entry.path for entry in os.scandir(os.path.join(baseline_dir, algorithm))]
-        video_paths = [os.path.join(path, "video") for path in seed_paths]
-
-        rewards_df = pd.DataFrame(columns = ["Mean", "Standard Deviation"])
-        costs_df = pd.DataFrame(columns = ["Mean", "Standard Deviation"])
-        lengths_df = pd.DataFrame(columns = ["Mean", "Standard Deviation"])
-
-        epoch_data = {}
-
-        for path in video_paths:
-            epochs = [entry.name for entry in os.scandir(path)]
-
-            for epoch in epochs:
-                with open(os.path.join(path, epoch, "result.txt"), 'r') as file:
-                    # Read the content of the text file
-                    data = file.read()
-
-                    # Function to extract values from text using regular expressions
-                    def extract_values(pattern, text):
-                        return [float(match.group(1)) for match in re.finditer(pattern, text)]
-
-                    # Define patterns for rewards, costs, and lengths
-                    reward_pattern = r'Episode reward: ([\d\.-]+)'
-                    cost_pattern = r'Episode cost: ([\d\.-]+)'
-                    length_pattern = r'Episode length: ([\d\.-]+)'
-
-                    # Extract values using regular expressions
-                    rewards = extract_values(reward_pattern, data)
-                    costs = extract_values(cost_pattern, data)
-                    lengths = extract_values(length_pattern, data)
-
-                    # Store values for each epoch
-                    index = int(epoch.split("-")[1])
-                    if index not in epoch_data:
-                        epoch_data[index] = {'rewards': [], 'costs': [], 'lengths': []}
-                    epoch_data[index]['rewards'].extend(rewards)
-                    epoch_data[index]['costs'].extend(costs)
-                    epoch_data[index]['lengths'].extend(lengths)
-
-        # Calculate mean and standard deviation for each metric for each epoch
-        for epoch_number, data in epoch_data.items():
-            rewards_mean = np.mean(data['rewards'])
-            rewards_std = np.std(data['rewards'])
-            costs_mean = np.mean(data['costs'])
-            costs_std = np.std(data['costs'])
-            lengths_mean = np.mean(data['lengths'])
-            lengths_std = np.std(data['lengths'])
-
-            # Create DataFrames with epochs as index
-            rewards_df = pd.concat([rewards_df, pd.DataFrame({'Mean': rewards_mean, 'Standard Deviation': rewards_std}, index=[epoch_number])])
-            costs_df = pd.concat([costs_df, pd.DataFrame({'Mean': costs_mean, 'Standard Deviation': costs_std}, index=[epoch_number])])
-            lengths_df = pd.concat([lengths_df, pd.DataFrame({'Mean': lengths_mean, 'Standard Deviation': lengths_std}, index=[epoch_number])])
-
-        # Sort dataframes
-        rewards_df = rewards_df.sort_index()
-        costs_df = costs_df.sort_index()
-        lengths_df = lengths_df.sort_index()
-
-        if len(indices) == 0:
-            indices = rewards_df.index
-
-        baseline_rewards_mean[algorithm] = rewards_df["Mean"].values
-        baseline_costs_mean[algorithm] = costs_df["Mean"].values
-        baseline_lengths_mean[algorithm] = lengths_df["Mean"].values
-        baseline_rewards_std[algorithm] = rewards_df["Standard Deviation"].values
-        baseline_costs_std[algorithm] = costs_df["Standard Deviation"].values
-        baseline_lengths_std[algorithm] = lengths_df["Standard Deviation"].values
-
-    for algorithm in curr_algorithms:
-        seed_paths = [entry.path for entry in os.scandir(os.path.join(curr_dir, algorithm))]
-        video_paths = [os.path.join(path, "video") for path in seed_paths]
-
-        rewards_df = pd.DataFrame(columns = ["Mean", "Standard Deviation"])
-        costs_df = pd.DataFrame(columns = ["Mean", "Standard Deviation"])
-        lengths_df = pd.DataFrame(columns = ["Mean", "Standard Deviation"])
-
-        epoch_data = {}
-
-        for path in video_paths:
-            epochs = [entry.name for entry in os.scandir(path)]
-
-            for epoch in epochs:
-                with open(os.path.join(path, epoch, "result.txt"), 'r') as file:
-                    # Read the content of the text file
-                    data = file.read()
-
-                    # Function to extract values from text using regular expressions
-                    def extract_values(pattern, text):
-                        return [float(match.group(1)) for match in re.finditer(pattern, text)]
-
-                    # Define patterns for rewards, costs, and lengths
-                    reward_pattern = r'Episode reward: ([\d\.-]+)'
-                    cost_pattern = r'Episode cost: ([\d\.-]+)'
-                    length_pattern = r'Episode length: ([\d\.-]+)'
-
-                    # Extract values using regular expressions
-                    rewards = extract_values(reward_pattern, data)
-                    costs = extract_values(cost_pattern, data)
-                    lengths = extract_values(length_pattern, data)
-
-                    # Store values for each epoch
-                    index = int(epoch.split("-")[1])
-                    if index not in epoch_data:
-                        epoch_data[index] = {'rewards': [], 'costs': [], 'lengths': []}
-                    epoch_data[index]['rewards'].extend(rewards)
-                    epoch_data[index]['costs'].extend(costs)
-                    epoch_data[index]['lengths'].extend(lengths)
-
-        # Calculate mean and standard deviation for each metric for each epoch
-        for epoch_number, data in epoch_data.items():
-            rewards_mean = np.mean(data['rewards'])
-            rewards_std = np.std(data['rewards'])
-            costs_mean = np.mean(data['costs'])
-            costs_std = np.std(data['costs'])
-            lengths_mean = np.mean(data['lengths'])
-            lengths_std = np.std(data['lengths'])
-
-            # Create DataFrames with epochs as index
-            rewards_df = pd.concat([rewards_df, pd.DataFrame({'Mean': rewards_mean, 'Standard Deviation': rewards_std}, index=[epoch_number])])
-            costs_df = pd.concat([costs_df, pd.DataFrame({'Mean': costs_mean, 'Standard Deviation': costs_std}, index=[epoch_number])])
-            lengths_df = pd.concat([lengths_df, pd.DataFrame({'Mean': lengths_mean, 'Standard Deviation': lengths_std}, index=[epoch_number])])
-
-        # Sort dataframes
-        rewards_df = rewards_df.sort_index()
-        costs_df = costs_df.sort_index()
-        lengths_df = lengths_df.sort_index()
-
-        if len(indices) == 0:
-            indices = rewards_df.index
-
-        curr_rewards_mean[algorithm] = rewards_df["Mean"].values
-        curr_costs_mean[algorithm] = costs_df["Mean"].values
-        curr_lengths_mean[algorithm] = lengths_df["Mean"].values
-        curr_rewards_std[algorithm] = rewards_df["Standard Deviation"].values
-        curr_costs_std[algorithm] = costs_df["Standard Deviation"].values
-        curr_lengths_std[algorithm] = lengths_df["Standard Deviation"].values
+    indices = indices.keys()
 
     if not os.path.isdir("app/figures/" + folder):
         os.makedirs("app/figures/" + folder)
-        
-    last_change = curr_changes[-1]
 
-    plt.figure(figsize=(10, 5), dpi=80)
+    for data_type in ['rewards', 'costs', 'lengths']:
+        plt.figure(figsize=(10, 5), dpi=80)
 
-    # Plot baseline rewards
-    for algorithm_name in baseline_rewards_mean.keys():
-        plt.plot(indices, baseline_rewards_mean[algorithm_name], label="Baseline - " + algorithm_name.split('-')[0])
-        plt.fill_between(x=indices,
-                        y1=baseline_rewards_mean[algorithm_name] - baseline_rewards_std[algorithm_name],
-                        y2=baseline_rewards_mean[algorithm_name] + baseline_rewards_std[algorithm_name], alpha=0.2)
+        for algorithm_name in eval(f"baseline_{data_type}_mean").keys():
+            sorted_values = sorted(zip(indices, eval(f"baseline_{data_type}_mean")[algorithm_name], eval(f"baseline_{data_type}_std")[algorithm_name]))
+            sorted_indices, sorted_means, sorted_stds = zip(*sorted_values)
+            plt.plot(sorted_indices, sorted_means, label=f"Baseline - {algorithm_name.split('-')[0]}")
+            plt.fill_between(x=sorted_indices,
+                            y1=np.asarray(sorted_means) - np.asarray(sorted_stds),
+                            y2=np.asarray(sorted_means) + np.asarray(sorted_stds), alpha=0.2)
 
-    # Plot curriculum rewards
-    for algorithm_name in curr_rewards_mean.keys():
-        plt.plot(indices, curr_rewards_mean[algorithm_name], label="Curriculum Strong - " + algorithm_name.split('-')[0])
-        plt.fill_between(x=indices,
-                        y1=curr_rewards_mean[algorithm_name] - curr_rewards_std[algorithm_name],
-                        y2=curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name], alpha=0.2)
+        for algorithm_name in eval(f"curr_{data_type}_mean").keys():
+            sorted_values = sorted(zip(indices, eval(f"curr_{data_type}_mean")[algorithm_name], eval(f"curr_{data_type}_std")[algorithm_name]))
+            sorted_indices, sorted_means, sorted_stds = zip(*sorted_values)
+            plt.plot(sorted_indices, sorted_means, label=f"Curriculum Strong - {algorithm_name.split('-')[0]}")
+            plt.fill_between(x=sorted_indices,
+                            y1=np.asarray(sorted_means) - np.asarray(sorted_stds),
+                            y2=np.asarray(sorted_means) + np.asarray(sorted_stds), alpha=0.2)
 
-        # TODO
-        # if include_weak:
-        #     plt.plot(np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1 - last_change), curr_rewards_mean[algorithm_name][last_change:], label="Curriculum Weak - " + algorithm_name.split('-')[0])
-        #     plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1 - last_change),
-        #                     y1=(curr_rewards_mean[algorithm_name] - curr_rewards_std[algorithm_name])[last_change:],
-        #                     y2=(curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name])[last_change:], alpha=0.2)
+        if data_type == 'costs':
+            plt.axhline(y=cost_limit, color='r', linestyle='-')
 
-    for change in curr_changes:
-        plt.axvline(x=change, color="gray", linestyle='-')
+        for change in curr_changes:
+            plt.axvline(x=change, color="gray", linestyle='-')
 
-    plt.legend(loc=(1.01, 0.01), ncol = 1)
-    plt.tight_layout(pad = 2)
-    plt.grid()
-    plt.title("Rewards of agent using curriculum and baseline agent during evaluation")
-    plt.xlabel("Epochs")
-    plt.ylabel("Reward")
-    plt.savefig("app/figures/" + folder + "/rewards_eval.png")
-    plt.show()
-
-    plt.figure(figsize=(10, 5), dpi=80)
-
-    # Plot baseline costs
-    for algorithm_name in baseline_costs_mean.keys():
-        plt.plot(indices, baseline_costs_mean[algorithm_name], label="Baseline - " + algorithm_name.split('-')[0])
-        plt.fill_between(x=indices,
-                        y1=baseline_costs_mean[algorithm_name] - baseline_costs_std[algorithm_name],
-                        y2=baseline_costs_mean[algorithm_name] + baseline_costs_std[algorithm_name], alpha=0.2)
-
-    # Plot curriculum costs
-    for algorithm_name in curr_costs_mean.keys():
-        plt.plot(indices, curr_costs_mean[algorithm_name], label="Curriculum Strong - " + algorithm_name.split('-')[0])
-        plt.fill_between(x=indices,
-                        y1=curr_costs_mean[algorithm_name] - curr_costs_std[algorithm_name],
-                        y2=curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name], alpha=0.2)
-
-        # if include_weak:
-        #     plt.plot(np.arange(1, len(curr_costs_mean[algorithm_name]) + 1 - last_change), curr_costs_mean[algorithm_name][last_change:], label="Curriculum Weak - " + algorithm_name.split('-')[0])
-        #     plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1 - last_change),
-        #                     y1=(curr_costs_mean[algorithm_name] - curr_costs_std[algorithm_name])[last_change:],
-        #                     y2=(curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name])[last_change:], alpha=0.2)
-
-    plt.axhline(y=cost_limit, color='r', linestyle='-')
-
-    for change in curr_changes:
-        plt.axvline(x=change, color="gray", linestyle='-')
-
-    plt.legend(loc=(1.01, 0.01), ncol = 1)
-    plt.tight_layout(pad = 2)
-    plt.grid()
-    plt.title("Costs of agent using curriculum and baseline agent during evaluation")
-    plt.xlabel("Epochs")
-    plt.ylabel("Cost")
-    plt.savefig("app/figures/" + folder + "/costs_eval.png")
-    plt.show()
-
-    plt.figure(figsize=(10, 5), dpi=80)
-
-    # Plot baseline lengths
-    for algorithm_name in baseline_lengths_mean.keys():
-        plt.plot(indices, baseline_lengths_mean[algorithm_name], label="Baseline - " + algorithm_name.split('-')[0])
-        plt.fill_between(x=indices,
-                        y1=baseline_lengths_mean[algorithm_name] - baseline_lengths_std[algorithm_name],
-                        y2=baseline_lengths_mean[algorithm_name] + baseline_lengths_std[algorithm_name], alpha=0.2)
-
-    # Plot curriculum lengths
-    for algorithm_name in curr_lengths_mean.keys():
-        plt.plot(indices, curr_lengths_mean[algorithm_name], label="Curriculum Strong - " + algorithm_name.split('-')[0])
-        plt.fill_between(x=indices,
-                        y1=curr_lengths_mean[algorithm_name] - curr_lengths_std[algorithm_name],
-                        y2=curr_lengths_mean[algorithm_name] + curr_lengths_std[algorithm_name], alpha=0.2)
-
-        # if include_weak:
-        #     plt.plot(np.arange(1, len(curr_lengths_mean[algorithm_name]) + 1 - last_change), curr_lengths_mean[algorithm_name][last_change:], label="Curriculum Weak - " + algorithm_name.split('-')[0])
-        #     plt.fill_between(x=np.arange(1, len(curr_lengths_mean[algorithm_name]) + 1 - last_change),
-        #                     y1=(curr_lengths_mean[algorithm_name] - curr_lengths_std[algorithm_name])[last_change:],
-        #                     y2=(curr_lengths_mean[algorithm_name] + curr_lengths_std[algorithm_name])[last_change:], alpha=0.2)
-
-    plt.axhline(y=cost_limit, color='r', linestyle='-')
-
-    for change in curr_changes:
-        plt.axvline(x=change, color="gray", linestyle='-')
-
-    plt.legend(loc=(1.01, 0.01), ncol = 1)
-    plt.tight_layout(pad = 2)
-    plt.grid()
-    plt.title("Episode lengths of agent using curriculum and baseline agent during evaluation")
-    plt.xlabel("Epochs")
-    plt.ylabel("Episode length")
-    plt.savefig("app/figures/" + folder + "/lengths_eval.png")
-    plt.show()
-            
+        plt.legend(loc=(1.01, 0.01), ncol=1)
+        plt.tight_layout(pad=2)
+        plt.grid()
+        plt.title(f"{data_type.capitalize()} of agent using curriculum and baseline agent during evaluation")
+        plt.xlabel("Epochs")
+        plt.ylabel(f"{data_type.capitalize()[:-1] if data_type != 'rewards' else data_type.capitalize()}")
+        plt.savefig(f"app/figures/{folder}/{data_type}_eval.png")
+        plt.show()
 
 if __name__ == '__main__':
-    num_videos = 3
+    eval_episodes = 3
     cost_limit = 0.0
     epochs = 150
     repetitions = 7
@@ -493,31 +316,31 @@ if __name__ == '__main__':
     curr_algorithms = ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
 
     # Create folder
-    folder_name = "test-half_curriculum-multi_algos_long---2024-03-08-15_48_55.241320" # "test-half_curriculum-multi_algos_long"
+    folder_name = "test-half_curriculum-multi_algos_long"
     # folder_name = folder_name + "---" + str(datetime.datetime.now()).replace(' ', '-')
 
     # Repeat experiments
-    # for i in range(repetitions):
-    #     # Get configurations
-    #     base_cfgs = get_configs(folder=folder_name + "/baseline", algos=baseline_algorithms, epochs=epochs, cost_limit=cost_limit, random=True)
-    #     curr_cfgs = get_configs(folder=folder_name + "/curriculum", algos=curr_algorithms, epochs=epochs, cost_limit=cost_limit, random=True)
+    for i in range(repetitions):
+        # Get configurations
+        base_cfgs = get_configs(folder=folder_name + "/baseline", algos=baseline_algorithms, epochs=epochs, cost_limit=cost_limit, random=True)
+        curr_cfgs = get_configs(folder=folder_name + "/curriculum", algos=curr_algorithms, epochs=epochs, cost_limit=cost_limit, random=True)
 
-    #     # Initialize agents
-    #     baseline_env_id = 'SafetyPointHM3-v0'
-    #     curr_env_id = 'SafetyPointHM0-v0'
+        # Initialize agents
+        baseline_env_id = 'SafetyPointHM3-v0'
+        curr_env_id = 'SafetyPointHM0-v0'
 
-    #     baseline_agents = get_agents(baseline_algorithms, baseline_env_id, base_cfgs)
-    #     curriculum_agents = get_agents(curr_algorithms, curr_env_id, curr_cfgs)
+        baseline_agents = get_agents(baseline_algorithms, baseline_env_id, base_cfgs)
+        curriculum_agents = get_agents(curr_algorithms, curr_env_id, curr_cfgs)
 
-    #     # Train agents
-    #     for baseline_agent in baseline_agents:
-    #         train_agent(baseline_agent, num_videos)
+        # Train agents
+        for baseline_agent in baseline_agents:
+            train_agent(baseline_agent, eval_episodes, True)
 
-    #     for curriculum_agent in curriculum_agents:
-    #         train_agent(curriculum_agent, num_videos)
+        for curriculum_agent in curriculum_agents:
+            train_agent(curriculum_agent, eval_episodes, True)
 
     # Plot the results
     curr_changes = [10, 20, 30]
-    # plot_train(folder_name, curr_changes, cost_limit, include_weak=False)
+    plot_train(folder_name, curr_changes, cost_limit, include_weak=False)
 
     plot_eval(folder_name, curr_changes, cost_limit, include_weak=False)
