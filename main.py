@@ -54,6 +54,7 @@ def get_configs(folder, algos, epochs, cost_limit, random):
                 'critic': {
                     'hidden_sizes': [255, 255]
                 },
+                'std_range': [0.1, 0.0]
             }
         }
 
@@ -316,7 +317,7 @@ if __name__ == '__main__':
     curr_algorithms = ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
 
     # Create folder
-    folder_name = "test-half_curriculum-multi_algos_long"
+    folder_name = "test-half_curriculum-multi_algos_small_std"
     # folder_name = folder_name + "---" + str(datetime.datetime.now()).replace(' ', '-')
 
     # Repeat experiments
