@@ -18,7 +18,7 @@ class HMLevel5(HMLevelBase):
 
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
-        self._add_geoms(Hazards(size = self.geom_radius, keepout = 0.5, num = len(self.locations), locations = self.locations))
+        self._add_geoms(Hazards(size = self.geom_radius, keepout = 0, num = len(self.locations), locations = self.locations))
 
     def make_corridor(self, hazard_radius):
         locations = []

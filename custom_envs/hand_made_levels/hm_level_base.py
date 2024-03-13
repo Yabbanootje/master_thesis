@@ -27,7 +27,7 @@ class HMLevelBase(BaseTask):
         
         self._steps = 0
 
-        self._add_geoms(Goal(size = self.geom_radius, keepout = 0.5, locations=[self.goal_location], reward_goal=self.goal_reward))
+        self._add_geoms(Goal(size = self.geom_radius, keepout = 0, locations=[self.goal_location], reward_goal=self.goal_reward))
         self.goal.reward_distance = 1
         # - in x is to the right
         # - in y is to the top
