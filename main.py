@@ -312,12 +312,12 @@ if __name__ == '__main__':
     eval_episodes = 3
     cost_limit = 0.0
     epochs = 150
-    repetitions = 5
-    baseline_algorithms = ["PPO", "PPOLag", "P3O"]
+    repetitions = 3
+    baseline_algorithms = ["PPO", "PPOLag"]
     curr_algorithms = ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
 
     # Create folder
-    folder_name = "test-half_curriculum-multi_algos_small_std"
+    folder_name = "test-half_curriculum-multi_algos_random_init"
     # folder_name = folder_name + "---" + str(datetime.datetime.now()).replace(' ', '-')
 
     # Repeat experiments

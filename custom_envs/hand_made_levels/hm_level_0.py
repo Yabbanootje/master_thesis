@@ -15,7 +15,7 @@ class HMLevel0(HMLevelBase):
 
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
-        self._add_geoms(Hazards(size = self.geom_radius, keepout = 0, num = 0))
+        self._add_geoms(Hazards(size = self.geom_radius, keepout = 0.5, num = 0))
 
     def calculate_reward(self):
         """Determine reward depending on the agent and tasks."""
@@ -33,7 +33,7 @@ class HMLevel0(HMLevelBase):
         # Task-specific step mechanism
         # Called at env.step()
         # Used to change the value of member variables over time
-        super().specific_step
+        super().specific_step()
 
     def update_world(self):
         """Build a new goal position, maybe with resampling due to hazards."""

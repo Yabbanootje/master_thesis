@@ -18,7 +18,7 @@ class HMLevel2(HMLevelBase):
 
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
-        self._add_geoms(Hazards(size = self.geom_radius, keepout = 0, num = len(self.locations), locations = self.locations))
+        self._add_geoms(Hazards(size = self.geom_radius, keepout = 0.5, num = len(self.locations), locations = self.locations))
 
     def randomized_locations(self, goal_position, hazard_radius):
         # initialize the static corners relative to the goal position
@@ -59,7 +59,7 @@ class HMLevel2(HMLevelBase):
         # Task-specific step mechanism
         # Called at env.step()
         # Used to change the value of member variables over time
-        super().specific_step
+        super().specific_step()
 
     def update_world(self):
         """Build a new goal position, maybe with resampling due to hazards."""
