@@ -317,7 +317,7 @@ if __name__ == '__main__':
     curr_algorithms = ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
 
     # Create folder
-    folder_name = "test-half_curriculum-multi_algos_no-fork"
+    folder_name = "test-half_curriculum-multi_algos_no-fork_no-std"
     # folder_name = folder_name + "---" + str(datetime.datetime.now()).replace(' ', '-')
 
     # Repeat experiments
