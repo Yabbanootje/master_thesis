@@ -15,7 +15,8 @@ class HMLevel0(HMLevelBase):
 
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
-        self._add_geoms(Hazards(size = self.geom_radius, keepout = 0, num = 0))
+        self.locations = [(-5, 5)]
+        self._add_geoms(Hazards(size = self.geom_radius, keepout = 0, num = 1, locations=self.locations))
 
     def calculate_reward(self):
         """Determine reward depending on the agent and tasks."""
