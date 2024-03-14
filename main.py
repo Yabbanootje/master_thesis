@@ -54,7 +54,7 @@ def get_configs(folder, algos, epochs, cost_limit, random):
                 'critic': {
                     'hidden_sizes': [255, 255]
                 },
-                'std_range': [0.1, 0.0]
+                # 'std_range': [0.1, 0.0]
             }
         }
 
