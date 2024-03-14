@@ -62,11 +62,11 @@ def get_configs(folder, algos, epochs, cost_limit, random):
         if kwargs.get("lagrange_cfgs"):
             custom_cfg.update({'lagrange_cfgs': {
                 'cost_limit': cost_limit,
-                'lagrangian_multiplier_init': 0.1,
+                # 'lagrangian_multiplier_init': 0.1,
             },
             })
-            if kwargs["lagrange_cfgs"].get("lambda_lr"):
-                custom_cfg['lagrange_cfgs'].update({'lambda_lr': 0.05,})
+            # if kwargs["lagrange_cfgs"].get("lambda_lr"):
+            #     custom_cfg['lagrange_cfgs'].update({'lambda_lr': 0.05,})
         if kwargs["algo_cfgs"].get("cost_limit"):
             custom_cfg["algo_cfgs"].update({'cost_limit': cost_limit,})
 
@@ -317,7 +317,7 @@ if __name__ == '__main__':
     curr_algorithms = ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
 
     # Create folder
-    folder_name = "test-half_curriculum-multi_algos_no-fork_no-std"
+    folder_name = "test-half_curriculum-multi_algos_no-fork_no-std_no-lag-par"
     # folder_name = folder_name + "---" + str(datetime.datetime.now()).replace(' ', '-')
 
     # Repeat experiments
