@@ -1,6 +1,7 @@
 import omnisafe
 import torch
 import os
+import argparse
 import random as rand
 import pandas as pd
 import re
@@ -314,6 +315,10 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False):
         plt.show()
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--lag_multiplier_lr', dest='lag_multiplier_lr', type=int, help='Add lagrangian multiplier learning rate')
+    args = parser.parse_args()
+
     eval_episodes = 3
     # cost_limit = 1.0
     epochs = 100
@@ -324,7 +329,7 @@ if __name__ == '__main__':
     # Grid search params
     cost_limits = [5.0] # [1.0, 5.0, 10.0]
     lag_multiplier_inits = [0.001, 0.01, 0.1] # [0.001, 0.005, 0.01, 0.1]
-    lag_multiplier_lrs = [0.1] # [0.01, 0.035, 0.05, 0.1]
+    lag_multiplier_lrs = [args.lag_multiplier_lr] # [0.01, 0.035, 0.05, 0.1]
     steps_per_epochs = [1000] # [500, 1000, 2000]
     update_iterss = [1, 10, 50]
     nn_sizes = [64, 256] # [64, 128, 256]
