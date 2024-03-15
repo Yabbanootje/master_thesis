@@ -20,7 +20,7 @@ class HMLevelBase(BaseTask):
         self.goal_location = (0, 0)
         self.geom_radius = 0.25
         self.goal_reward = 20
-        self.step_penalty = 0.005
+        self.step_penalty = 0
         self.lidar_conf.max_dist = 4
         self.agent.placements = [(-3, -3, 3, 3)]
         # self.agent.locations = [(3, 0)]
