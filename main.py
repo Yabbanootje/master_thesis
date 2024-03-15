@@ -324,7 +324,7 @@ if __name__ == '__main__':
     # Grid search params
     cost_limits = [5.0] # [1.0, 5.0, 10.0]
     lag_multiplier_inits = [0.001, 0.01, 0.1] # [0.001, 0.005, 0.01, 0.1]
-    lag_multiplier_lrs = [0.01] # [0.01, 0.035, 0.05, 0.1]
+    lag_multiplier_lrs = [0.035] # [0.01, 0.035, 0.05, 0.1]
     steps_per_epochs = [1000] # [500, 1000, 2000]
     update_iterss = [1, 10, 50]
     nn_sizes = [64, 256] # [64, 128, 256]
