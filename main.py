@@ -316,7 +316,7 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--lag_multiplier_lr', dest='lag_multiplier_lr', type=int, help='Add lagrangian multiplier learning rate')
+    parser.add_argument('--lag_multiplier_lr', dest='lag_multiplier_lr', type=float, help='Add lagrangian multiplier learning rate')
     args = parser.parse_args()
 
     eval_episodes = 3
