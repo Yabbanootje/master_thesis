@@ -324,23 +324,19 @@ if __name__ == '__main__':
     # Grid search params
     cost_limits = [5.0] # [1.0, 5.0, 10.0]
     lag_multiplier_inits = [0.001, 0.01, 0.1] # [0.001, 0.005, 0.01, 0.1]
-    lag_multiplier_lrs = [0.035] # [0.01, 0.035, 0.05, 0.1]
+    lag_multiplier_lrs = [0.05] # [0.01, 0.035, 0.05, 0.1]
     steps_per_epochs = [1000] # [500, 1000, 2000]
     update_iterss = [1, 10, 50]
     nn_sizes = [64, 256] # [64, 128, 256]
 
-    print("starting")
-
     for grid_params in product(cost_limits, lag_multiplier_inits, lag_multiplier_lrs, steps_per_epochs, update_iterss, nn_sizes):
         (cost_limit, lag_multiplier_init, lag_multiplier_lr, steps_per_epoch, update_iters, nn_size) = grid_params
-        print("in loop")
         # Create folder
         folder_name = "test-half_curriculum-" + str(grid_params)
         # folder_name = folder_name + "---" + str(datetime.datetime.now()).replace(' ', '-')
 
         # Repeat experiments
         for i in range(repetitions):
-            print("configuring")
             # Get configurations
             base_cfgs = get_configs(folder=folder_name + "/baseline", algos=baseline_algorithms, epochs=epochs, cost_limit=cost_limit, random=True,
                                     steps_per_epoch = steps_per_epoch, update_iters = update_iters, nn_size = nn_size, 
