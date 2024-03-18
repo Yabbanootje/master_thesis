@@ -332,7 +332,7 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--steps_per_epoch', dest='steps_per_epoch', type=float, help='Add steps_per_epoch')
+    parser.add_argument('--steps_per_epoch', dest='steps_per_epoch', type=int, help='Add steps_per_epoch')
     args = parser.parse_args()
 
     eval_episodes = 3
