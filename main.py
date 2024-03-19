@@ -394,10 +394,10 @@ if __name__ == '__main__':
 
                 # Train agents
                 for baseline_agent in baseline_agents:
-                    train_agent(baseline_agent, eval_episodes, False)
+                    train_agent(baseline_agent, eval_episodes, True)
 
                 for curriculum_agent in curriculum_agents:
-                    train_agent(curriculum_agent, eval_episodes, False)
+                    train_agent(curriculum_agent, eval_episodes, True)
 
             # Plot the results
             curr_changes = [10, 20, 30]
