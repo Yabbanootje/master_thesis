@@ -410,7 +410,7 @@ if __name__ == '__main__':
             eval_cost = eval_means["costs"][-1]
             eval_length = eval_means["lengths"][-1]
 
-            parameter_means = pd.DataFrame(data = {"lag_multiplier_inits": lag_multiplier_init, "lag_multiplier_lrs": lag_multiplier_lr, 
+            parameter_means = pd.DataFrame(data = {"cost_limits": cost_limit, "lag_multiplier_inits": lag_multiplier_init, "lag_multiplier_lrs": lag_multiplier_lr, 
                                     "steps_per_epochs": steps_per_epoch, "update_iterss": update_iters, "nn_sizes": nn_size, 
                                     "reward": reward, "cost": cost, 'eval_reward': eval_reward,'eval_cost': eval_cost, 
                                     'eval_length': eval_length}, 
