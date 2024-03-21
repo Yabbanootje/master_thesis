@@ -337,8 +337,12 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, mean_baselin
     return means
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cost_limit', dest='cost_limit', type=int, help='Add cost_limit', default=5.0)
+    args = parser.parse_args()
+
     eval_episodes = 3
-    cost_limit = 5.0
+    cost_limit = args.cost_limit
     steps_per_epoch = 1000
     safe_freq = 20
     epochs = 100
