@@ -338,7 +338,7 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, mean_baselin
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cost_limit', dest='cost_limit', type=int, help='Add cost_limit', default=5.0)
+    parser.add_argument('--cost_limit', dest='cost_limit', type=float, help='Add cost_limit', default=5.0)
     args = parser.parse_args()
 
     eval_episodes = 3
