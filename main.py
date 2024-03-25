@@ -152,7 +152,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, mean_baseli
 
     # Plot baseline rewards
     for algorithm_name in baseline_rewards_mean.keys():
-        if means['rewards'] == [] and mean_baseline:
+        if len(means['rewards']) == 0 and mean_baseline:
             means['rewards'] = baseline_rewards_mean[algorithm_name]
         plt.plot(np.arange(1, len(baseline_rewards_mean[algorithm_name]) + 1), baseline_rewards_mean[algorithm_name], label="Baseline - " + algorithm_name.split('-')[0])
         plt.fill_between(x=np.arange(1, len(baseline_rewards_mean[algorithm_name]) + 1),
@@ -161,7 +161,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, mean_baseli
 
     # Plot curriculum rewards
     for algorithm_name in curr_rewards_mean.keys():
-        if means['rewards'] == [] and not mean_baseline:
+        if len(means['rewards']) == 0 and not mean_baseline:
             means['rewards'] = curr_rewards_mean[algorithm_name]
         plt.plot(np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1), curr_rewards_mean[algorithm_name], label="Curriculum Strong - " + algorithm_name.split('-')[0])
         plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1),
@@ -191,7 +191,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, mean_baseli
 
     # Plot baseline costs
     for algorithm_name in baseline_costs_mean.keys():
-        if means['costs'] == [] and mean_baseline:
+        if len(means['costs']) == 0 and mean_baseline:
             means['costs'] = baseline_costs_mean[algorithm_name]
         plt.plot(np.arange(1, len(baseline_costs_mean[algorithm_name]) + 1), baseline_costs_mean[algorithm_name], label="Baseline - " + algorithm_name.split('-')[0])
         plt.fill_between(x=np.arange(1, len(baseline_costs_mean[algorithm_name]) + 1),
@@ -200,7 +200,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, mean_baseli
 
     # Plot curriculum costs
     for algorithm_name in curr_costs_mean.keys():
-        if means['costs'] == [] and not mean_baseline:
+        if len(means['costs']) == 0 and not mean_baseline:
             means['costs'] = curr_costs_mean[algorithm_name]
         plt.plot(np.arange(1, len(curr_costs_mean[algorithm_name]) + 1), curr_costs_mean[algorithm_name], label="Curriculum Strong - " + algorithm_name.split('-')[0])
         plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1),
@@ -301,7 +301,7 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, mean_baselin
         for algorithm_name in eval(f"baseline_{data_type}_mean").keys():
             sorted_values = sorted(zip(indices, eval(f"baseline_{data_type}_mean")[algorithm_name], eval(f"baseline_{data_type}_std")[algorithm_name]))
             sorted_indices, sorted_means, sorted_stds = zip(*sorted_values)
-            if means[data_type] == [] and mean_baseline:
+            if len(means[data_type]) == 0 and mean_baseline:
                 means[data_type] = sorted_means
             plt.plot(sorted_indices, sorted_means, label=f"Baseline - {algorithm_name.split('-')[0]}")
             plt.fill_between(x=sorted_indices,
@@ -311,7 +311,7 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, mean_baselin
         for algorithm_name in eval(f"curr_{data_type}_mean").keys():
             sorted_values = sorted(zip(indices, eval(f"curr_{data_type}_mean")[algorithm_name], eval(f"curr_{data_type}_std")[algorithm_name]))
             sorted_indices, sorted_means, sorted_stds = zip(*sorted_values)
-            if means[data_type] == [] and not mean_baseline:
+            if len(means[data_type]) == 0 and not mean_baseline:
                 means[data_type] = sorted_means
             plt.plot(sorted_indices, sorted_means, label=f"Curriculum Strong - {algorithm_name.split('-')[0]}")
             plt.fill_between(x=sorted_indices,
@@ -337,12 +337,8 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, mean_baselin
     return means
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--cost_limit', dest='cost_limit', type=float, help='Add cost_limit', default=5.0)
-    args = parser.parse_args()
-
     eval_episodes = 3
-    cost_limit = args.cost_limit
+    cost_limit = 5.0
     steps_per_epoch = 1000
     safe_freq = 20
     epochs = 100
@@ -354,27 +350,28 @@ if __name__ == '__main__':
     parameters = ["cost_limits", "lag_multiplier_inits", "lag_multiplier_lrs", "steps_per_epochs", 
                   "update_iterss", "nn_sizes"]
 
-    promising_parameters_curriculum = [(0.001, 0.1, 1, 64), 
+    promising_parameters_curriculum = [
+                                    #    (0.001, 0.1, 1, 64), 
                                        (0.001, 0.01, 1, 64),
-                                       (0.01, 0.1, 1, 256),
-                                       (0.1, 0.01, 1, 256),
+                                    #    (0.01, 0.1, 1, 256),
+                                    #    (0.1, 0.01, 1, 256),
                                        (0.01, 0.01, 1, 256),
                                        (0.001, 0.01, 10, 64),
-                                       (0.1, 0.05, 10, 64),
-                                       (0.1, 0.05, 50, 64),
-                                       (0.01, 0.035, 1, 256),
-                                       (0.001, 0.035, 50, 64),
+                                    #    (0.1, 0.05, 10, 64),
+                                    #    (0.1, 0.05, 50, 64),
+                                    #    (0.01, 0.035, 1, 256),
+                                    #    (0.001, 0.035, 50, 64),
                                        ]
     
-    promising_parameters = [(0.1, 0.01, 1, 64),
-                            (0.01, 0.01, 1, 64),
+    promising_parameters = [(0.1, 0.01, 1, 64), # seems to be one of few that is better with a lower cost limit
+                            (0.01, 0.01, 1, 64), # decent when looking at statistics, but when looking at evaluation it is very poor
                             (0.001, 0.01, 1, 64),
                             (0.1, 0.01, 1, 256),
                             (0.001, 0.01, 1, 256),
-                            (0.1, 0.01, 10, 64),
-                            (0.01, 0.01, 10, 64),
-                            (0.001, 0.01, 10, 64),
-                            (0.1, 0.01, 10, 256),
+                            (0.1, 0.01, 10, 64), # seems to be one of few that is better with a lower cost limit
+                            # (0.01, 0.01, 10, 64),
+                            # (0.001, 0.01, 10, 64),
+                            # (0.1, 0.01, 10, 256),
                             ]
 
     last_means = pd.DataFrame(columns = parameters + ["reward", "cost", "uac_cost", "eval_reward", "eval_cost", 
@@ -415,8 +412,8 @@ if __name__ == '__main__':
 
         # Plot the results
         curr_changes = [10, 20, 30]
-        means = plot_train(folder_name, curr_changes, cost_limit, include_weak=False)
-        eval_means = plot_eval(folder_name, curr_changes, cost_limit, include_weak=False)
+        means = plot_train(folder_name, curr_changes, cost_limit, include_weak=False, mean_baseline=False)
+        eval_means = plot_eval(folder_name, curr_changes, cost_limit, include_weak=False, mean_baseline=False)
 
         reward = means["rewards"][-1]
         cost = means["costs"][-1]
@@ -448,6 +445,8 @@ if __name__ == '__main__':
     for column in last_means.columns:
         if column == "eval_cost" or column == "cost":
             last_means[column] = np.log(last_means[column] + 1)
+        if "cost" in column or "length" in column:
+            last_means[column] = -last_means[column]
         last_means[column] = (last_means[column] - last_means[column].min()) / (last_means[column].max() - last_means[column].min())
 
     # Plotting the heatmap

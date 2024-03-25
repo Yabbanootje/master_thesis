@@ -22,11 +22,11 @@ if __name__ == '__main__':
     parameters = ["cost_limits", "lag_multiplier_inits", "lag_multiplier_lrs", "steps_per_epochs", "update_iterss", "nn_sizes"]
 
     promising_parameters = [(0.001, 0.1, 1, 64),
-                            (0.001, 0.01, 1, 64),
+                            (0.001, 0.01, 1, 64), # Best
                             (0.01, 0.1, 1, 256),
                             (0.1, 0.01, 1, 256),
-                            (0.01, 0.01, 1, 256),
-                            (0.001, 0.01, 10, 64),
+                            (0.01, 0.01, 1, 256), # Decent
+                            (0.001, 0.01, 10, 64), # Decent
                             (0.1, 0.05, 10, 64),
                             (0.1, 0.05, 50, 64),
                             (0.01, 0.035, 1, 256),
