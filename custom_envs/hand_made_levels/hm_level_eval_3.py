@@ -7,7 +7,7 @@ from custom_envs.hand_made_levels.hm_level_3 import HMLevel3
 import random
 
 
-class HMLevel3Eval(HMLevel3):
+class HMLevelEval3(HMLevel3):
     """An agent must navigate to a goal."""
 
     def __init__(self, config):

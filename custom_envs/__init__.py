@@ -44,7 +44,7 @@ from custom_envs.hand_made_levels.hm_level_4 import HMLevel4
 from custom_envs.hand_made_levels.hm_level_5 import HMLevel5
 from custom_envs.hand_made_levels.hm_level_target import HMLevelTarget
 
-from custom_envs.hand_made_levels.hm_level_3_eval import HMLevel3Eval
+from custom_envs.hand_made_levels.hm_level_eval_3 import HMLevelEval3
 
 __all__ = [
     'register',
@@ -163,7 +163,7 @@ __combine(preliminary_goal_tasks, robots, max_episode_steps=1000, builder_name="
 
 
 hm_goal_tasks = {'HM0': {}, 'HM1': {}, 'HM2': {}, 'HM3': {}, 'HM4': {}, 'HM5': {}, 'HMT': {}, 
-                 'HM3Eval': {}}
+                 'HMEval3': {}}
 
 class CustomBuilderHandMade(Builder):
     # def __init__(self):
@@ -187,8 +187,8 @@ class CustomBuilderHandMade(Builder):
             return HMLevel5
         elif class_name == "HMLevelT":
             return HMLevelTarget
-        elif class_name == "HMLevel3Eval":
-            return HMLevel3Eval
+        elif class_name == "HMLevelEval3":
+            return HMLevelEval3
         else:
             return super()._get_task()
 

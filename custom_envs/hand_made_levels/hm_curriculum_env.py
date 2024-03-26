@@ -87,11 +87,11 @@ class HMCurriculumEnv(CMDP):
         "SafetyDoggoHMT-v0",
         "SafetyRacecarHMT-v0",
         "SafetyAntHMT-v0",
-        "SafetyPointHM3Eval-v0",
-        "SafetyCarHM3Eval-v0",
-        "SafetyDoggoHM3Eval-v0",
-        "SafetyRacecarHM3Eval-v0",
-        "SafetyAntHM3Eval-v0",
+        "SafetyPointHMEval3-v0",
+        "SafetyCarHMEval3-v0",
+        "SafetyDoggoHMEval3-v0",
+        "SafetyRacecarHMEval3-v0",
+        "SafetyAntHMEval3-v0",
     ]
 
     def __init__(
@@ -208,10 +208,10 @@ class HMCurriculumEnv(CMDP):
             info: Some information logged by the environment.
         """
 
-        if self._curriculum:
-            if options != None and options.get("resetting_for_render") == True:
-                self._env = safety_gymnasium.make(id="SafetyPointHM3Eval-v0", autoreset=True, **self._kwargs)
-            elif self._steps == 10000:
+        if options != None and options.get("resetting_for_render") == True:
+                self._env = safety_gymnasium.make(id="SafetyPointHMEval3-v0", autoreset=True, **self._kwargs)
+        elif self._curriculum:
+            if self._steps == 10000:
                 print("Changed env to level 1")
                 self._env = safety_gymnasium.make(id="SafetyPointHM1-v0", autoreset=True, **self._kwargs)
             elif self._steps == 20000:
