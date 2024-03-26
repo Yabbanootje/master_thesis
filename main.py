@@ -347,7 +347,7 @@ if __name__ == '__main__':
     repetitions = 5
     baseline_algorithms = ["PPOLag"] # ["PPO", "PPOLag", "P3O"]
     curr_algorithms = ["PPOLag"] # ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
-    folder_base = "grid_search_3/test-half_curriculum"
+    folder_base = "long_training/test-half_curriculum"
 
     # Grid search params
     parameters = ["cost_limits", "lag_multiplier_inits", "lag_multiplier_lrs", "steps_per_epochs", 
