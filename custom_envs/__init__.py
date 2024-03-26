@@ -44,7 +44,7 @@ from custom_envs.hand_made_levels.hm_level_4 import HMLevel4
 from custom_envs.hand_made_levels.hm_level_5 import HMLevel5
 from custom_envs.hand_made_levels.hm_level_target import HMLevelTarget
 
-from custom_envs.hand_made_levels.hm_level_eval_3 import HMLevelEval3
+from custom_envs.hand_made_levels.hm_eval_level_3 import HMEvalLevel3
 
 __all__ = [
     'register',
@@ -187,8 +187,8 @@ class CustomBuilderHandMade(Builder):
             return HMLevel5
         elif class_name == "HMLevelT":
             return HMLevelTarget
-        elif class_name == "HMLevelEval3":
-            return HMLevelEval3
+        elif class_name == "HMEvalLevel3":
+            return HMEvalLevel3
         else:
             return super()._get_task()
 
