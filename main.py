@@ -97,6 +97,7 @@ def train_agent(agent, episodes = 1, render_episodes = 1, make_videos = False, e
     agent.evaluate(num_episodes=episodes)
 
     if make_videos:
+        print("making videos")
         agent.render(num_episodes=render_episodes, render_mode='rgb_array', width=256, height=256, 
                      epochs_to_render=epochs_to_render)
 
@@ -344,7 +345,7 @@ if __name__ == '__main__':
     steps_per_epoch = 1000
     safe_freq = 1 # 50
     epochs = 4 # 1000
-    repetitions = 5
+    repetitions = 1
     baseline_algorithms = ["PPOLag"] # ["PPO", "PPOLag", "P3O"]
     curr_algorithms = ["PPOLag"] # ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
     folder_base = "long_training/test-half_curriculum"
