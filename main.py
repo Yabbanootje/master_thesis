@@ -342,8 +342,8 @@ if __name__ == '__main__':
     render_episodes = 1 # 3
     cost_limit = 5.0
     steps_per_epoch = 1000
-    safe_freq = 10 # 50
-    epochs = 40 # 1000
+    safe_freq = 1 # 50
+    epochs = 4 # 1000
     repetitions = 5
     baseline_algorithms = ["PPOLag"] # ["PPO", "PPOLag", "P3O"]
     curr_algorithms = ["PPOLag"] # ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
