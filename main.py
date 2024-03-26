@@ -97,7 +97,6 @@ def train_agent(agent, episodes = 1, render_episodes = 1, make_videos = False, e
     agent.evaluate(num_episodes=episodes)
 
     if make_videos:
-        print("making videos")
         agent.render(num_episodes=render_episodes, render_mode='rgb_array', width=256, height=256, 
                      epochs_to_render=epochs_to_render)
 

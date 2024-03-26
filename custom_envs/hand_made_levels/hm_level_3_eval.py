@@ -13,4 +13,5 @@ class HMLevel3Eval(HMLevel3):
     def __init__(self, config):
         super().__init__(config=config)
         
+        self.agent.placements = None
         self.agent.locations = [(2.5, 0)]
