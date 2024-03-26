@@ -42,8 +42,8 @@ if __name__ == '__main__':
                             # (0.1, 0.01, 10, 256),
                             ]
 
-    last_means = pd.DataFrame(columns = parameters + ["reward", "cost", "uac_cost", "eval_reward", "eval_cost", 
-                                                      "uac_eval_cost", "eval_length"]).set_index(parameters)
+    last_means = pd.DataFrame(columns = parameters + ["reward", "cost", "auc_cost", "eval_reward", "eval_cost", 
+                                                      "auc_eval_cost", "eval_length"]).set_index(parameters)
     
     for promising_parameter_combo in promising_parameters:
         for cost_limit in cost_limits:
@@ -88,13 +88,13 @@ if __name__ == '__main__':
             eval_reward = eval_means["rewards"][-1]
             eval_cost = eval_means["costs"][-1]
             eval_length = eval_means["lengths"][-1]
-            uac_cost = np.trapz(means["costs"], dx=1)
-            uac_eval_cost = np.trapz(eval_means["costs"], dx=safe_freq)
+            auc_cost = np.trapz(means["costs"], dx=1)
+            auc_eval_cost = np.trapz(eval_means["costs"], dx=safe_freq)
 
             parameter_means = pd.DataFrame(data = {"cost_limits": cost_limit, "lag_multiplier_inits": lag_multiplier_init, "lag_multiplier_lrs": lag_multiplier_lr, 
                                     "steps_per_epochs": steps_per_epoch, "update_iterss": update_iters, "nn_sizes": nn_size, 
-                                    "reward": reward, "cost": cost, "uac_cost": uac_cost, 'eval_reward': eval_reward,
-                                    'eval_cost': eval_cost, "uac_eval_cost": uac_eval_cost, 'eval_length': eval_length}, 
+                                    "reward": reward, "cost": cost, "auc_cost": auc_cost, 'eval_reward': eval_reward,
+                                    'eval_cost': eval_cost, "auc_eval_cost": auc_eval_cost, 'eval_length': eval_length}, 
                                     index = [0]).set_index(parameters)       
 
             last_means = pd.concat([last_means, parameter_means])
