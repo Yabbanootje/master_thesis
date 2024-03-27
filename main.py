@@ -338,6 +338,10 @@ def plot_eval(folder, curr_changes, cost_limit, mean_baseline=True):
     return means
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--experiment', dest='experiment', type=int, help='Choose experiment')
+    args = parser.parse_args()
+
     eval_episodes = 10
     render_episodes = 3
     cost_limit = 5.0
@@ -360,6 +364,13 @@ if __name__ == '__main__':
                             (0.001, 0.01, 1, 256),
                             (0.1, 0.01, 10, 64),
                             ]
+    
+    if args.experiment == 1:
+        promising_parameters = promising_parameters[:2]
+    elif args.experiment == 2:
+        promising_parameters = promising_parameters[2:4]
+    elif args.experiment == 3:
+        promising_parameters = promising_parameters[4:]
     
     for promising_parameter_combo in promising_parameters:
         (lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size) = promising_parameter_combo
