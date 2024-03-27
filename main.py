@@ -342,7 +342,7 @@ if __name__ == '__main__':
     parser.add_argument('--experiment', dest='experiment', type=int, help='Choose experiment')
     args = parser.parse_args()
 
-    eval_episodes = 10
+    eval_episodes = 5
     render_episodes = 3
     cost_limit = 5.0
     steps_per_epoch = 1000
