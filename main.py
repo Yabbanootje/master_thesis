@@ -338,16 +338,16 @@ def plot_eval(folder, curr_changes, cost_limit, mean_baseline=True):
     return means
 
 if __name__ == '__main__':
-    eval_episodes = 2 # 20
-    render_episodes = 1 # 3
+    eval_episodes = 10
+    render_episodes = 3
     cost_limit = 5.0
     steps_per_epoch = 1000
-    safe_freq = 1 # 50
-    epochs = 4 # 1000
-    repetitions = 1
+    safe_freq = 20
+    epochs = 1000
+    repetitions = 20
     baseline_algorithms = ["PPOLag"] # ["PPO", "PPOLag", "P3O"]
     curr_algorithms = ["PPOLag"] # ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
-    folder_base = "long_training/test-half_curriculum"
+    folder_base = "long_training/half_curr"
 
     # Grid search params
     parameters = ["cost_limits", "lag_multiplier_inits", "lag_multiplier_lrs", "steps_per_epochs", 
