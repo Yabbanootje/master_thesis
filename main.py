@@ -371,6 +371,9 @@ if __name__ == '__main__':
         promising_parameters = promising_parameters[2:4]
     elif args.experiment == 3:
         promising_parameters = promising_parameters[4:]
+
+    print("args.experiment", args.experiment)
+    print(promising_parameters)
     
     for promising_parameter_combo in promising_parameters:
         (lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size) = promising_parameter_combo
