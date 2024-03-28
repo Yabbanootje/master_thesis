@@ -346,9 +346,9 @@ if __name__ == '__main__':
     render_episodes = 3
     cost_limit = 5.0
     steps_per_epoch = 1000
-    safe_freq = 20
-    epochs = 1000
-    repetitions = 20
+    safe_freq = 10
+    epochs = 500
+    repetitions = 10
     baseline_algorithms = ["PPOLag"] # ["PPO", "PPOLag", "P3O"]
     curr_algorithms = ["PPOLag"] # ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
     folder_base = "long_training/half_curr"
@@ -357,12 +357,12 @@ if __name__ == '__main__':
     parameters = ["cost_limits", "lag_multiplier_inits", "lag_multiplier_lrs", "steps_per_epochs", 
                   "update_iterss", "nn_sizes"]
     
-    promising_parameters = [(0.1, 0.01, 1, 64),
-                            (0.01, 0.01, 1, 64),
-                            (0.001, 0.01, 1, 64),
-                            (0.1, 0.01, 1, 256),
+    promising_parameters = [(0.01, 0.01, 1, 64),
                             (0.001, 0.01, 1, 256),
                             (0.1, 0.01, 10, 64),
+                            (0.001, 0.01, 1, 64),
+                            (0.1, 0.01, 1, 256),
+                            (0.1, 0.01, 1, 64),
                             ]
     
     if args.experiment == 1:
