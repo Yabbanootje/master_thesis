@@ -208,7 +208,7 @@ class HMCurriculumEnv(CMDP):
             info: Some information logged by the environment.
         """
 
-        if options != None and options.get("resetting_for_render") == True:
+        if options != None and options.get("resetting_for_eval") == True:
                 self._env = safety_gymnasium.make(id="SafetyPointHMEval3-v0", autoreset=True, **self._kwargs)
         elif self._curriculum:
             if self._steps == 10000:
