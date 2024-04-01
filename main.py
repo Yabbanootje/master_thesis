@@ -366,11 +366,11 @@ if __name__ == '__main__':
                             ]
     
     if args.experiment == 1:
-        promising_parameters = promising_parameters[:2]
+        promising_parameters = promising_parameters[1:2]
     elif args.experiment == 2:
-        promising_parameters = promising_parameters[2:4]
+        promising_parameters = promising_parameters[3:4]
     elif args.experiment == 3:
-        promising_parameters = promising_parameters[4:]
+        promising_parameters = promising_parameters[5:]
     
     for promising_parameter_combo in promising_parameters:
         (lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size) = promising_parameter_combo
@@ -407,4 +407,4 @@ if __name__ == '__main__':
         # Plot the results
         curr_changes = [10, 20, 30]
         means = plot_train(folder_name, curr_changes, cost_limit, include_weak=False, mean_baseline=False)
-        eval_means = plot_eval(folder_name, curr_changes, cost_limit, include_weak=False, mean_baseline=False)
+        eval_means = plot_eval(folder_name, curr_changes, cost_limit, mean_baseline=False)
