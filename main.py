@@ -100,7 +100,7 @@ def train_agent(agent, episodes = 1, render_episodes = 1, make_videos = False, e
         agent.render(num_episodes=render_episodes, render_mode='rgb_array', width=256, height=256, 
                      epochs_to_render=epochs_to_render)
 
-def plot_train(folder, curr_changes, cost_limit, include_weak=False):
+def plot_train(folder, curr_changes, cost_limit, repetitions, include_weak=False, use_std=False):
     # Get folder names for all algorithms
     baseline_dir = "app/results/" + folder + "/baseline"
     curr_dir = "app/results/" + folder + "/curriculum"
@@ -157,24 +157,57 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False):
         if len(means_baseline['rewards']) == 0:
             means_baseline['rewards'] = baseline_rewards_mean[algorithm_name]
         plt.plot(np.arange(1, len(baseline_rewards_mean[algorithm_name]) + 1), baseline_rewards_mean[algorithm_name], label="Baseline - " + algorithm_name.split('-')[0])
-        plt.fill_between(x=np.arange(1, len(baseline_rewards_mean[algorithm_name]) + 1),
+        if use_std:
+            plt.fill_between(x=np.arange(1, len(baseline_rewards_mean[algorithm_name]) + 1),
                         y1=baseline_rewards_mean[algorithm_name] - baseline_rewards_std[algorithm_name],
-                        y2=baseline_rewards_mean[algorithm_name] + baseline_rewards_std[algorithm_name], alpha=0.2)
+                        y2=baseline_rewards_mean[algorithm_name] + baseline_rewards_std[algorithm_name], 
+                        alpha=0.2)
+        else:
+            # Use standard error
+            plt.fill_between(x=np.arange(1, len(baseline_rewards_mean[algorithm_name]) + 1),
+                        y1=np.asarray(baseline_rewards_mean[algorithm_name]) - (np.asarray(baseline_rewards_std[algorithm_name]) / 
+                                                                    (repetitions ** 0.5)),
+                        y2=np.asarray(baseline_rewards_mean[algorithm_name]) + (np.asarray(baseline_rewards_std[algorithm_name]) / 
+                                                                    (repetitions ** 0.5)), 
+                        alpha=0.2)
 
     # Plot curriculum rewards
     for algorithm_name in curr_rewards_mean.keys():
         if len(means_curr['rewards']) == 0:
             means_curr['rewards'] = curr_rewards_mean[algorithm_name]
         plt.plot(np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1), curr_rewards_mean[algorithm_name], label="Curriculum Strong - " + algorithm_name.split('-')[0])
-        plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1),
+        if use_std:
+            plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1),
                         y1=curr_rewards_mean[algorithm_name] - curr_rewards_std[algorithm_name],
-                        y2=curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name], alpha=0.2)
+                        y2=curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name], 
+                        alpha=0.2)
+        else:
+            # Use standard error
+            plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1),
+                        y1=np.asarray(curr_rewards_mean[algorithm_name]) - (np.asarray(curr_rewards_std[algorithm_name]) / 
+                                                                    (repetitions ** 0.5)),
+                        y2=np.asarray(curr_rewards_mean[algorithm_name]) + (np.asarray(curr_rewards_std[algorithm_name]) / 
+                                                                    (repetitions ** 0.5)), 
+                        alpha=0.2)
 
         if include_weak:
             plt.plot(np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1 - last_change), curr_rewards_mean[algorithm_name][last_change:], label="Curriculum Weak - " + algorithm_name.split('-')[0])
-            plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1 - last_change),
-                            y1=(curr_rewards_mean[algorithm_name] - curr_rewards_std[algorithm_name])[last_change:],
-                            y2=(curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name])[last_change:], alpha=0.2)
+            if use_std:
+                plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1),
+                            y1=curr_rewards_mean[algorithm_name] - curr_rewards_std[algorithm_name],
+                            y2=curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name], 
+                            alpha=0.2)
+            else:
+                # Use standard error
+                plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1),
+                            y1=(np.asarray(curr_rewards_mean[algorithm_name]) - (np.asarray(curr_rewards_std[algorithm_name]) / 
+                                                                        (repetitions ** 0.5)))[last_change:],
+                            y2=(np.asarray(curr_rewards_mean[algorithm_name]) + (np.asarray(curr_rewards_std[algorithm_name]) / 
+                                                                        (repetitions ** 0.5)))[last_change:], 
+                            alpha=0.2)
+            # plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1 - last_change),
+            #                 y1=(curr_rewards_mean[algorithm_name] - curr_rewards_std[algorithm_name])[last_change:],
+            #                 y2=(curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name])[last_change:], alpha=0.2)
 
     for change in curr_changes:
         plt.axvline(x=change, color="gray", linestyle='-')
@@ -196,24 +229,57 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False):
         if len(means_baseline['costs']) == 0:
             means_baseline['costs'] = baseline_costs_mean[algorithm_name]
         plt.plot(np.arange(1, len(baseline_costs_mean[algorithm_name]) + 1), baseline_costs_mean[algorithm_name], label="Baseline - " + algorithm_name.split('-')[0])
-        plt.fill_between(x=np.arange(1, len(baseline_costs_mean[algorithm_name]) + 1),
+        if use_std:
+            plt.fill_between(x=np.arange(1, len(baseline_costs_mean[algorithm_name]) + 1),
                         y1=baseline_costs_mean[algorithm_name] - baseline_costs_std[algorithm_name],
-                        y2=baseline_costs_mean[algorithm_name] + baseline_costs_std[algorithm_name], alpha=0.2)
+                        y2=baseline_costs_mean[algorithm_name] + baseline_costs_std[algorithm_name], 
+                        alpha=0.2)
+        else:
+            # Use standard error
+            plt.fill_between(x=np.arange(1, len(baseline_costs_mean[algorithm_name]) + 1),
+                        y1=np.asarray(baseline_costs_mean[algorithm_name]) - (np.asarray(baseline_costs_std[algorithm_name]) / 
+                                                                    (repetitions ** 0.5)),
+                        y2=np.asarray(baseline_costs_mean[algorithm_name]) + (np.asarray(baseline_costs_std[algorithm_name]) / 
+                                                                    (repetitions ** 0.5)), 
+                        alpha=0.2)
 
     # Plot curriculum costs
     for algorithm_name in curr_costs_mean.keys():
         if len(means_curr['costs']) == 0:
             means_curr['costs'] = curr_costs_mean[algorithm_name]
         plt.plot(np.arange(1, len(curr_costs_mean[algorithm_name]) + 1), curr_costs_mean[algorithm_name], label="Curriculum Strong - " + algorithm_name.split('-')[0])
-        plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1),
+        if use_std:
+            plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1),
                         y1=curr_costs_mean[algorithm_name] - curr_costs_std[algorithm_name],
-                        y2=curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name], alpha=0.2)
+                        y2=curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name], 
+                        alpha=0.2)
+        else:
+            # Use standard error
+            plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1),
+                        y1=np.asarray(curr_costs_mean[algorithm_name]) - (np.asarray(curr_costs_std[algorithm_name]) / 
+                                                                    (repetitions ** 0.5)),
+                        y2=np.asarray(curr_costs_mean[algorithm_name]) + (np.asarray(curr_costs_std[algorithm_name]) / 
+                                                                    (repetitions ** 0.5)), 
+                        alpha=0.2)
 
         if include_weak:
             plt.plot(np.arange(1, len(curr_costs_mean[algorithm_name]) + 1 - last_change), curr_costs_mean[algorithm_name][last_change:], label="Curriculum Weak - " + algorithm_name.split('-')[0])
-            plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1 - last_change),
-                            y1=(curr_costs_mean[algorithm_name] - curr_costs_std[algorithm_name])[last_change:],
-                            y2=(curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name])[last_change:], alpha=0.2)
+            if use_std:
+                plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1),
+                            y1=curr_costs_mean[algorithm_name] - curr_costs_std[algorithm_name],
+                            y2=curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name], 
+                            alpha=0.2)
+            else:
+                # Use standard error
+                plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1),
+                            y1=(np.asarray(curr_costs_mean[algorithm_name]) - (np.asarray(curr_costs_std[algorithm_name]) / 
+                                                                        (repetitions ** 0.5)))[last_change:],
+                            y2=(np.asarray(curr_costs_mean[algorithm_name]) + (np.asarray(curr_costs_std[algorithm_name]) / 
+                                                                        (repetitions ** 0.5)))[last_change:], 
+                            alpha=0.2)
+            # plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1 - last_change),
+            #                 y1=(curr_costs_mean[algorithm_name] - curr_costs_std[algorithm_name])[last_change:],
+            #                 y2=(curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name])[last_change:], alpha=0.2)
 
     plt.axhline(y=cost_limit, color='r', linestyle='-')
 
@@ -232,7 +298,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False):
 
     return means_baseline, means_curr
 
-def plot_eval(folder, curr_changes, cost_limit):
+def plot_eval(folder, curr_changes, cost_limit, repetitions, eval_episodes, use_std = False):
     def extract_values(pattern, text):
         return [float(match.group(1)) for match in re.finditer(pattern, text)]
 
@@ -313,9 +379,17 @@ def plot_eval(folder, curr_changes, cost_limit):
             if len(means_baseline[data_type]) == 0:
                 means_baseline[data_type] = sorted_means
             plt.plot(sorted_indices, sorted_means, label=f"Baseline - {algorithm_name.split('-')[0]}")
-            plt.fill_between(x=sorted_indices,
+            if use_std:
+                plt.fill_between(x=sorted_indices,
                             y1=np.asarray(sorted_means) - np.asarray(sorted_stds),
-                            y2=np.asarray(sorted_means) + np.asarray(sorted_stds), alpha=0.2)
+                            y2=np.asarray(sorted_means) + np.asarray(sorted_stds), 
+                            alpha=0.2)
+            else:
+                # Use standard error
+                plt.fill_between(x=sorted_indices,
+                            y1=np.asarray(sorted_means) - (np.asarray(sorted_stds) / ((repetitions * eval_episodes) ** 0.5)),
+                            y2=np.asarray(sorted_means) + (np.asarray(sorted_stds) / ((repetitions * eval_episodes) ** 0.5)), 
+                            alpha=0.2)
 
         for algorithm_name in eval(f"curr_{data_type}_mean").keys():
             sorted_values = sorted(zip(indices, eval(f"curr_{data_type}_mean")[algorithm_name], eval(f"curr_{data_type}_std")[algorithm_name]))
@@ -323,9 +397,17 @@ def plot_eval(folder, curr_changes, cost_limit):
             if len(means_curr[data_type]) == 0:
                 means_curr[data_type] = sorted_means
             plt.plot(sorted_indices, sorted_means, label=f"Curriculum Strong - {algorithm_name.split('-')[0]}")
-            plt.fill_between(x=sorted_indices,
+            if use_std:
+                plt.fill_between(x=sorted_indices,
                             y1=np.asarray(sorted_means) - np.asarray(sorted_stds),
-                            y2=np.asarray(sorted_means) + np.asarray(sorted_stds), alpha=0.2)
+                            y2=np.asarray(sorted_means) + np.asarray(sorted_stds), 
+                            alpha=0.2)
+            else:
+                # Use standard error
+                plt.fill_between(x=sorted_indices,
+                            y1=np.asarray(sorted_means) - (np.asarray(sorted_stds) / ((repetitions * eval_episodes) ** 0.5)),
+                            y2=np.asarray(sorted_means) + (np.asarray(sorted_stds) / ((repetitions * eval_episodes) ** 0.5)), 
+                            alpha=0.2)
 
         if data_type == 'costs':
             plt.axhline(y=cost_limit, color='r', linestyle='-')
@@ -440,6 +522,6 @@ if __name__ == '__main__':
 
         # Plot the results
         curr_changes = [10, 20, 30]
-        means_baseline, means_curr = plot_train(folder_name, curr_changes, cost_limit, include_weak=False)
-        eval_means_baseline, eval_means_curr = plot_eval(folder_name, curr_changes, cost_limit)
+        means_baseline, means_curr = plot_train(folder_name, curr_changes, cost_limit, repetitions, include_weak=False)
+        eval_means_baseline, eval_means_curr = plot_eval(folder_name, curr_changes, cost_limit, repetitions, eval_episodes)
         print_eval(folder_name, means_baseline, means_curr, eval_means_baseline, eval_means_curr)
