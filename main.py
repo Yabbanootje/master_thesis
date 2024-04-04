@@ -24,6 +24,11 @@ def get_configs(folder, algos, epochs, cost_limit, random, safe_freq = None, ste
 
     if safe_freq == None:
         safe_freq = epochs
+
+    if torch.cuda.is_available():
+        device = "cuda:0"
+    else:
+        device = "cpu"
     
     if random:
         seed = int(rand.random() * 10000)
@@ -40,6 +45,7 @@ def get_configs(folder, algos, epochs, cost_limit, random, safe_freq = None, ste
         custom_cfg = {
             'seed': seed,
             'train_cfgs': {
+                'device': device,
                 'total_steps': epochs * steps_per_epoch,
             },
             'algo_cfgs': {
