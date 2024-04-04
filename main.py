@@ -474,11 +474,11 @@ if __name__ == '__main__':
                   "update_iterss", "nn_sizes"]
     
     promising_parameters = [(0.01, 0.01, 1, 64), # seems to be the best
-                            # (0.001, 0.01, 1, 256),
+                            (0.001, 0.01, 1, 256),
                             (0.1, 0.01, 10, 64),
-                            # (0.001, 0.01, 1, 64),
+                            (0.001, 0.01, 1, 64),
                             (0.1, 0.01, 1, 256),
-                            # (0.1, 0.01, 1, 64),
+                            (0.1, 0.01, 1, 64),
                             ]
     
     # if args.experiment == 1:
@@ -494,31 +494,31 @@ if __name__ == '__main__':
         # Create folder
         folder_name = folder_base + "-" + str(grid_params)
 
-        # # Repeat experiments
-        # for i in range(repetitions):
-        #     # Get configurations
-        #     base_cfgs = get_configs(folder=folder_name + "/baseline", algos=baseline_algorithms, epochs=epochs, 
-        #                             cost_limit=cost_limit, random=True, steps_per_epoch = steps_per_epoch, 
-        #                             update_iters = update_iters, nn_size = nn_size, safe_freq = safe_freq,
-        #                             lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
-        #     curr_cfgs = get_configs(folder=folder_name + "/curriculum", algos=curr_algorithms, epochs=epochs, 
-        #                             cost_limit=cost_limit, random=True, steps_per_epoch = steps_per_epoch, 
-        #                             update_iters = update_iters, nn_size = nn_size, safe_freq = safe_freq,
-        #                             lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
+        # Repeat experiments
+        for i in range(repetitions):
+            # Get configurations
+            base_cfgs = get_configs(folder=folder_name + "/baseline", algos=baseline_algorithms, epochs=epochs, 
+                                    cost_limit=cost_limit, random=True, steps_per_epoch = steps_per_epoch, 
+                                    update_iters = update_iters, nn_size = nn_size, safe_freq = safe_freq,
+                                    lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
+            curr_cfgs = get_configs(folder=folder_name + "/curriculum", algos=curr_algorithms, epochs=epochs, 
+                                    cost_limit=cost_limit, random=True, steps_per_epoch = steps_per_epoch, 
+                                    update_iters = update_iters, nn_size = nn_size, safe_freq = safe_freq,
+                                    lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
 
-        #     # Initialize agents
-        #     baseline_env_id = 'SafetyPointHM3-v0'
-        #     curr_env_id = 'SafetyPointHM0-v0'
+            # Initialize agents
+            baseline_env_id = 'SafetyPointHM3-v0'
+            curr_env_id = 'SafetyPointHM0-v0'
 
-        #     baseline_agents = get_agents(baseline_algorithms, baseline_env_id, base_cfgs)
-        #     curriculum_agents = get_agents(curr_algorithms, curr_env_id, curr_cfgs)
+            baseline_agents = get_agents(baseline_algorithms, baseline_env_id, base_cfgs)
+            curriculum_agents = get_agents(curr_algorithms, curr_env_id, curr_cfgs)
 
-        #     # Train agents
-        #     for baseline_agent in baseline_agents:
-        #         train_agent(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
+            # Train agents
+            for baseline_agent in baseline_agents:
+                train_agent(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
 
-        #     for curriculum_agent in curriculum_agents:
-        #         train_agent(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
+            for curriculum_agent in curriculum_agents:
+                train_agent(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
 
         # Plot the results
         curr_changes = [10, 20, 30]
