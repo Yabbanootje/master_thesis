@@ -106,6 +106,8 @@ class HMCurriculumEnv(CMDP):
         self._num_envs = num_envs
         self._device = torch.device(device)
 
+        print("device in CMDP init is:", self._device)
+
         self._kwargs = kwargs
         self._steps = 0
         self._curriculum = False
@@ -176,6 +178,9 @@ class HMCurriculumEnv(CMDP):
             torch.as_tensor(x, dtype=torch.float32, device=self._device)
             for x in (obs, reward, cost, terminated, truncated)
         )
+
+        print("device in CMDP step is:", self._device)
+        
         if 'final_observation' in info:
             info['final_observation'] = np.array(
                 [
@@ -232,6 +237,9 @@ class HMCurriculumEnv(CMDP):
 
         obs, info = self._env.reset(seed=seed, options=options)
         # self._env.task.agent.locations = [(-1.5, 0)]
+
+        print("device in CMDP reset is:", self._device)
+
         return torch.as_tensor(obs, dtype=torch.float32, device=self._device), info
 
     def set_seed(self, seed: int) -> None:
