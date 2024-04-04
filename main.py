@@ -469,7 +469,7 @@ if __name__ == '__main__':
     cost_limit = 5.0
     steps_per_epoch = 1000
     safe_freq = 10
-    epochs = 500
+    epochs = 800
     repetitions = 10
     baseline_algorithms = ["PPOLag"] # ["PPO", "PPOLag", "P3O"]
     curr_algorithms = ["PPOLag"] # ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
@@ -479,10 +479,11 @@ if __name__ == '__main__':
     parameters = ["cost_limits", "lag_multiplier_inits", "lag_multiplier_lrs", "steps_per_epochs", 
                   "update_iterss", "nn_sizes"]
     
-    promising_parameters = [(0.01, 0.01, 1, 64), # seems to be the best
-                            (0.001, 0.01, 1, 256),
-                            (0.1, 0.01, 10, 64),
-                            (0.001, 0.01, 1, 64),
+    promising_parameters = [
+                            # (0.01, 0.01, 1, 64),
+                            # (0.001, 0.01, 1, 256),
+                            # (0.1, 0.01, 10, 64),
+                            # (0.001, 0.01, 1, 64),
                             (0.1, 0.01, 1, 256),
                             (0.1, 0.01, 1, 64),
                             ]
