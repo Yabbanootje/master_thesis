@@ -8,10 +8,8 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
+import threading
 from itertools import product
-# from safety_gymnasium.utils.registration import register
-# from custom_envs.preliminary_levels.curriculum_env import CurriculumEnv
-# from omnisafe.utils.tools import get_yaml_path, load_yaml
 from omnisafe.utils.config import get_default_kwargs_yaml
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 
@@ -487,19 +485,20 @@ if __name__ == '__main__':
                             # (0.001, 0.01, 1, 256),
                             (0.1, 0.01, 10, 64),
                             ]
-    
-    # if args.experiment == 1:
-    #     promising_parameters = promising_parameters[1:2]
-    # elif args.experiment == 2:
-    #     promising_parameters = promising_parameters[3:4]
-    # elif args.experiment == 3:
-    #     promising_parameters = promising_parameters[5:]
+
+    if args.experiment == 1:
+        promising_parameters = promising_parameters[:1]
+        repetitions = 8
+    elif args.experiment == 2:
+        promising_parameters = promising_parameters[1:]
     
     for promising_parameter_combo in promising_parameters:
         (lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size) = promising_parameter_combo
         grid_params = (cost_limit, lag_multiplier_init, lag_multiplier_lr, steps_per_epoch, update_iters, nn_size)
         # Create folder
         folder_name = folder_base + "-" + str(grid_params)
+
+        # threads = []
 
         # Repeat experiments
         for i in range(repetitions):
@@ -526,6 +525,22 @@ if __name__ == '__main__':
 
             for curriculum_agent in curriculum_agents:
                 train_agent(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
+
+        #     # Train agents
+        #     for baseline_agent in baseline_agents:
+        #         baseline_thread = threading.Thread(target=train_agent, 
+        #             args=(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs]))
+        #         threads.append(baseline_thread)
+        #         baseline_thread.start()
+
+        #     for curriculum_agent in curriculum_agents:
+        #         curr_thread = threading.Thread(target=train_agent, 
+        #             args=(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs]))
+        #         threads.append(curr_thread)
+        #         curr_thread.start()
+
+        # for thread in threads:
+        #     thread.join()
 
         # Plot the results
         curr_changes = [10, 20, 30]
