@@ -24,7 +24,7 @@ def get_configs(folder, algos, epochs, cost_limit, random, safe_freq = None, ste
         safe_freq = epochs
 
     if torch.cuda.is_available():
-        device = "cuda:0"
+        device = torch.device("cuda")
     else:
         device = "cpu"
     
