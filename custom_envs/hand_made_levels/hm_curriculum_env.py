@@ -105,7 +105,6 @@ class HMCurriculumEnv(CMDP):
         super().__init__(env_id)
         self._num_envs = num_envs
         self._device = torch.device(device)
-        self._device = torch.cuda.device(device)
 
         self._kwargs = kwargs
         self._steps = 0
