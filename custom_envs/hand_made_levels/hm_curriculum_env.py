@@ -185,6 +185,11 @@ class HMCurriculumEnv(CMDP):
             torch.as_tensor(x, dtype=torch.float32, device=self._device)
             for x in (obs, reward, cost, terminated, truncated)
         )
+
+        if self._steps == 500:
+            print("The device in the CMDP is:", self._device, torch.cuda.is_available(), torch.cuda.device_count(), torch.cuda.current_device(), torch.cuda.get_device_name(0))
+            print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
+            print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
         
         if 'final_observation' in info:
             info['final_observation'] = np.array(
