@@ -462,13 +462,13 @@ if __name__ == '__main__':
     parser.add_argument('--experiment', dest='experiment', type=int, help='Choose experiment')
     args = parser.parse_args()
 
-    eval_episodes = 5
-    render_episodes = 3
+    eval_episodes = 1#5
+    render_episodes = 1#3
     cost_limit = 5.0
     steps_per_epoch = 1000
-    safe_freq = 10
-    epochs = 800
-    repetitions = 10
+    safe_freq = 1#10
+    epochs = 1#800
+    repetitions = 1#10
     baseline_algorithms = ["PPOLag"] # ["PPO", "PPOLag", "P3O"]
     curr_algorithms = ["PPOLag"] # ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
     folder_base = "longer_training/half_curr"
