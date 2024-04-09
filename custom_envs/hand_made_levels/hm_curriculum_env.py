@@ -112,6 +112,8 @@ class HMCurriculumEnv(CMDP):
 
         print("The device in the CMDP is:", self._device, torch.cuda.is_available(), torch.cuda.device_count(), torch.cuda.current_device())
         if torch.cuda.is_available():
+            # Force usage of GPU if available
+            self._device = torch.device("cuda:0")
             print(torch.cuda.get_device_name(device))
             print('Allocated:', round(torch.cuda.memory_allocated(device)/1024**3,1), 'GB')
             print('Cached:   ', round(torch.cuda.memory_reserved(device)/1024**3,1), 'GB')
