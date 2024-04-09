@@ -114,9 +114,9 @@ class HMCurriculumEnv(CMDP):
         if torch.cuda.is_available():
             # Force usage of GPU if available
             self._device = torch.device("cuda:0")
-            print(torch.cuda.get_device_name(device))
-            print('Allocated:', round(torch.cuda.memory_allocated(device)/1024**3,1), 'GB')
-            print('Cached:   ', round(torch.cuda.memory_reserved(device)/1024**3,1), 'GB')
+            print(self._device, torch.cuda.get_device_name(self._device))
+            print('Allocated:', round(torch.cuda.memory_allocated(self._device)/1024**3,1), 'GB')
+            print('Cached:   ', round(torch.cuda.memory_reserved(self._device)/1024**3,1), 'GB')
 
         if "HM0" in env_id:
             self._curriculum = True
