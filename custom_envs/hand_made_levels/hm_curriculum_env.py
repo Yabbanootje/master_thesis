@@ -110,9 +110,10 @@ class HMCurriculumEnv(CMDP):
         self._steps = 0
         self._curriculum = False
 
-        print("The device in the CMDP is:", self._device, torch.cuda.is_available(), torch.cuda.device_count(), torch.cuda.current_device(), torch.cuda.get_device_name(0))
-        print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
-        print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
+        print("The device in the CMDP is:", self._device, torch.cuda.is_available(), torch.cuda.device_count(), torch.cuda.current_device(), torch.cuda.get_device_name(device))
+        if torch.cuda.is_available():
+            print('Allocated:', round(torch.cuda.memory_allocated(device)/1024**3,1), 'GB')
+            print('Cached:   ', round(torch.cuda.memory_reserved(device)/1024**3,1), 'GB')
 
         if "HM0" in env_id:
             self._curriculum = True
