@@ -95,13 +95,6 @@ def get_agents(algorithms, env_id, cfgs):
     return agents
 
 def train_agent(agent, episodes = 1, render_episodes = 1, make_videos = False, epochs_to_render = []):
-    if torch.cuda.is_available():
-        device = "cuda:0"
-    else:
-        device = "cpu"
-
-    agent.to(device)
-
     agent.learn()
 
     agent.plot(smooth=1)
@@ -519,28 +512,28 @@ if __name__ == '__main__':
             baseline_agents = get_agents(baseline_algorithms, baseline_env_id, base_cfgs)
             curriculum_agents = get_agents(curr_algorithms, curr_env_id, curr_cfgs)
 
-            # # Train agents
-            # for baseline_agent in baseline_agents:
-            #     train_agent(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
-
-            # for curriculum_agent in curriculum_agents:
-            #     train_agent(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
-
             # Train agents
             for baseline_agent in baseline_agents:
-                baseline_thread = threading.Thread(target=train_agent, 
-                    args=(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs]))
-                threads.append(baseline_thread)
-                baseline_thread.start()
+                train_agent(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
 
             for curriculum_agent in curriculum_agents:
-                curr_thread = threading.Thread(target=train_agent, 
-                    args=(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs]))
-                threads.append(curr_thread)
-                curr_thread.start()
+                train_agent(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
 
-        for thread in threads:
-            thread.join()
+        #     # Train agents
+        #     for baseline_agent in baseline_agents:
+        #         baseline_thread = threading.Thread(target=train_agent, 
+        #             args=(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs]))
+        #         threads.append(baseline_thread)
+        #         baseline_thread.start()
+
+        #     for curriculum_agent in curriculum_agents:
+        #         curr_thread = threading.Thread(target=train_agent, 
+        #             args=(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs]))
+        #         threads.append(curr_thread)
+        #         curr_thread.start()
+
+        # for thread in threads:
+        #     thread.join()
 
         # Plot the results
         curr_changes = [10, 20, 30]
