@@ -109,12 +109,13 @@ class HMCurriculumEnv(CMDP):
         self._kwargs = kwargs
         self._steps = 0
         self._curriculum = False
+        self.disable_progress = True
 
-        print("The device in the CMDP is:", self._device, torch.cuda.is_available(), torch.cuda.device_count(), torch.cuda.current_device())
+        print("The device in the CMDP is:", self._device, torch.cuda.is_available())
         if torch.cuda.is_available():
             # Force usage of GPU if available
             self._device = torch.device("cuda:0")
-            print(self._device, torch.cuda.get_device_name(self._device))
+            print(self._device, torch.cuda.get_device_name(self._device), torch.cuda.device_count(), torch.cuda.current_device())
             print('Allocated:', round(torch.cuda.memory_allocated(self._device)/1024**3,1), 'GB')
             print('Cached:   ', round(torch.cuda.memory_reserved(self._device)/1024**3,1), 'GB')
 

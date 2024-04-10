@@ -1,0 +1,11 @@
+Last epoch results:
+Reward: 10.705243062973022
+Cost: 18.540000104904173
+Evaluation reward: 9.920281342543515
+Evaluation cost: 25.02
+Evaluation episode length: 326.18
+Evaluation success rate: 0.16
+
+All epochs results:
+AUC of the cost curve: 18703.961501705646
+AUC of the evaluation cost curve: 2759.88

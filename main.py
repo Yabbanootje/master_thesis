@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import datetime
 import threading
+import wandb
 from itertools import product
 from omnisafe.utils.config import get_default_kwargs_yaml
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
@@ -55,7 +56,7 @@ def get_configs(folder, algos, epochs, cost_limit, random, safe_freq = None, ste
                 'log_dir': "./app/results/" + folder,
                 'save_model_freq': safe_freq,
                 # 'use_wandb': True,
-                # 'wandb_project': "TODO",
+                # 'wandb_project': "test-master-thesis",
             },
             'model_cfgs': {
                 'actor': {
@@ -94,6 +95,13 @@ def get_agents(algorithms, env_id, cfgs):
     return agents
 
 def train_agent(agent, episodes = 1, render_episodes = 1, make_videos = False, epochs_to_render = []):
+    if torch.cuda.is_available():
+        device = "cuda:0"
+    else:
+        device = "cpu"
+
+    agent.to(device)
+
     agent.learn()
 
     agent.plot(smooth=1)
@@ -458,9 +466,7 @@ def print_eval(folder, means_baseline, means_curr, eval_means_baseline, eval_mea
             file.close()
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--experiment', dest='experiment', type=int, help='Choose experiment')
-    args = parser.parse_args()
+    # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
 
     eval_episodes = 1#5
     render_episodes = 1#3
@@ -468,10 +474,10 @@ if __name__ == '__main__':
     steps_per_epoch = 1000
     safe_freq = 1#10
     epochs = 1#800
-    repetitions = 1#10
+    repetitions = 3#10
     baseline_algorithms = ["PPOLag"] # ["PPO", "PPOLag", "P3O"]
     curr_algorithms = ["PPOLag"] # ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
-    folder_base = "longer_training/half_curr"
+    folder_base = "test-threading/half_curr"
 
     # Grid search params
     parameters = ["cost_limits", "lag_multiplier_inits", "lag_multiplier_lrs", "steps_per_epochs", 
@@ -485,12 +491,6 @@ if __name__ == '__main__':
                             # (0.001, 0.01, 1, 256),
                             (0.1, 0.01, 10, 64),
                             ]
-
-    if args.experiment == 1:
-        promising_parameters = promising_parameters[:1]
-        repetitions = 8
-    elif args.experiment == 2:
-        promising_parameters = promising_parameters[1:]
     
     for promising_parameter_combo in promising_parameters:
         (lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size) = promising_parameter_combo
@@ -498,7 +498,7 @@ if __name__ == '__main__':
         # Create folder
         folder_name = folder_base + "-" + str(grid_params)
 
-        # threads = []
+        threads = []
 
         # Repeat experiments
         for i in range(repetitions):
@@ -519,28 +519,28 @@ if __name__ == '__main__':
             baseline_agents = get_agents(baseline_algorithms, baseline_env_id, base_cfgs)
             curriculum_agents = get_agents(curr_algorithms, curr_env_id, curr_cfgs)
 
+            # # Train agents
+            # for baseline_agent in baseline_agents:
+            #     train_agent(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
+
+            # for curriculum_agent in curriculum_agents:
+            #     train_agent(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
+
             # Train agents
             for baseline_agent in baseline_agents:
-                train_agent(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
+                baseline_thread = threading.Thread(target=train_agent, 
+                    args=(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs]))
+                threads.append(baseline_thread)
+                baseline_thread.start()
 
             for curriculum_agent in curriculum_agents:
-                train_agent(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
+                curr_thread = threading.Thread(target=train_agent, 
+                    args=(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs]))
+                threads.append(curr_thread)
+                curr_thread.start()
 
-        #     # Train agents
-        #     for baseline_agent in baseline_agents:
-        #         baseline_thread = threading.Thread(target=train_agent, 
-        #             args=(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs]))
-        #         threads.append(baseline_thread)
-        #         baseline_thread.start()
-
-        #     for curriculum_agent in curriculum_agents:
-        #         curr_thread = threading.Thread(target=train_agent, 
-        #             args=(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs]))
-        #         threads.append(curr_thread)
-        #         curr_thread.start()
-
-        # for thread in threads:
-        #     thread.join()
+        for thread in threads:
+            thread.join()
 
         # Plot the results
         curr_changes = [10, 20, 30]
