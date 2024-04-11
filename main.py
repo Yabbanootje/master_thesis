@@ -461,13 +461,13 @@ def print_eval(folder, means_baseline, means_curr, eval_means_baseline, eval_mea
 if __name__ == '__main__':
     # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
 
-    eval_episodes = 1#5
-    render_episodes = 1#3
+    eval_episodes = 5
+    render_episodes = 3
     cost_limit = 5.0
     steps_per_epoch = 1000
-    safe_freq = 1#10
-    epochs = 1#800
-    repetitions = 3#10
+    safe_freq = 10
+    epochs = 800
+    repetitions = 1#10
     baseline_algorithms = ["PPOLag"] # ["PPO", "PPOLag", "P3O"]
     curr_algorithms = ["PPOLag"] # ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
     folder_base = "test-threading/half_curr"
@@ -482,7 +482,7 @@ if __name__ == '__main__':
                             # (0.001, 0.01, 1, 64),
                             (0.1, 0.01, 1, 256),
                             # (0.001, 0.01, 1, 256),
-                            (0.1, 0.01, 10, 64),
+                            # (0.1, 0.01, 10, 64),
                             ]
     
     for promising_parameter_combo in promising_parameters:
