@@ -134,7 +134,18 @@ class HMCurriculumEnv(CMDP):
         else:
             self.need_time_limit_wrapper = True
             self.need_auto_reset_wrapper = True
+
             self._env = safety_gymnasium.make(id=env_id, autoreset=True, **kwargs)
+
+            # For the curriculum, create all future environments
+            if self._curriculum:
+                self._env_1 = safety_gymnasium.make(id="SafetyPointHM1-v0", autoreset=True, **self._kwargs)
+                self._env_2 = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
+                self._env_3 = safety_gymnasium.make(id="SafetyPointHM3-v0", autoreset=True, **self._kwargs)
+                # self._env_4 = safety_gymnasium.make(id="SafetyPointHM4-v0", autoreset=True, **self._kwargs)
+                # self._env_5 = safety_gymnasium.make(id="SafetyPointHM5-v0", autoreset=True, **self._kwargs)
+                # self._env_T = safety_gymnasium.make(id="SafetyPointHMT-v0", autoreset=True, **self._kwargs)
+
             assert isinstance(self._env.action_space, Box), 'Only support Box action space.'
             assert isinstance(
                 self._env.observation_space,
@@ -218,27 +229,27 @@ class HMCurriculumEnv(CMDP):
             info: Some information logged by the environment.
         """
 
-        if options != None and options.get("resetting_for_eval") == True:
-                self._env = safety_gymnasium.make(id="SafetyPointHMEval3-v0", autoreset=True, **self._kwargs)
+        if options != None and options.get("resetting_for_eval"):
+                self._env = self._env_3
         elif self._curriculum:
             if self._steps == 10000:
                 print("Changed env to level 1")
-                self._env = safety_gymnasium.make(id="SafetyPointHM1-v0", autoreset=True, **self._kwargs)
+                self._env = self._env_1
             elif self._steps == 20000:
                 print("Changed env to level 2")
-                self._env = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
+                self._env = self._env_2
             elif self._steps == 30000:
                 print("Changed env to level 3")
-                self._env = safety_gymnasium.make(id="SafetyPointHM3-v0", autoreset=True, **self._kwargs)
+                self._env = self._env_3
             # elif self._steps == 40000:
             #     print("Changed env to level 4")
-            #     self._env = safety_gymnasium.make(id="SafetyPointHM4-v0", autoreset=True, **self._kwargs)
+            #     self._env = self._env_4
             # elif self._steps == 50000:
             #     print("Changed env to level 5")
-            #     self._env = safety_gymnasium.make(id="SafetyPointHM5-v0", autoreset=True, **self._kwargs)
+            #     self._env = self._env_5
             # elif self._steps == 60000:
             #     print("Changed env to level Target")
-            #     self._env = safety_gymnasium.make(id="SafetyPointHMT-v0", autoreset=True, **self._kwargs)
+            #     self._env = self._env_T
 
         obs, info = self._env.reset(seed=seed, options=options)
         # self._env.task.agent.locations = [(-1.5, 0)]
