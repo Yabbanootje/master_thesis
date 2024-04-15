@@ -1,5 +1,30 @@
 from ...master_thesis.main import *
 
+def save_profile():
+    with open('app/test/my_job_output_231165.txt', 'r') as file:
+        lines = file.readlines()
+
+    # Extract data from each line
+    data = []
+    for line in lines:
+        line = line.strip()
+        if line:  # Check if the line is not empty
+            parts = line.split()
+            if parts[0] != "ncalls":
+                ncalls = parts[0].split("/")[0]
+                tottime = float(parts[1])
+                percall = float(parts[2])
+                cumtime = float(parts[3])
+                percall_1 = float(parts[4])
+                function = ' '.join(parts[5:])
+                data.append([ncalls, tottime, percall, cumtime, percall_1, function])
+
+    # Create DataFrame
+    df = pd.DataFrame(data, columns=['ncalls', 'tottime', 'percall', 'cumtime', 'percall.1', 'filename:lineno(function)'])
+    df = df.sort_values("cumtime", ascending=False).reset_index()
+
+    df.to_csv("app/test/test.csv")
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--experiment', dest='experiment', type=int, help='Choose experiment')
