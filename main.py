@@ -7,32 +7,25 @@ import pandas as pd
 import re
 import numpy as np
 import matplotlib.pyplot as plt
-import datetime
-import threading
+from multiprocessing import Pool
 import wandb
-from itertools import product
 from omnisafe.utils.config import get_default_kwargs_yaml
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 
-def get_configs(folder, algos, epochs, cost_limit, random, safe_freq = None, steps_per_epoch = 1000, 
-                update_iters = 1, nn_size = 64, lag_multiplier_init = 0.001, lag_multiplier_lr = 0.035):
+def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps_per_epoch = 1000, 
+                update_iters = 1, nn_size = 256, lag_multiplier_init = 0.1, lag_multiplier_lr = 0.01):
     """
     steps_per_epoch (int): the number of steps before the policy is updated
     update_iters (int): the number of update iterations per update
     """
 
-    if safe_freq == None:
-        safe_freq = epochs
+    if save_freq == None:
+        save_freq = epochs
 
     if torch.cuda.is_available():
         device = "cuda:0"
     else:
         device = "cpu"
-    
-    if random:
-        seed = int(rand.random() * 10000)
-    else:
-        seed = 0
 
     custom_cfgs = []
 
@@ -54,7 +47,7 @@ def get_configs(folder, algos, epochs, cost_limit, random, safe_freq = None, ste
             },
             'logger_cfgs': {
                 'log_dir': "./app/results/" + folder,
-                'save_model_freq': safe_freq,
+                'save_model_freq': save_freq,
                 # 'use_wandb': True,
                 # 'wandb_project': "test-master-thesis",
             },
@@ -432,7 +425,7 @@ def plot_eval(folder, curr_changes, cost_limit, repetitions, eval_episodes, use_
 
     return means_baseline, means_curr
 
-def print_eval(folder, means_baseline, means_curr, eval_means_baseline, eval_means_curr):
+def print_eval(folder, means_baseline, means_curr, eval_means_baseline, eval_means_curr, save_freq):
     for means, eval_means, agent_type in zip([means_baseline, means_curr], 
                                              [eval_means_baseline, eval_means_curr],
                                              ["baseline", "curriculum"]):
@@ -443,7 +436,7 @@ def print_eval(folder, means_baseline, means_curr, eval_means_baseline, eval_mea
         eval_length = eval_means["lengths"][-1]
         eval_success = eval_means["successes"][-1]
         auc_cost = np.trapz(means["costs"], dx=1)
-        auc_eval_cost = np.trapz(eval_means["costs"], dx=safe_freq)
+        auc_eval_cost = np.trapz(eval_means["costs"], dx=save_freq)
 
         with open(os.path.join(f"app/figures/{folder}/", f"{agent_type}-metrics.txt"), 'w') as file:
             file.write("Last epoch results:\n")
@@ -458,85 +451,51 @@ def print_eval(folder, means_baseline, means_curr, eval_means_baseline, eval_mea
             file.write(f"AUC of the evaluation cost curve: {auc_eval_cost}\n")
             file.close()
 
+def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, epochs, baseline_algorithms, curr_algorithms, folder_base):
+    # Get configurations
+    base_cfgs = get_configs(folder=folder_base + "/baseline", algos=baseline_algorithms, epochs=epochs, 
+                            cost_limit=cost_limit, seed=seed, save_freq = save_freq)
+    curr_cfgs = get_configs(folder=folder_base + "/curriculum", algos=curr_algorithms, epochs=epochs, 
+                            cost_limit=cost_limit, seed=seed, save_freq = save_freq)
+
+    # Initialize agents
+    baseline_env_id = 'SafetyPointHM3-v0'
+    curr_env_id = 'SafetyPointHM0-v0'
+
+    baseline_agents = get_agents(baseline_algorithms, baseline_env_id, base_cfgs)
+    curriculum_agents = get_agents(curr_algorithms, curr_env_id, curr_cfgs)
+
+    # Train agents
+    for baseline_agent in baseline_agents:
+        train_agent(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
+
+    for curriculum_agent in curriculum_agents:
+        train_agent(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
+
 if __name__ == '__main__':
     # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
 
-    eval_episodes = 5
-    render_episodes = 3
+    eval_episodes = 1#5
+    render_episodes = 1#3
     cost_limit = 5.0
     steps_per_epoch = 1000
-    safe_freq = 10
-    epochs = 800
-    repetitions = 1#10
+    save_freq = 1#10
+    epochs = 1#800
+    repetitions = 10#10
     baseline_algorithms = ["PPOLag"] # ["PPO", "PPOLag", "P3O"]
     curr_algorithms = ["PPOLag"] # ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
-    folder_base = "test-threading/half_curr"
+    folder_base = "longer_training/half_curr"
+    curr_changes = [10, 20, 30]
+    seeds = [int(rand.random() * 10000) for i in range(repetitions)]
 
-    # Grid search params
-    parameters = ["cost_limits", "lag_multiplier_inits", "lag_multiplier_lrs", "steps_per_epochs", 
-                  "update_iterss", "nn_sizes"]
-    
-    promising_parameters = [
-                            # (0.1, 0.01, 1, 64),
-                            # (0.01, 0.01, 1, 64),
-                            # (0.001, 0.01, 1, 64),
-                            (0.1, 0.01, 1, 256),
-                            # (0.001, 0.01, 1, 256),
-                            # (0.1, 0.01, 10, 64),
-                            ]
-    
-    for promising_parameter_combo in promising_parameters:
-        (lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size) = promising_parameter_combo
-        grid_params = (cost_limit, lag_multiplier_init, lag_multiplier_lr, steps_per_epoch, update_iters, nn_size)
-        # Create folder
-        folder_name = folder_base + "-" + str(grid_params)
+    def use_params(seed):
+        run_experiment(eval_episodes, render_episodes, cost_limit, seed, steps_per_epoch, save_freq, epochs, baseline_algorithms, curr_algorithms, folder_base)
 
-        threads = []
+    # Repeat experiments
+    with Pool(4) as p:
+        p.map(use_params, seeds)
 
-        # Repeat experiments
-        for i in range(repetitions):
-            # Get configurations
-            base_cfgs = get_configs(folder=folder_name + "/baseline", algos=baseline_algorithms, epochs=epochs, 
-                                    cost_limit=cost_limit, random=True, steps_per_epoch = steps_per_epoch, 
-                                    update_iters = update_iters, nn_size = nn_size, safe_freq = safe_freq,
-                                    lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
-            curr_cfgs = get_configs(folder=folder_name + "/curriculum", algos=curr_algorithms, epochs=epochs, 
-                                    cost_limit=cost_limit, random=True, steps_per_epoch = steps_per_epoch, 
-                                    update_iters = update_iters, nn_size = nn_size, safe_freq = safe_freq,
-                                    lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
-
-            # Initialize agents
-            baseline_env_id = 'SafetyPointHM3-v0'
-            curr_env_id = 'SafetyPointHM0-v0'
-
-            baseline_agents = get_agents(baseline_algorithms, baseline_env_id, base_cfgs)
-            curriculum_agents = get_agents(curr_algorithms, curr_env_id, curr_cfgs)
-
-            # Train agents
-            for baseline_agent in baseline_agents:
-                train_agent(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
-
-            for curriculum_agent in curriculum_agents:
-                train_agent(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
-
-        #     # Train agents
-        #     for baseline_agent in baseline_agents:
-        #         baseline_thread = threading.Thread(target=train_agent, 
-        #             args=(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs]))
-        #         threads.append(baseline_thread)
-        #         baseline_thread.start()
-
-        #     for curriculum_agent in curriculum_agents:
-        #         curr_thread = threading.Thread(target=train_agent, 
-        #             args=(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs]))
-        #         threads.append(curr_thread)
-        #         curr_thread.start()
-
-        # for thread in threads:
-        #     thread.join()
-
-        # Plot the results
-        curr_changes = [10, 20, 30]
-        means_baseline, means_curr = plot_train(folder_name, curr_changes, cost_limit, repetitions, include_weak=False)
-        eval_means_baseline, eval_means_curr = plot_eval(folder_name, curr_changes, cost_limit, repetitions, eval_episodes)
-        print_eval(folder_name, means_baseline, means_curr, eval_means_baseline, eval_means_curr)
+    # Plot the results
+    means_baseline, means_curr = plot_train(folder_base, curr_changes, cost_limit, repetitions, include_weak=False)
+    eval_means_baseline, eval_means_curr = plot_eval(folder_base, curr_changes, cost_limit, repetitions, eval_episodes)
+    print_eval(folder_base, means_baseline, means_curr, eval_means_baseline, eval_means_curr, save_freq)
