@@ -111,14 +111,6 @@ class HMCurriculumEnv(CMDP):
         self._curriculum = False
         self.disable_progress = True
 
-        print("The device in the CMDP is:", self._device, torch.cuda.is_available())
-        if torch.cuda.is_available():
-            # Force usage of GPU if available
-            self._device = torch.device("cuda:0")
-            print(self._device, torch.cuda.get_device_name(self._device), torch.cuda.device_count(), torch.cuda.current_device())
-            print('Allocated:', round(torch.cuda.memory_allocated(self._device)/1024**3,1), 'GB')
-            print('Cached:   ', round(torch.cuda.memory_reserved(self._device)/1024**3,1), 'GB')
-
         if "HM0" in env_id:
             self._curriculum = True
 
@@ -229,10 +221,10 @@ class HMCurriculumEnv(CMDP):
             info: Some information logged by the environment.
         """
 
-        if options != None and options.get("resetting_for_eval"):
+        if self._curriculum:
+            if options != None and options.get("resetting_for_eval"):
                 self._env = self._env_3
-        elif self._curriculum:
-            if self._steps == 10000:
+            elif self._steps == 10000:
                 print("Changed env to level 1")
                 self._env = self._env_1
             elif self._steps == 20000:
