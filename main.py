@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from multiprocessing import Pool
 import wandb
+from itertools import product
 from omnisafe.utils.config import get_default_kwargs_yaml
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 
@@ -48,8 +49,8 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
             'logger_cfgs': {
                 'log_dir': "./app/results/" + folder,
                 'save_model_freq': save_freq,
-                # 'use_wandb': True,
-                # 'wandb_project': "test-master-thesis",
+                'use_wandb': True,
+                'wandb_project': folder.split("/")[0],
             },
             'model_cfgs': {
                 'actor': {
@@ -451,29 +452,20 @@ def print_eval(folder, means_baseline, means_curr, eval_means_baseline, eval_mea
             file.write(f"AUC of the evaluation cost curve: {auc_eval_cost}\n")
             file.close()
 
-def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, epochs, baseline_algorithms, curr_algorithms, folder_base):
+def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, epochs, algorithm, env_id, folder):
     # Get configurations
-    base_cfgs = get_configs(folder=folder_base + "/baseline", algos=baseline_algorithms, epochs=epochs, 
-                            cost_limit=cost_limit, seed=seed, save_freq = save_freq)
-    curr_cfgs = get_configs(folder=folder_base + "/curriculum", algos=curr_algorithms, epochs=epochs, 
-                            cost_limit=cost_limit, seed=seed, save_freq = save_freq)
+    cfgs = get_configs(folder=folder, algos=[algorithm], epochs=epochs, cost_limit=cost_limit, seed=seed, 
+                       save_freq = save_freq)
 
     # Initialize agents
-    baseline_env_id = 'SafetyPointHM3-v0'
-    curr_env_id = 'SafetyPointHM0-v0'
-
-    baseline_agents = get_agents(baseline_algorithms, baseline_env_id, base_cfgs)
-    curriculum_agents = get_agents(curr_algorithms, curr_env_id, curr_cfgs)
+    agents = get_agents([algorithm], env_id, cfgs)
 
     # Train agents
-    for baseline_agent in baseline_agents:
-        train_agent(baseline_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
-
-    for curriculum_agent in curriculum_agents:
-        train_agent(curriculum_agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
+    for agent in agents:
+        train_agent(agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
 
 if __name__ == '__main__':
-    # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
 
     eval_episodes = 1#5
     render_episodes = 1#3
@@ -481,19 +473,31 @@ if __name__ == '__main__':
     steps_per_epoch = 1000
     save_freq = 1#10
     epochs = 1#800
-    repetitions = 10#10
-    baseline_algorithms = ["PPOLag"] # ["PPO", "PPOLag", "P3O"]
+    repetitions = 3#10
+    baseline_algorithms = ["PPOLag", "PPO"] # ["PPO", "PPOLag", "P3O"]
     curr_algorithms = ["PPOLag"] # ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
-    folder_base = "longer_training/half_curr"
+    folder_base = "wandb_final/half_curr"
     curr_changes = [10, 20, 30]
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
 
-    def use_params(seed):
-        run_experiment(eval_episodes, render_episodes, cost_limit, seed, steps_per_epoch, save_freq, epochs, baseline_algorithms, curr_algorithms, folder_base)
+    def use_params(algorithm, type, seed):
+        if type == "baseline":
+            env_id = 'SafetyPointHM3-v0'
+        elif type == "curriculum":
+            env_id = 'SafetyPointHM0-v0'
+        else:
+            raise Exception("Invalid type, must be either 'baseline' or 'curriculum'.")
+
+        run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
+                       seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
+                       env_id=env_id, folder=folder_base + "/" + type)
 
     # Repeat experiments
-    with Pool(4) as p:
-        p.map(use_params, seeds)
+    with Pool(2) as p:
+        args_base = list(product(baseline_algorithms, ["baseline"], seeds))
+        args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
+        args = args_curr + args_base
+        p.starmap(use_params, args)
 
     # Plot the results
     means_baseline, means_curr = plot_train(folder_base, curr_changes, cost_limit, repetitions, include_weak=False)
