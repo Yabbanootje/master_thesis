@@ -30,9 +30,9 @@ def _unpickle_method(func_name, obj, cls):
             break
     return func.__get__(obj, cls)
 
-import copy_reg
+import copyreg
 import types
-copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+copyreg.pickle(types.MethodType, _pickle_method, _unpickle_method)
 
 def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps_per_epoch = 1000, 
                 update_iters = 1, nn_size = 256, lag_multiplier_init = 0.1, lag_multiplier_lr = 0.01):
