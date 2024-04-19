@@ -311,6 +311,9 @@ class Test():
         run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
                         seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
                         env_id=env_id, folder=folder_base + "/" + type)
+        
+def use_params(test, algorithm, type, seed):
+    test.use_params(algorithm, type, seed)
 
 if __name__ == '__main__':
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
