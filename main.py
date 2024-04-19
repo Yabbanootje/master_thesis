@@ -282,22 +282,22 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
 if __name__ == '__main__':
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
 
-    eval_episodes = 1#5
-    render_episodes = 1#3
+    eval_episodes = 5
+    render_episodes = 3
     cost_limit = 5.0
     steps_per_epoch = 1000
-    save_freq = 1#10
-    epochs = 1#800
-    repetitions = 3#10
-    baseline_algorithms = ["PPOLag", "PPO"] # ["PPO", "PPOLag", "P3O"]
-    curr_algorithms = ["PPOLag"] # ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
-    folder_base = "wandb_final/half_curr"
-    curr_changes = [10, 20, 30]
+    save_freq = 10
+    epochs = 800
+    repetitions = 5
+    baseline_algorithms = ["PPO", "PPOLag", "CPO"]
+    curr_algorithms = ["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated"]
+    folder_base = "algorithm_comparison"
+    curr_changes = [10, 20, 40, 100]
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
 
     def use_params(algorithm, type, seed):
         if type == "baseline":
-            env_id = 'SafetyPointHM3-v0'
+            env_id = 'SafetyPointHM4-v0'
         elif type == "curriculum":
             env_id = 'SafetyPointHM0-v0'
         else:
@@ -308,13 +308,13 @@ if __name__ == '__main__':
                        env_id=env_id, folder=folder_base + "/" + type)
 
     # Repeat experiments
-    with Pool(2) as p:
+    with Pool(8) as p:
         args_base = list(product(baseline_algorithms, ["baseline"], seeds))
         args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
         args = args_curr + args_base
         p.starmap(use_params, args)
 
     # Plot the results
-    means_baseline, means_curr = plot_train(folder_base, curr_changes, cost_limit, repetitions, include_weak=False)
-    eval_means_baseline, eval_means_curr = plot_eval(folder_base, curr_changes, cost_limit, repetitions, eval_episodes)
-    print_eval(folder_base, means_baseline, means_curr, eval_means_baseline, eval_means_curr, save_freq)
+    train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
+    eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
+    # print_eval(folder_base, means_baseline, means_curr, eval_means_baseline, eval_means_curr, save_freq)

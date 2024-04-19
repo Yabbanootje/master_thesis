@@ -134,7 +134,7 @@ class HMCurriculumEnv(CMDP):
                 self._env_1 = safety_gymnasium.make(id="SafetyPointHM1-v0", autoreset=True, **self._kwargs)
                 self._env_2 = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
                 self._env_3 = safety_gymnasium.make(id="SafetyPointHM3-v0", autoreset=True, **self._kwargs)
-                # self._env_4 = safety_gymnasium.make(id="SafetyPointHM4-v0", autoreset=True, **self._kwargs)
+                self._env_4 = safety_gymnasium.make(id="SafetyPointHM4-v0", autoreset=True, **self._kwargs)
                 # self._env_5 = safety_gymnasium.make(id="SafetyPointHM5-v0", autoreset=True, **self._kwargs)
                 # self._env_T = safety_gymnasium.make(id="SafetyPointHMT-v0", autoreset=True, **self._kwargs)
 
@@ -223,19 +223,19 @@ class HMCurriculumEnv(CMDP):
 
         if self._curriculum:
             if options != None and options.get("resetting_for_eval"):
-                self._env = self._env_3
+                self._env = self._env_4
             elif self._steps == 10000:
                 print("Changed env to level 1")
                 self._env = self._env_1
             elif self._steps == 20000:
                 print("Changed env to level 2")
                 self._env = self._env_2
-            elif self._steps == 30000:
+            elif self._steps == 40000:
                 print("Changed env to level 3")
                 self._env = self._env_3
-            # elif self._steps == 40000:
-            #     print("Changed env to level 4")
-            #     self._env = self._env_4
+            elif self._steps == 100000:
+                print("Changed env to level 4")
+                self._env = self._env_4
             # elif self._steps == 50000:
             #     print("Changed env to level 5")
             #     self._env = self._env_5
