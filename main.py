@@ -7,6 +7,7 @@ import pandas as pd
 import re
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 from multiprocessing import Pool
 import wandb
 from itertools import product
@@ -99,332 +100,146 @@ def train_agent(agent, episodes = 1, render_episodes = 1, make_videos = False, e
         agent.render(num_episodes=render_episodes, render_mode='rgb_array', width=256, height=256, 
                      epochs_to_render=epochs_to_render)
 
-def plot_train(folder, curr_changes, cost_limit, repetitions, include_weak=False, use_std=False):
+def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, use_std=False):
     # Get folder names for all algorithms
     baseline_dir = "app/results/" + folder + "/baseline"
     curr_dir = "app/results/" + folder + "/curriculum"
 
-    baseline_algorithms = [entry.name for entry in os.scandir(baseline_dir)]
-    curr_algorithms = [entry.name for entry in os.scandir(curr_dir)]
+    # Function to read progress csv and concatenate
+    def read_and_concat(directory, algorithms, algorithm_type):
+        dfs = []
+        for algorithm in algorithms:
+            paths = [entry.path for entry in os.scandir(os.path.join(directory, algorithm))]
+            for path in paths:
+                df = pd.read_csv(os.path.join(path, "progress.csv")).rename(columns={"Metrics/EpRet": "return", "Metrics/EpCost": "cost"})[['return', 'cost']]
+                df['Algorithm'] = algorithm.split("-")[0]
+                df['type'] = algorithm_type
+                df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-1].split("-")[1]
+                dfs.append(df)
+        return pd.concat(dfs)
 
-    baseline_dfs = {}
-    curr_dfs = {}
+    baseline_df = read_and_concat(baseline_dir, os.listdir(baseline_dir), 'baseline')
+    curr_df = read_and_concat(curr_dir, os.listdir(curr_dir), 'curriculum')
 
-    for algorithm in baseline_algorithms:
-        paths = [entry.path for entry in os.scandir(os.path.join(baseline_dir, algorithm))]
-        df_list = [pd.read_csv(os.path.join(path, "progress.csv")) for path in paths]
-        baseline_dfs[algorithm] = pd.concat(df_list)
-
-    for algorithm in curr_algorithms:
-        paths = [entry.path for entry in os.scandir(os.path.join(curr_dir, algorithm))]
-        df_list = [pd.read_csv(os.path.join(path, "progress.csv")) for path in paths]
-        curr_dfs[algorithm] = pd.concat(df_list)
-
-    baseline_rewards_mean = {}
-    baseline_costs_mean = {}
-    baseline_rewards_std = {}
-    baseline_costs_std = {}
-
-    for algorithm, df in baseline_dfs.items():
-        baseline_rewards_mean[algorithm] = df.groupby(df.index)['Metrics/EpRet'].mean().values
-        baseline_costs_mean[algorithm] = df.groupby(df.index)['Metrics/EpCost'].mean().values
-        baseline_rewards_std[algorithm] = df.groupby(df.index)['Metrics/EpRet'].std().values
-        baseline_costs_std[algorithm] = df.groupby(df.index)['Metrics/EpCost'].std().values
-
-    curr_rewards_mean = {}
-    curr_costs_mean = {}
-    curr_rewards_std = {}
-    curr_costs_std = {}
-
-    for algorithm, df in curr_dfs.items():
-        curr_rewards_mean[algorithm] = df.groupby(df.index)['Metrics/EpRet'].mean().values
-        curr_costs_mean[algorithm] = df.groupby(df.index)['Metrics/EpCost'].mean().values
-        curr_rewards_std[algorithm] = df.groupby(df.index)['Metrics/EpRet'].std().values
-        curr_costs_std[algorithm] = df.groupby(df.index)['Metrics/EpCost'].std().values
+    # Combine both baseline and curriculum dataframes
+    combined_df = pd.concat([baseline_df, curr_df]).reset_index(names="step")
 
     if not os.path.isdir("app/figures/" + folder):
         os.makedirs("app/figures/" + folder)
         
     last_change = curr_changes[-1]
-    means_baseline = {"rewards": [], "costs": []}
-    means_curr = {"rewards": [], "costs": []}
 
-    plt.figure(figsize=(10, 5), dpi=80)
-
-    # Plot baseline rewards
-    for algorithm_name in baseline_rewards_mean.keys():
-        if len(means_baseline['rewards']) == 0:
-            means_baseline['rewards'] = baseline_rewards_mean[algorithm_name]
-        plt.plot(np.arange(1, len(baseline_rewards_mean[algorithm_name]) + 1), baseline_rewards_mean[algorithm_name], label="Baseline - " + algorithm_name.split('-')[0])
-        if use_std:
-            plt.fill_between(x=np.arange(1, len(baseline_rewards_mean[algorithm_name]) + 1),
-                        y1=baseline_rewards_mean[algorithm_name] - baseline_rewards_std[algorithm_name],
-                        y2=baseline_rewards_mean[algorithm_name] + baseline_rewards_std[algorithm_name], 
-                        alpha=0.2)
-        else:
-            # Use standard error
-            plt.fill_between(x=np.arange(1, len(baseline_rewards_mean[algorithm_name]) + 1),
-                        y1=np.asarray(baseline_rewards_mean[algorithm_name]) - (np.asarray(baseline_rewards_std[algorithm_name]) / 
-                                                                    (repetitions ** 0.5)),
-                        y2=np.asarray(baseline_rewards_mean[algorithm_name]) + (np.asarray(baseline_rewards_std[algorithm_name]) / 
-                                                                    (repetitions ** 0.5)), 
-                        alpha=0.2)
-
-    # Plot curriculum rewards
-    for algorithm_name in curr_rewards_mean.keys():
-        if len(means_curr['rewards']) == 0:
-            means_curr['rewards'] = curr_rewards_mean[algorithm_name]
-        plt.plot(np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1), curr_rewards_mean[algorithm_name], label="Curriculum Strong - " + algorithm_name.split('-')[0])
-        if use_std:
-            plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1),
-                        y1=curr_rewards_mean[algorithm_name] - curr_rewards_std[algorithm_name],
-                        y2=curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name], 
-                        alpha=0.2)
-        else:
-            # Use standard error
-            plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1),
-                        y1=np.asarray(curr_rewards_mean[algorithm_name]) - (np.asarray(curr_rewards_std[algorithm_name]) / 
-                                                                    (repetitions ** 0.5)),
-                        y2=np.asarray(curr_rewards_mean[algorithm_name]) + (np.asarray(curr_rewards_std[algorithm_name]) / 
-                                                                    (repetitions ** 0.5)), 
-                        alpha=0.2)
-
-        if include_weak:
-            plt.plot(np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1 - last_change), curr_rewards_mean[algorithm_name][last_change:], label="Curriculum Weak - " + algorithm_name.split('-')[0])
-            if use_std:
-                plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1),
-                            y1=curr_rewards_mean[algorithm_name] - curr_rewards_std[algorithm_name],
-                            y2=curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name], 
-                            alpha=0.2)
-            else:
-                # Use standard error
-                plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1),
-                            y1=(np.asarray(curr_rewards_mean[algorithm_name]) - (np.asarray(curr_rewards_std[algorithm_name]) / 
-                                                                        (repetitions ** 0.5)))[last_change:],
-                            y2=(np.asarray(curr_rewards_mean[algorithm_name]) + (np.asarray(curr_rewards_std[algorithm_name]) / 
-                                                                        (repetitions ** 0.5)))[last_change:], 
-                            alpha=0.2)
-            # plt.fill_between(x=np.arange(1, len(curr_rewards_mean[algorithm_name]) + 1 - last_change),
-            #                 y1=(curr_rewards_mean[algorithm_name] - curr_rewards_std[algorithm_name])[last_change:],
-            #                 y2=(curr_rewards_mean[algorithm_name] + curr_rewards_std[algorithm_name])[last_change:], alpha=0.2)
-
-    for change in curr_changes:
-        plt.axvline(x=change, color="gray", linestyle='-')
-
-    plt.legend(loc=(1.01, 0.01), ncol = 1)
-    plt.tight_layout(pad = 2)
-    plt.grid()
-    plt.title("Rewards of agent using curriculum and baseline agent")
-    plt.xlabel("x1000 Steps")
-    plt.ylabel("Reward")
-    plt.savefig("app/figures/" + folder + "/rewards.png")
-    plt.show()
-    plt.close()
-
-    plt.figure(figsize=(10, 5), dpi=80)
-
-    # Plot baseline costs
-    for algorithm_name in baseline_costs_mean.keys():
-        if len(means_baseline['costs']) == 0:
-            means_baseline['costs'] = baseline_costs_mean[algorithm_name]
-        plt.plot(np.arange(1, len(baseline_costs_mean[algorithm_name]) + 1), baseline_costs_mean[algorithm_name], label="Baseline - " + algorithm_name.split('-')[0])
-        if use_std:
-            plt.fill_between(x=np.arange(1, len(baseline_costs_mean[algorithm_name]) + 1),
-                        y1=baseline_costs_mean[algorithm_name] - baseline_costs_std[algorithm_name],
-                        y2=baseline_costs_mean[algorithm_name] + baseline_costs_std[algorithm_name], 
-                        alpha=0.2)
-        else:
-            # Use standard error
-            plt.fill_between(x=np.arange(1, len(baseline_costs_mean[algorithm_name]) + 1),
-                        y1=np.asarray(baseline_costs_mean[algorithm_name]) - (np.asarray(baseline_costs_std[algorithm_name]) / 
-                                                                    (repetitions ** 0.5)),
-                        y2=np.asarray(baseline_costs_mean[algorithm_name]) + (np.asarray(baseline_costs_std[algorithm_name]) / 
-                                                                    (repetitions ** 0.5)), 
-                        alpha=0.2)
-
-    # Plot curriculum costs
-    for algorithm_name in curr_costs_mean.keys():
-        if len(means_curr['costs']) == 0:
-            means_curr['costs'] = curr_costs_mean[algorithm_name]
-        plt.plot(np.arange(1, len(curr_costs_mean[algorithm_name]) + 1), curr_costs_mean[algorithm_name], label="Curriculum Strong - " + algorithm_name.split('-')[0])
-        if use_std:
-            plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1),
-                        y1=curr_costs_mean[algorithm_name] - curr_costs_std[algorithm_name],
-                        y2=curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name], 
-                        alpha=0.2)
-        else:
-            # Use standard error
-            plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1),
-                        y1=np.asarray(curr_costs_mean[algorithm_name]) - (np.asarray(curr_costs_std[algorithm_name]) / 
-                                                                    (repetitions ** 0.5)),
-                        y2=np.asarray(curr_costs_mean[algorithm_name]) + (np.asarray(curr_costs_std[algorithm_name]) / 
-                                                                    (repetitions ** 0.5)), 
-                        alpha=0.2)
-
-        if include_weak:
-            plt.plot(np.arange(1, len(curr_costs_mean[algorithm_name]) + 1 - last_change), curr_costs_mean[algorithm_name][last_change:], label="Curriculum Weak - " + algorithm_name.split('-')[0])
-            if use_std:
-                plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1),
-                            y1=curr_costs_mean[algorithm_name] - curr_costs_std[algorithm_name],
-                            y2=curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name], 
-                            alpha=0.2)
-            else:
-                # Use standard error
-                plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1),
-                            y1=(np.asarray(curr_costs_mean[algorithm_name]) - (np.asarray(curr_costs_std[algorithm_name]) / 
-                                                                        (repetitions ** 0.5)))[last_change:],
-                            y2=(np.asarray(curr_costs_mean[algorithm_name]) + (np.asarray(curr_costs_std[algorithm_name]) / 
-                                                                        (repetitions ** 0.5)))[last_change:], 
-                            alpha=0.2)
-            # plt.fill_between(x=np.arange(1, len(curr_costs_mean[algorithm_name]) + 1 - last_change),
-            #                 y1=(curr_costs_mean[algorithm_name] - curr_costs_std[algorithm_name])[last_change:],
-            #                 y2=(curr_costs_mean[algorithm_name] + curr_costs_std[algorithm_name])[last_change:], alpha=0.2)
-
-    plt.axhline(y=cost_limit, color='r', linestyle='-')
-
-    for change in curr_changes:
-        plt.axvline(x=change, color="gray", linestyle='-')
-
-    plt.legend(loc=(1.01, 0.01), ncol = 1)
-    plt.tight_layout(pad = 2)
-    plt.grid()
-    plt.title("Costs of agent using curriculum and baseline agent")
-    plt.xlabel("x1000 Steps")
-    plt.ylabel("Cost")
-    plt.savefig("app/figures/" + folder + "/costs.png")
-    plt.show()
-    plt.close()
-
-    return means_baseline, means_curr
-
-def plot_eval(folder, curr_changes, cost_limit, repetitions, eval_episodes, use_std = False):
-    def extract_values(pattern, text):
-        return [float(match.group(1)) for match in re.finditer(pattern, text)]
-
-    def process_data(algorithms, directory, rewards_mean, costs_mean, lengths_mean, successes_mean, 
-                     rewards_std, costs_std, lengths_std, successes_std, indices):
-        for algorithm in algorithms:
-            seed_paths = [entry.path for entry in os.scandir(os.path.join(directory, algorithm))]
-            eval_paths = [os.path.join(path, "evaluation") for path in seed_paths]
-
-            epoch_data = {}
-
-            for path in eval_paths:
-                epochs = [entry.name for entry in os.scandir(path)]
-
-                for epoch in epochs:
-                    with open(os.path.join(path, epoch, "result.txt"), 'r') as file:
-                        data = file.read()
-
-                        rewards = extract_values(r'Episode reward: ([\d\.-]+)', data)
-                        costs = extract_values(r'Episode cost: ([\d\.-]+)', data)
-                        lengths = extract_values(r'Episode length: ([\d\.-]+)', data)
-
-                        index = int(epoch.split("-")[1])
-                        if index not in epoch_data:
-                            epoch_data[index] = {'rewards': [], 'costs': [], 'lengths': [], 'successes': []}
-                        epoch_successes = [1 if length < 1000 and cost <= cost_limit else 0 for length, cost in zip(lengths, costs)]
-                        epoch_data[index]['rewards'].append(rewards)
-                        epoch_data[index]['costs'].append(costs)
-                        epoch_data[index]['lengths'].append(lengths)
-                        epoch_data[index]['successes'].append(epoch_successes)
-
-            for epoch_number, data in epoch_data.items():
-                rewards_mean[algorithm] = rewards_mean.get(algorithm, []) + [np.mean(data['rewards'])]
-                costs_mean[algorithm] = costs_mean.get(algorithm, []) + [np.mean(data['costs'])]
-                lengths_mean[algorithm] = lengths_mean.get(algorithm, []) + [np.mean(data['lengths'])]
-                successes_mean[algorithm] = successes_mean.get(algorithm, []) + [np.mean(data['successes'])]
-                rewards_std[algorithm] = rewards_std.get(algorithm, []) + [np.std(data['rewards'])]
-                costs_std[algorithm] = costs_std.get(algorithm, []) + [np.std(data['costs'])]
-                lengths_std[algorithm] = lengths_std.get(algorithm, []) + [np.std(data['lengths'])]
-                successes_std[algorithm] = successes_std.get(algorithm, []) + [np.std(data['successes'])]
-
-            if len(indices) == 0:
-                for key in epoch_data.keys():
-                    indices.setdefault(key)
-
-    baseline_dir = "app/results/" + folder + "/baseline"
-    curr_dir = "app/results/" + folder + "/curriculum"
-
-    baseline_algorithms = [entry.name for entry in os.scandir(baseline_dir)]
-    curr_algorithms = [entry.name for entry in os.scandir(curr_dir)]
-
-    baseline_rewards_mean, baseline_costs_mean, baseline_lengths_mean, baseline_successes_mean = {}, {}, {}, {}
-    baseline_rewards_std, baseline_costs_std, baseline_lengths_std, baseline_successes_std = {}, {}, {}, {}
-    curr_rewards_mean, curr_costs_mean, curr_lengths_mean, curr_successes_mean = {}, {}, {}, {}
-    curr_rewards_std, curr_costs_std, curr_lengths_std, curr_successes_std = {}, {}, {}, {}
-    indices = {}
-
-    process_data(baseline_algorithms, baseline_dir, baseline_rewards_mean, baseline_costs_mean, baseline_lengths_mean, 
-                 baseline_successes_mean, baseline_rewards_std, baseline_costs_std, baseline_lengths_std,
-                 baseline_successes_std, indices)
-    process_data(curr_algorithms, curr_dir, curr_rewards_mean, curr_costs_mean, curr_lengths_mean, curr_successes_mean, 
-                 curr_rewards_std, curr_costs_std, curr_lengths_std, curr_successes_std, indices)
-    
-    indices = indices.keys()
-
-    if not os.path.isdir("app/figures/" + folder):
-        os.makedirs("app/figures/" + folder)
-
-    means_baseline = {"rewards": [], "costs": [], "lengths": [], "successes": []}
-    means_curr = {"rewards": [], "costs": [], "lengths": [], "successes": []}
-
-    for data_type in ['rewards', 'costs', 'lengths', 'successes']:
+    for metric in ['return', 'cost']:
+        # Plotting using Seaborn
+        sns.set_style("whitegrid")
         plt.figure(figsize=(10, 5), dpi=80)
-
-        for algorithm_name in eval(f"baseline_{data_type}_mean").keys():
-            sorted_values = sorted(zip(indices, eval(f"baseline_{data_type}_mean")[algorithm_name], eval(f"baseline_{data_type}_std")[algorithm_name]))
-            sorted_indices, sorted_means, sorted_stds = zip(*sorted_values)
-            if len(means_baseline[data_type]) == 0:
-                means_baseline[data_type] = sorted_means
-            plt.plot(sorted_indices, sorted_means, label=f"Baseline - {algorithm_name.split('-')[0]}")
-            if use_std:
-                plt.fill_between(x=sorted_indices,
-                            y1=np.asarray(sorted_means) - np.asarray(sorted_stds),
-                            y2=np.asarray(sorted_means) + np.asarray(sorted_stds), 
-                            alpha=0.2)
-            else:
-                # Use standard error
-                plt.fill_between(x=sorted_indices,
-                            y1=np.asarray(sorted_means) - (np.asarray(sorted_stds) / ((repetitions * eval_episodes) ** 0.5)),
-                            y2=np.asarray(sorted_means) + (np.asarray(sorted_stds) / ((repetitions * eval_episodes) ** 0.5)), 
-                            alpha=0.2)
-
-        for algorithm_name in eval(f"curr_{data_type}_mean").keys():
-            sorted_values = sorted(zip(indices, eval(f"curr_{data_type}_mean")[algorithm_name], eval(f"curr_{data_type}_std")[algorithm_name]))
-            sorted_indices, sorted_means, sorted_stds = zip(*sorted_values)
-            if len(means_curr[data_type]) == 0:
-                means_curr[data_type] = sorted_means
-            plt.plot(sorted_indices, sorted_means, label=f"Curriculum Strong - {algorithm_name.split('-')[0]}")
-            if use_std:
-                plt.fill_between(x=sorted_indices,
-                            y1=np.asarray(sorted_means) - np.asarray(sorted_stds),
-                            y2=np.asarray(sorted_means) + np.asarray(sorted_stds), 
-                            alpha=0.2)
-            else:
-                # Use standard error
-                plt.fill_between(x=sorted_indices,
-                            y1=np.asarray(sorted_means) - (np.asarray(sorted_stds) / ((repetitions * eval_episodes) ** 0.5)),
-                            y2=np.asarray(sorted_means) + (np.asarray(sorted_stds) / ((repetitions * eval_episodes) ** 0.5)), 
-                            alpha=0.2)
-
-        if data_type == 'costs':
+        if metric == 'cost':
             plt.axhline(y=cost_limit, color='r', linestyle='-')
+        sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
+        if include_seeds:
+            ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', estimator=None, legend=False)
 
         for change in curr_changes:
             plt.axvline(x=change, color="gray", linestyle='-')
 
         plt.legend(loc=(1.01, 0.01), ncol=1)
+        if include_seeds:
+            plt.setp(ax.lines[2:], alpha=0.2)
         plt.tight_layout(pad=2)
-        plt.grid()
-        plt.title(f"{data_type.capitalize()} of agent using curriculum and baseline agent during evaluation")
-        plt.xlabel("Epochs")
-        plt.ylabel(f"{data_type.capitalize()[:-1] if data_type != 'rewards' else data_type.capitalize()}")
-        plt.savefig(f"app/figures/{folder}/{data_type}_eval.png")
+        plt.title(f"{metric.capitalize()}s of agents using curriculum and baseline agent")
+        plt.xlabel("x1000 Steps")
+        plt.ylabel(metric.capitalize())
+        plt.savefig("app/figures/" + folder + "/" + metric + "s.png")
         plt.show()
         plt.close()
 
-    return means_baseline, means_curr
+    # TODO: double check that below is expected to be returned
+    return combined_df
+
+def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
+    def extract_values(pattern, text):
+        return [float(match.group(1)) for match in re.finditer(pattern, text)]
+
+    baseline_dir = "app/results/" + folder + "/baseline"
+    curr_dir = "app/results/" + folder + "/curriculum"
+
+    def read_and_concat(directory, algorithms, algorithm_type):
+        dfs = []
+        for algorithm in algorithms:
+            seed_paths = [entry.path for entry in os.scandir(os.path.join(directory, algorithm))]
+            eval_paths = [os.path.join(path, "evaluation") for path in seed_paths]
+            print(eval_paths)
+
+            for path in eval_paths:
+                epochs = [entry.name for entry in os.scandir(path)]
+
+                returns = []
+                costs = []
+                lengths = []
+                steps = []
+
+                for epoch in epochs:
+                    with open(os.path.join(path, epoch, "result.txt"), 'r') as file:
+                        data = file.read()
+
+                        return_ = extract_values(r'Episode reward: ([\d\.-]+)', data)
+                        cost_ = extract_values(r'Episode cost: ([\d\.-]+)', data)
+                        length_ = extract_values(r'Episode length: ([\d\.-]+)', data)
+
+                        returns += return_
+                        costs += cost_
+                        lengths += length_
+
+                        index = int(epoch.split("-")[1])
+                        steps += [index for i in range(len(return_))]
+
+                df = pd.DataFrame({'return': returns, 'cost': costs, 'length': lengths, 'step': steps})
+                df['Algorithm'] = algorithm.split("-")[0]
+                df['type'] = algorithm_type
+                df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-2].split("-")[1]
+                dfs.append(df)
+        return pd.concat(dfs)
+
+    baseline_algorithms = os.listdir(baseline_dir)
+    curr_algorithms = os.listdir(curr_dir)
+
+    baseline_df = read_and_concat(baseline_dir, baseline_algorithms, 'baseline')
+    curr_df = read_and_concat(curr_dir, curr_algorithms, 'curriculum')
+
+    combined_df = pd.concat([baseline_df, curr_df]).reset_index(drop=True)
+
+    if not os.path.isdir("app/figures/" + folder):
+        os.makedirs("app/figures/" + folder)
+
+    for metric in ['return', 'cost', 'length']:
+        sns.set_style("whitegrid")
+        plt.figure(figsize=(10, 5), dpi=80)
+        if metric == 'cost':
+            plt.axhline(y=cost_limit, color='r', linestyle='-')
+        sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
+        if include_seeds:
+            if include_repetitions:
+                ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', errorbar=None, estimator=None, legend=False)
+            else:
+                print(combined_df.groupby(["step", "Algorithm", "type", "seed"]).mean())
+                ax = sns.lineplot(data=combined_df.groupby(["step", "Algorithm", "type", "seed"]).mean(), x='step', y=metric, hue='Algorithm', 
+                                  style='type', units='seed', errorbar=None, estimator=None, legend=False)
+
+        for change in curr_changes:
+            plt.axvline(x=change, color="gray", linestyle='-')
+
+        plt.legend(loc=(1.01, 0.01), ncol=1)
+        if include_seeds:
+            plt.setp(ax.lines[2:], alpha=0.2)
+        plt.tight_layout(pad=2)
+        plt.title(f"{metric.capitalize() if metric != 'length' else 'Episode' + metric}s of agents using curriculum and baseline agent during evalutaion")
+        plt.xlabel("x1000 Steps")
+        plt.ylabel(metric.capitalize())
+        plt.savefig("app/figures/" + folder + "/" + metric + "s_eval.png")
+        plt.show()
+        plt.close()
+
+    return combined_df
 
 def print_eval(folder, means_baseline, means_curr, eval_means_baseline, eval_means_curr, save_freq):
     for means, eval_means, agent_type in zip([means_baseline, means_curr], 
