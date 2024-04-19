@@ -14,6 +14,26 @@ from itertools import product
 from omnisafe.utils.config import get_default_kwargs_yaml
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 
+def _pickle_method(method):
+    func_name = method.im_func.__name__
+    obj = method.im_self
+    cls = method.im_class
+    return _unpickle_method, (func_name, obj, cls)
+
+def _unpickle_method(func_name, obj, cls):
+    for cls in cls.mro():
+        try:
+            func = cls.__dict__[func_name]
+        except KeyError:
+            pass
+        else:
+            break
+    return func.__get__(obj, cls)
+
+import copy_reg
+import types
+copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+
 def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps_per_epoch = 1000, 
                 update_iters = 1, nn_size = 256, lag_multiplier_init = 0.1, lag_multiplier_lr = 0.01):
     """
@@ -279,18 +299,6 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
     for agent in agents:
         train_agent(agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
 
-def use_params(algorithm, type, seed):
-    if type == "baseline":
-        env_id = 'SafetyPointHM4-v0'
-    elif type == "curriculum":
-        env_id = 'SafetyPointHM0-v0'
-    else:
-        raise Exception("Invalid type, must be either 'baseline' or 'curriculum'.")
-
-    run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
-                    seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
-                    env_id=env_id, folder=folder_base + "/" + type)
-
 if __name__ == '__main__':
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
 
@@ -306,6 +314,18 @@ if __name__ == '__main__':
     folder_base = "algorithm_comparison"
     curr_changes = [10, 20, 40, 100]
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
+
+    def use_params(algorithm, type, seed):
+        if type == "baseline":
+            env_id = 'SafetyPointHM4-v0'
+        elif type == "curriculum":
+            env_id = 'SafetyPointHM0-v0'
+        else:
+            raise Exception("Invalid type, must be either 'baseline' or 'curriculum'.")
+
+        run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
+                        seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
+                        env_id=env_id, folder=folder_base + "/" + type)
 
     # Repeat experiments
     with Pool(8) as p:
