@@ -15,8 +15,8 @@ class HMLevel2(HMLevelBase):
     def __init__(self, config):
         super().__init__(config=config)
 
-        self.locations = self.randomized_locations(self.goal_location)
-        # self.locations = [(1.5, 0)]
+        # self.locations = self.randomized_locations(self.goal_location)
+        self.locations = [(1.5, 0)]
 
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
