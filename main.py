@@ -279,6 +279,18 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
     for agent in agents:
         train_agent(agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
 
+def use_params(algorithm, type, seed):
+    if type == "baseline":
+        env_id = 'SafetyPointHM4-v0'
+    elif type == "curriculum":
+        env_id = 'SafetyPointHM0-v0'
+    else:
+        raise Exception("Invalid type, must be either 'baseline' or 'curriculum'.")
+
+    run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
+                    seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
+                    env_id=env_id, folder=folder_base + "/" + type)
+
 if __name__ == '__main__':
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
 
@@ -294,18 +306,6 @@ if __name__ == '__main__':
     folder_base = "algorithm_comparison"
     curr_changes = [10, 20, 40, 100]
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
-
-    def use_params(algorithm, type, seed):
-        if type == "baseline":
-            env_id = 'SafetyPointHM4-v0'
-        elif type == "curriculum":
-            env_id = 'SafetyPointHM0-v0'
-        else:
-            raise Exception("Invalid type, must be either 'baseline' or 'curriculum'.")
-
-        run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
-                       seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
-                       env_id=env_id, folder=folder_base + "/" + type)
 
     # Repeat experiments
     with Pool(8) as p:
