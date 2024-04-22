@@ -8,7 +8,7 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from multiprocessing.pool import ThreadPool as Pool
+from multiprocessing.pool import Pool
 import wandb
 from itertools import product
 from omnisafe.utils.config import get_default_kwargs_yaml
@@ -279,23 +279,7 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
     for agent in agents:
         train_agent(agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
 
-if __name__ == '__main__':
-    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-
-    eval_episodes = 5
-    render_episodes = 3
-    cost_limit = 5.0
-    steps_per_epoch = 1000
-    save_freq = 10
-    epochs = 800
-    repetitions = 5
-    baseline_algorithms = ["PPO", "PPOLag", "CPO"]
-    curr_algorithms = ["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated"]
-    folder_base = "algorithm_comparison"
-    curr_changes = [10, 20, 40, 100]
-    seeds = [int(rand.random() * 10000) for i in range(repetitions)]
-
-    def use_params(algorithm, type, seed):
+def use_params(algorithm, type, seed):
         if type == "baseline":
             env_id = 'SafetyPointHM4-v0'
         elif type == "curriculum":
@@ -307,8 +291,26 @@ if __name__ == '__main__':
                         seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
                         env_id=env_id, folder=folder_base + "/" + type)
 
+if __name__ == '__main__':
+    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+
+    eval_episodes = 1
+    render_episodes = 1
+    cost_limit = 5.0
+    steps_per_epoch = 1000
+    save_freq = 1
+    epochs = 2
+    repetitions = 1
+    baseline_algorithms = ["PPO", "PPOLag", "CPO"]
+    curr_algorithms = ["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated"]
+    folder_base = "algorithm_comparison"
+    curr_changes = [10, 20, 40, 100]
+    seeds = [int(rand.random() * 10000) for i in range(repetitions)]
+
+    print("testing...")
+
     # Repeat experiments
-    with Pool(8) as p:
+    with Pool(4) as p:
         args_base = list(product(baseline_algorithms, ["baseline"], seeds))
         args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
         args = args_curr + args_base
