@@ -294,23 +294,21 @@ def use_params(algorithm, type, seed):
 if __name__ == '__main__':
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
 
-    eval_episodes = 1
-    render_episodes = 1
+    eval_episodes = 5
+    render_episodes = 3
     cost_limit = 5.0
     steps_per_epoch = 1000
-    save_freq = 1
-    epochs = 2
-    repetitions = 1
+    save_freq = 10
+    epochs = 800
+    repetitions = 5
     baseline_algorithms = ["PPO", "PPOLag", "CPO"]
     curr_algorithms = ["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated"]
     folder_base = "algorithm_comparison"
     curr_changes = [10, 20, 40, 100]
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
 
-    print("testing...")
-
     # Repeat experiments
-    with Pool(4) as p:
+    with Pool(8) as p:
         args_base = list(product(baseline_algorithms, ["baseline"], seeds))
         args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
         args = args_curr + args_base
