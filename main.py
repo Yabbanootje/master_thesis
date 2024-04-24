@@ -129,10 +129,18 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
         
     last_change = curr_changes[-1]
 
-    for metric in ['return', 'cost']:
+    for metric in ['return', 'cost', 'cost_zoom']:
         # Plotting using Seaborn
         sns.set_style("whitegrid")
-        plt.figure(figsize=(10, 5), dpi=80)
+        plt.figure(figsize=(10, 5), dpi=200)
+
+        # include a zoomed in cost curve
+        zoomed = ""
+        if metric == 'cost_zoom':
+            metric = 'cost'
+            plt.ylim(0, 2 * cost_limit)
+            zoomed = "_zoom"
+
         if metric == 'cost':
             plt.axhline(y=cost_limit, color='r', linestyle='-')
         sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
@@ -149,7 +157,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
         plt.title(f"{metric.capitalize()}s of agents using curriculum and baseline agent")
         plt.xlabel("x1000 Steps")
         plt.ylabel(metric.capitalize())
-        plt.savefig("app/figures/" + folder + "/" + metric + "s.png")
+        plt.savefig(f"app/figures/{folder}/{metric}s{zoomed}.png")
         plt.show()
         plt.close()
 
@@ -168,7 +176,6 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
         for algorithm in algorithms:
             seed_paths = [entry.path for entry in os.scandir(os.path.join(directory, algorithm))]
             eval_paths = [os.path.join(path, "evaluation") for path in seed_paths]
-            print(eval_paths)
 
             for path in eval_paths:
                 epochs = [entry.name for entry in os.scandir(path)]
@@ -211,9 +218,17 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
     if not os.path.isdir("app/figures/" + folder):
         os.makedirs("app/figures/" + folder)
 
-    for metric in ['return', 'cost', 'length']:
+    for metric in ['return', 'cost', 'length', 'cost_zoom']:
         sns.set_style("whitegrid")
-        plt.figure(figsize=(10, 5), dpi=80)
+        plt.figure(figsize=(10, 5), dpi=200)
+        
+        # include a zoomed in cost curve
+        zoomed = ""
+        if metric == 'cost_zoom':
+            metric = 'cost'
+            plt.ylim(0, 2 * cost_limit)
+            zoomed = "_zoom"
+
         if metric == 'cost':
             plt.axhline(y=cost_limit, color='r', linestyle='-')
         sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
@@ -221,7 +236,6 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
             if include_repetitions:
                 ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', errorbar=None, estimator=None, legend=False)
             else:
-                print(combined_df.groupby(["step", "Algorithm", "type", "seed"]).mean())
                 ax = sns.lineplot(data=combined_df.groupby(["step", "Algorithm", "type", "seed"]).mean(), x='step', y=metric, hue='Algorithm', 
                                   style='type', units='seed', errorbar=None, estimator=None, legend=False)
 
@@ -235,33 +249,34 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
         plt.title(f"{metric.capitalize() if metric != 'length' else 'Episode' + metric}s of agents using curriculum and baseline agent during evalutaion")
         plt.xlabel("x1000 Steps")
         plt.ylabel(metric.capitalize())
-        plt.savefig("app/figures/" + folder + "/" + metric + "s_eval.png")
+        plt.savefig(f"app/figures/{folder}/{metric}s{zoomed}_eval.png")
         plt.show()
         plt.close()
 
     return combined_df
 
-def print_eval(folder, means_baseline, means_curr, eval_means_baseline, eval_means_curr, save_freq):
-    for means, eval_means, agent_type in zip([means_baseline, means_curr], 
-                                             [eval_means_baseline, eval_means_curr],
-                                             ["baseline", "curriculum"]):
-        reward = means["rewards"][-1]
-        cost = means["costs"][-1]
-        eval_reward = eval_means["rewards"][-1]
-        eval_cost = eval_means["costs"][-1]
-        eval_length = eval_means["lengths"][-1]
-        eval_success = eval_means["successes"][-1]
-        auc_cost = np.trapz(means["costs"], dx=1)
-        auc_eval_cost = np.trapz(eval_means["costs"], dx=save_freq)
+def print_eval(folder, train_df, eval_df, save_freq):
+    for (algorithm, algorithm_type), filtered_train_df in train_df.groupby(["Algorithm", 'type']):
+        filtered_eval_df = eval_df[(eval_df["Algorithm"] == algorithm) & (eval_df['type'] == algorithm_type)]
+        mean_train_df = filtered_train_df.groupby(["step"]).mean(numeric_only=True)
+        mean_eval_df = filtered_eval_df.groupby(["step"]).mean(numeric_only=True)
+        return_ = mean_train_df["return"].iloc[-1]
+        cost = mean_train_df["cost"].iloc[-1]
+        eval_return = mean_eval_df["return"].iloc[-1]
+        eval_cost = mean_eval_df["cost"].iloc[-1]
+        eval_length = mean_eval_df["length"].iloc[-1]
+        auc_cost = np.trapz(mean_train_df["cost"], dx=1)
+        auc_eval_cost = np.trapz(mean_eval_df["cost"], dx=save_freq)
 
-        with open(os.path.join(f"app/figures/{folder}/", f"{agent_type}-metrics.txt"), 'w') as file:
+        if not os.path.isdir(f"app/figures/{folder}/{algorithm_type}_metrics"):
+            os.makedirs(f"app/figures/{folder}/{algorithm_type}_metrics")
+        with open(os.path.join(f"app/figures/{folder}/", f"{algorithm_type}_metrics/{algorithm}-metrics.txt"), 'w') as file:
             file.write("Last epoch results:\n")
-            file.write(f"Reward: {reward}\n")
+            file.write(f"return: {return_}\n")
             file.write(f"Cost: {cost}\n")
-            file.write(f"Evaluation reward: {eval_reward}\n")
+            file.write(f"Evaluation return: {eval_return}\n")
             file.write(f"Evaluation cost: {eval_cost}\n")
             file.write(f"Evaluation episode length: {eval_length}\n")
-            file.write(f"Evaluation success rate: {eval_success}\n")
             file.write("\nAll epochs results:\n")
             file.write(f"AUC of the cost curve: {auc_cost}\n")
             file.write(f"AUC of the evaluation cost curve: {auc_eval_cost}\n")
@@ -279,17 +294,17 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
     for agent in agents:
         train_agent(agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
 
-def use_params(algorithm, type, seed):
-        if type == "baseline":
+def use_params(algorithm, algorithm_type, seed):
+        if algorithm_type == "baseline":
             env_id = 'SafetyPointHM4-v0'
-        elif type == "curriculum":
+        elif algorithm_type == "curriculum":
             env_id = 'SafetyPointHM0-v0'
         else:
-            raise Exception("Invalid type, must be either 'baseline' or 'curriculum'.")
+            raise Exception("Invalid algorithm type, must be either 'baseline' or 'curriculum'.")
 
         run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
                         seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
-                        env_id=env_id, folder=folder_base + "/" + type)
+                        env_id=env_id, folder=folder_base + "/" + algorithm_type)
 
 if __name__ == '__main__':
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
@@ -307,14 +322,14 @@ if __name__ == '__main__':
     curr_changes = [10, 20, 40, 100]
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
 
-    # Repeat experiments
-    with Pool(8) as p:
-        args_base = list(product(baseline_algorithms, ["baseline"], seeds))
-        args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
-        args = args_curr + args_base
-        p.starmap(use_params, args)
+    # # Repeat experiments
+    # with Pool(8) as p:
+    #     args_base = list(product(baseline_algorithms, ["baseline"], seeds))
+    #     args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
+    #     args = args_curr + args_base
+    #     p.starmap(use_params, args)
 
     # Plot the results
     train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
     eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
-    # print_eval(folder_base, means_baseline, means_curr, eval_means_baseline, eval_means_curr, save_freq)
+    print_eval(folder_base, train_df, eval_df, save_freq)
