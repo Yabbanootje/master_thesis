@@ -315,19 +315,19 @@ if __name__ == '__main__':
     steps_per_epoch = 1000
     save_freq = 10
     epochs = 800
-    repetitions = 5
-    baseline_algorithms = ["PPO", "PPOLag", "CPO"]
-    curr_algorithms = ["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated"]
+    repetitions = 10
+    baseline_algorithms = ["FOCOPS", "OnCRPO"] # ["PPO", "PPOLag", "CPO"]
+    curr_algorithms = ["PPOLag"] # ["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated"]
     folder_base = "algorithm_comparison"
     curr_changes = [10, 20, 40, 100]
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
 
-    # # Repeat experiments
-    # with Pool(8) as p:
-    #     args_base = list(product(baseline_algorithms, ["baseline"], seeds))
-    #     args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
-    #     args = args_curr + args_base
-    #     p.starmap(use_params, args)
+    # Repeat experiments
+    with Pool(8) as p:
+        args_base = list(product(baseline_algorithms, ["baseline"], seeds))
+        args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
+        args = args_curr + args_base
+        p.starmap(use_params, args)
 
     # Plot the results
     train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
