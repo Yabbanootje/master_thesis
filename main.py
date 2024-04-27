@@ -45,7 +45,7 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
             'algo_cfgs': {
                 'steps_per_epoch': steps_per_epoch,
                 'update_iters': update_iters,
-                # 'penalty_coef': 0.01,
+                'penalty_coef': 0.05,
             },
             'logger_cfgs': {
                 'log_dir': "./app/results/" + folder,
@@ -315,7 +315,7 @@ if __name__ == '__main__':
     steps_per_epoch = 1000
     save_freq = 10
     epochs = 1000
-    repetitions = 15
+    repetitions = 5
     baseline_algorithms = ["PPO", "PPOLag", "CPO", "FOCOPS", "OnCRPO", "CUP", "PCPO", "PPOEarlyTerminated"]
     curr_algorithms = ["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
     folder_base = "algorithm_comparison"
