@@ -318,7 +318,7 @@ if __name__ == '__main__':
     repetitions = 5
     baseline_algorithms = ["PPO", "PPOLag", "CPO", "FOCOPS", "OnCRPO", "CUP", "PCPO", "PPOEarlyTerminated"]
     curr_algorithms = ["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
-    folder_base = "algorithm_comparison"
+    folder_base = "algorithm_comparison_penalty"
     curr_changes = [10, 20, 40, 100]
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
 
