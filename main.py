@@ -15,7 +15,8 @@ from omnisafe.utils.config import get_default_kwargs_yaml
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 
 def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps_per_epoch = 1000, 
-                update_iters = 1, nn_size = 256, lag_multiplier_init = 0.1, lag_multiplier_lr = 0.01):
+                update_iters = 1, nn_size = 256, lag_multiplier_init = 0.1, lag_multiplier_lr = 0.01,
+                focops_eta = 0.02, focops_lam = 1.5):
     """
     steps_per_epoch (int): the number of steps before the policy is updated
     update_iters (int): the number of update iterations per update
@@ -45,7 +46,7 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
             'algo_cfgs': {
                 'steps_per_epoch': steps_per_epoch,
                 'update_iters': update_iters,
-                'penalty_coef': 0.05,
+                # 'penalty_coef': 0.05,
             },
             'logger_cfgs': {
                 'log_dir': "./app/results/" + folder,
@@ -60,6 +61,7 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
                 'critic': {
                     'hidden_sizes': [nn_size, nn_size]
                 },
+                # 'linear_lr_decay': False,
                 # 'std_range': [0.1, 0.0]
             }
         }
@@ -73,8 +75,13 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
             })
             if kwargs["lagrange_cfgs"].get("lambda_lr"):
                 custom_cfg['lagrange_cfgs'].update({'lambda_lr': lag_multiplier_lr,})
-        if kwargs["algo_cfgs"].get("cost_limit"):
-            custom_cfg["algo_cfgs"].update({'cost_limit': cost_limit,})
+        if kwargs.get("algo_cfgs"):
+            if kwargs["algo_cfgs"].get("focops_eta"):
+                custom_cfg["algo_cfgs"].update({'focops_eta': focops_eta,})
+            if kwargs["algo_cfgs"].get("focops_lam"):
+                custom_cfg["algo_cfgs"].update({'focops_lam': focops_lam,})
+            if kwargs["algo_cfgs"].get("cost_limit"):
+                custom_cfg["algo_cfgs"].update({'cost_limit': cost_limit,})
 
         print(f"{algo}: {custom_cfg}")
 
@@ -255,7 +262,7 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
 
     return combined_df
 
-def print_eval(folder, train_df, eval_df, save_freq):
+def print_eval(folder, train_df, eval_df, save_freq, cost_limit):
     for (algorithm, algorithm_type), filtered_train_df in train_df.groupby(["Algorithm", 'type']):
         filtered_eval_df = eval_df[(eval_df["Algorithm"] == algorithm) & (eval_df['type'] == algorithm_type)]
         mean_train_df = filtered_train_df.groupby(["step"]).mean(numeric_only=True)
@@ -267,12 +274,14 @@ def print_eval(folder, train_df, eval_df, save_freq):
         eval_length = mean_eval_df["length"].iloc[-1]
         auc_cost = np.trapz(mean_train_df["cost"], dx=1)
         auc_eval_cost = np.trapz(mean_eval_df["cost"], dx=save_freq)
+        regret_train = (mean_train_df["cost"] - cost_limit).clip(lower=0.0).sum()
+        regret_eval = (mean_eval_df["cost"] - cost_limit).clip(lower=0.0).sum()
 
         if not os.path.isdir(f"app/figures/{folder}/{algorithm_type}_metrics"):
             os.makedirs(f"app/figures/{folder}/{algorithm_type}_metrics")
         with open(os.path.join(f"app/figures/{folder}/", f"{algorithm_type}_metrics/{algorithm}-metrics.txt"), 'w') as file:
             file.write("Last epoch results:\n")
-            file.write(f"return: {return_}\n")
+            file.write(f"Return: {return_}\n")
             file.write(f"Cost: {cost}\n")
             file.write(f"Evaluation return: {eval_return}\n")
             file.write(f"Evaluation cost: {eval_cost}\n")
@@ -280,6 +289,8 @@ def print_eval(folder, train_df, eval_df, save_freq):
             file.write("\nAll epochs results:\n")
             file.write(f"AUC of the cost curve: {auc_cost}\n")
             file.write(f"AUC of the evaluation cost curve: {auc_eval_cost}\n")
+            file.write(f"Cost regret: {regret_train}\n")
+            file.write(f"Evaluation cost regret: {regret_eval}\n")
             file.close()
 
 def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, epochs, algorithm, env_id, folder):
@@ -314,22 +325,22 @@ if __name__ == '__main__':
     cost_limit = 5.0
     steps_per_epoch = 1000
     save_freq = 10
-    epochs = 1000
-    repetitions = 5
-    baseline_algorithms = ["PPO", "PPOLag", "CPO", "FOCOPS", "OnCRPO", "CUP", "PCPO", "PPOEarlyTerminated"]
+    epochs = 800
+    repetitions = 10
+    baseline_algorithms = ["PPO", "PPOLag", "CPO", "FOCOPS", "OnCRPO"] # ["PPO", "PPOLag", "CPO", "FOCOPS", "OnCRPO", "CUP", "PCPO", "PPOEarlyTerminated"]
     curr_algorithms = ["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
-    folder_base = "algorithm_comparison_penalty"
+    folder_base = "algorithm_comparison"
     curr_changes = [10, 20, 40, 100]
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
 
-    # Repeat experiments
-    with Pool(8) as p:
-        args_base = list(product(baseline_algorithms, ["baseline"], seeds))
-        args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
-        args = args_curr + args_base
-        p.starmap(use_params, args)
+    # # Repeat experiments
+    # with Pool(8) as p:
+    #     args_base = list(product(baseline_algorithms, ["baseline"], seeds))
+    #     args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
+    #     args = args_curr + args_base
+    #     p.starmap(use_params, args)
 
     # Plot the results
     train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
     eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
-    print_eval(folder_base, train_df, eval_df, save_freq)
+    print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
