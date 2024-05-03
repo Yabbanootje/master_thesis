@@ -160,3 +160,5 @@ cython_debug/
 #.idea/
 
 results
+my_job_output*.txt
+*.sh
