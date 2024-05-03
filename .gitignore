@@ -160,5 +160,6 @@ cython_debug/
 #.idea/
 
 results
+!app/results/algorithm_comparison
 my_job_output*.txt
 *.sh
