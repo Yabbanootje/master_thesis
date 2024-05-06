@@ -7,8 +7,6 @@ FROM python:3.10
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
-#TODO: move all requirements to requirements.txt and replace above lines such that everything from the text file is installed
-
 # ADD custom_envs/tasks/__init__.py /usr/local/lib/python3.10/site-packages/safety_gymnasium/tasks/__init__.py
 
 # ADD custom_envs/__init__.py /usr/local/lib/python3.10/site-packages/safety_gymnasium/__init__.py

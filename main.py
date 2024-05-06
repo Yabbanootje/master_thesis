@@ -89,21 +89,38 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
 
     return custom_cfgs
 
-def get_agents(algorithms, env_id, cfgs):
+def get_agents(folder, algorithms, env_id, cfgs, curr_changes):
     agents = []
     for algorithm, cfg in zip(algorithms, cfgs):
-        agents.append(omnisafe.Agent(algorithm, env_id, custom_cfgs=cfg))
+        agent = omnisafe.Agent(algorithm, env_id, custom_cfgs=cfg)
+        if "From" in env_id:
+            start_version_pattern = r'From(\d+)'
+            start_version = re.search(start_version_pattern, env_id)
+            start_task = start_version.group(1)
+            
+            if int(start_task) != 0:
+                algo_folders = os.listdir("app/results/" + folder)
+                algo_folder = [fldr for fldr in algo_folders if algorithm in fldr and "HM" + start_task in fldr][0]
+                print("The algo_folder found is:", algo_folder)
+                algo_path = os.path.join("app/results/", folder, algo_folder)
+                seed_folder = [fldr for fldr in os.listdir(algo_path) if "seed-" + str(cfg.get("seed")).zfill(3) in fldr][0]
+                print("The seed_folder found is:", seed_folder)
+                agent.agent.load(curr_changes[int(start_task) - 1], os.path.join(algo_path, seed_folder))
+        agents.append(agent)
 
     return agents
+
+
 
 def train_agent(agent, episodes = 1, render_episodes = 1, make_videos = False, epochs_to_render = []):
     agent.learn()
 
     agent.plot(smooth=1)
 
-    agent.evaluate(num_episodes=episodes)
+    if episodes >= 1:
+        agent.evaluate(num_episodes=episodes)
 
-    if make_videos:
+    if make_videos and render_episodes >= 1:
         agent.render(num_episodes=render_episodes, render_mode='rgb_array', width=256, height=256, 
                      epochs_to_render=epochs_to_render)
 
@@ -168,7 +185,6 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
         plt.show()
         plt.close()
 
-    # TODO: double check that below is expected to be returned
     return combined_df
 
 def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
@@ -293,54 +309,54 @@ def print_eval(folder, train_df, eval_df, save_freq, cost_limit):
             file.write(f"Evaluation cost regret: {regret_eval}\n")
             file.close()
 
-def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, epochs, algorithm, env_id, folder):
+def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, epochs, algorithm, env_id, folder, curr_changes):
     # Get configurations
     cfgs = get_configs(folder=folder, algos=[algorithm], epochs=epochs, cost_limit=cost_limit, seed=seed, 
                        save_freq = save_freq)
 
     # Initialize agents
-    agents = get_agents([algorithm], env_id, cfgs)
+    agents = get_agents(folder, [algorithm], env_id, cfgs, curr_changes)
 
     # Train agents
     for agent in agents:
         train_agent(agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
 
-def use_params(algorithm, algorithm_type, seed):
+def use_params(algorithm, end_task, algorithm_type, seed):
         if algorithm_type == "baseline":
-            env_id = 'SafetyPointHM4-v0'
+            env_id = f'SafetyPointHM{end_task}-v0'
         elif algorithm_type == "curriculum":
-            env_id = 'SafetyPointHM0-v0'
+            env_id = f'SafetyPointFrom{end_task-1}HM{end_task}-v0'
         else:
             raise Exception("Invalid algorithm type, must be either 'baseline' or 'curriculum'.")
 
         run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
                         seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
-                        env_id=env_id, folder=folder_base + "/" + algorithm_type)
+                        env_id=env_id, folder=folder_base + "/" + algorithm_type, curr_changes=curr_changes)
 
 if __name__ == '__main__':
-    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-
     eval_episodes = 5
     render_episodes = 3
     cost_limit = 5.0
     steps_per_epoch = 1000
     save_freq = 10
-    epochs = 800
-    repetitions = 10
-    baseline_algorithms = ["PPO", "PPOLag", "CPO", "FOCOPS", "OnCRPO"] # ["PPO", "PPOLag", "CPO", "FOCOPS", "OnCRPO", "CUP", "PCPO", "PPOEarlyTerminated"]
-    curr_algorithms = ["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
-    folder_base = "algorithm_comparison"
+    epochs = 1000
+    repetitions = 5
+    baseline_algorithms = [] # ["PPO", "PPOLag", "CPO", "FOCOPS", "OnCRPO"] # ["PPO", "PPOLag", "CPO", "FOCOPS", "OnCRPO", "CUP", "PCPO", "PPOEarlyTerminated"]
+    curr_algorithms = ["PPOLag"] # ["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
+    folder_base = "loading"
     curr_changes = [10, 20, 40, 100]
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
 
-    # # Repeat experiments
-    # with Pool(8) as p:
-    #     args_base = list(product(baseline_algorithms, ["baseline"], seeds))
-    #     args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
-    #     args = args_curr + args_base
-    #     p.starmap(use_params, args)
+    # Repeat experiments
+    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+    for end_task in range(1, len(curr_changes) + 1):
+        with Pool(8) as p:
+            args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
+            args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
+            args = args_curr + args_base
+            p.starmap(use_params, args)
 
-    # Plot the results
-    train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
-    eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
-    print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
+    # # Plot the results
+    # train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
+    # eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
+    # print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)

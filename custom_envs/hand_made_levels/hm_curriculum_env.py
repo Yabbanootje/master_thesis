@@ -52,7 +52,7 @@ class HMCurriculumEnv(CMDP):
     need_auto_reset_wrapper: bool = False
     need_time_limit_wrapper: bool = False
 
-    _support_envs: ClassVar[list[str]] = [
+    _original_support_envs = [
         "SafetyPointHM0-v0",
         "SafetyCarHM0-v0",
         "SafetyDoggoHM0-v0",
@@ -88,49 +88,19 @@ class HMCurriculumEnv(CMDP):
         "SafetyDoggoHMT-v0",
         "SafetyRacecarHMT-v0",
         "SafetyAntHMT-v0",
+        
         # "SafetyPointHMEval3-v0",
         # "SafetyCarHMEval3-v0",
         # "SafetyDoggoHMEval3-v0",
         # "SafetyRacecarHMEval3-v0",
         # "SafetyAntHMEval3-v0",
-
-
-        "SafetyPointBaseHM0-v0",
-        "SafetyCarBaseHM0-v0",
-        "SafetyDoggoBaseHM0-v0",
-        "SafetyRacecarBaseHM0-v0",
-        "SafetyAntBaseHM0-v0",
-        "SafetyPointBaseHM1-v0",
-        "SafetyCarBaseHM1-v0",
-        "SafetyDoggoBaseHM1-v0",
-        "SafetyRacecarBaseHM1-v0",
-        "SafetyAntBaseHM1-v0",
-        "SafetyPointBaseHM2-v0",
-        "SafetyCarBaseHM2-v0",
-        "SafetyDoggoBaseHM2-v0",
-        "SafetyRacecarBaseHM2-v0",
-        "SafetyAntBaseHM2-v0",
-        "SafetyPointBaseHM3-v0",
-        "SafetyCarBaseHM3-v0",
-        "SafetyDoggoBaseHM3-v0",
-        "SafetyRacecarBaseHM3-v0",
-        "SafetyAntBaseHM3-v0",
-        "SafetyPointBaseHM4-v0",
-        "SafetyCarBaseHM4-v0",
-        "SafetyDoggoBaseHM4-v0",
-        "SafetyRacecarBaseHM4-v0",
-        "SafetyAntBaseHM4-v0",
-        "SafetyPointBaseHM5-v0",
-        "SafetyCarBaseHM5-v0",
-        "SafetyDoggoBaseHM5-v0",
-        "SafetyRacecarBaseHM5-v0",
-        "SafetyAntBaseHM5-v0",
-        "SafetyPointBaseHMT-v0",
-        "SafetyCarBaseHMT-v0",
-        "SafetyDoggoBaseHMT-v0",
-        "SafetyRacecarBaseHMT-v0",
-        "SafetyAntBaseHMT-v0",
     ]
+
+    # Create dummy environments, which are not actual environments but contain information on what to do
+    # _base_support_envs = [env.replace("HM", "BaseHM") for env in _original_support_envs]
+    _curr_starting_support_envs = [env.replace("HM", f"From{i}HM") for env in _original_support_envs for i in [0, 1, 2, 3, 4, 5, "T"]]
+
+    _support_envs: ClassVar[list[str]] = _original_support_envs + _curr_starting_support_envs
 
     def __init__(
         self,
@@ -146,20 +116,34 @@ class HMCurriculumEnv(CMDP):
 
         self._kwargs = kwargs
         self._steps = 0
-        self._curriculum = True
+        self._curriculum = False
         # self.disable_progress = True
+
+        end_version_pattern = r'HM(\d+)'
+        end_version = re.search(end_version_pattern, env_id)
+        self._end_task = end_version.group(1)
+        self._start_task = self._end_task
+
+        self._curr_changes = {"0": 0,
+                              "1": 10 * 1000,
+                              "2": 20 * 1000,
+                              "3": 40 * 1000,
+                              "4": 100 * 1000,
+                              "5": 300 * 1000,
+                              "T": 700 * 1000,
+                              }
 
         # if "HM0" in env_id:
         #     self._curriculum = True
-        if "Base" in env_id:
-            self._curriculum = False
-            env_id = env_id.replace("Base", "")
-            print("New env_id is:", env_id)
-
-        version_pattern = r'HM(\d+)'
-        version = re.search(version_pattern, env_id)
-        self.version_number = version.group(1)
-        print("Version number is:", self.version_number)
+        # if "Base" in env_id:
+        #     self._curriculum = False
+        #     env_id = env_id.replace("Base", "")
+        if "From" in env_id:
+            self._curriculum = True
+            start_version_pattern = r'From(\d+)'
+            start_version = re.search(start_version_pattern, env_id)
+            self._start_task = start_version.group(1)
+            env_id = env_id.replace(f"From{self._start_task}", "")
 
         if num_envs > 1:
             self._env = safety_gymnasium.vector.make(env_id=env_id, num_envs=num_envs, **kwargs)
@@ -176,19 +160,15 @@ class HMCurriculumEnv(CMDP):
 
             # For the curriculum, create all future environments
             if self._curriculum:
-                self._env = safety_gymnasium.make(id="SafetyPointHM0-v0", autoreset=True, **kwargs)
-                if int(self.version_number) >= 1:
-                    self._env_1 = safety_gymnasium.make(id="SafetyPointHM1-v0", autoreset=True, **self._kwargs)
-                if int(self.version_number) >= 2:
-                    self._env_2 = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
-                if int(self.version_number) >= 3:
-                    self._env_3 = safety_gymnasium.make(id="SafetyPointHM3-v0", autoreset=True, **self._kwargs)
-                if int(self.version_number) >= 4:
-                    self._env_4 = safety_gymnasium.make(id="SafetyPointHM4-v0", autoreset=True, **self._kwargs)
-                if int(self.version_number) >= 5:
-                    self._env_5 = safety_gymnasium.make(id="SafetyPointHM5-v0", autoreset=True, **self._kwargs)
-                if self.version_number == "T":
-                    self._env_T = safety_gymnasium.make(id="SafetyPointHMT-v0", autoreset=True, **self._kwargs)
+                self._env_0 = safety_gymnasium.make(id="SafetyPointHM0-v0", autoreset=True, **self._kwargs)
+                self._env_1 = safety_gymnasium.make(id="SafetyPointHM1-v0", autoreset=True, **self._kwargs)
+                self._env_2 = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
+                self._env_3 = safety_gymnasium.make(id="SafetyPointHM3-v0", autoreset=True, **self._kwargs)
+                self._env_4 = safety_gymnasium.make(id="SafetyPointHM4-v0", autoreset=True, **self._kwargs)
+                self._env_5 = safety_gymnasium.make(id="SafetyPointHM5-v0", autoreset=True, **self._kwargs)
+                self._env_T = safety_gymnasium.make(id="SafetyPointHMT-v0", autoreset=True, **self._kwargs)
+                self._env = eval(f"self._env_{self._start_task}")
+                self._steps = self._curr_changes.get(self._start_task)
             else:
                 self._env = safety_gymnasium.make(id=env_id, autoreset=True, **kwargs)
 
@@ -277,23 +257,23 @@ class HMCurriculumEnv(CMDP):
 
         if self._curriculum:
             if options != None and options.get("resetting_for_eval"):
-                self._env = eval(f"self._env_{self.version_number}")
-            elif self._steps == 10000 and self._env_1:
+                self._env = eval(f"self._env_{self._end_task}")
+            elif self._steps == self._curr_changes.get("1") and (int(self._end_task) >= 1 or self._end_task == "T"):
                 print("Changed env to level 1")
                 self._env = self._env_1
-            elif self._steps == 20000 and self._env_2:
+            elif self._steps == self._curr_changes.get("2") and (int(self._end_task) >= 2 or self._end_task == "T"):
                 print("Changed env to level 2")
                 self._env = self._env_2
-            elif self._steps == 40000 and self._env_3:
+            elif self._steps == self._curr_changes.get("3") and (int(self._end_task) >= 3 or self._end_task == "T"):
                 print("Changed env to level 3")
                 self._env = self._env_3
-            elif self._steps == 100000 and self._env_4:
+            elif self._steps == self._curr_changes.get("4") and (int(self._end_task) >= 4 or self._end_task == "T"):
                 print("Changed env to level 4")
                 self._env = self._env_4
-            elif self._steps == 300000 and self._env_5:
+            elif self._steps == self._curr_changes.get("5") and (int(self._end_task) >= 5 or self._end_task == "T"):
                 print("Changed env to level 5")
                 self._env = self._env_5
-            elif self._steps == 700000 and self._env_T:
+            elif self._steps == self._curr_changes.get("T") and self._end_task == "T":
                 print("Changed env to level Target")
                 self._env = self._env_T
 
