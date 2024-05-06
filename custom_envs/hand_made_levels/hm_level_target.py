@@ -14,8 +14,10 @@ class HMLevelTarget(HMLevelBase):
         super().__init__(config=config)
 
         # locations = self.randomized_locations(goal_location, geom_radius)
-        self.locations = [(-0.5, -0.5), (0.5, 0.5), (-0.5, 0.5), (0.5, -0.5), (0, -0.5), (0, 0.5), (0.5, 0), 
-                      (-1.5, 0), (-1.5, 0.5), (-1.5, -0.5)]
+        self.locations = [(-0.5, -0.5), (-0.25, -0.5), (0, -0.5), (0.25, -0.5),
+                          (-0.5, 0.5), (-0.25, 0.5), (0, 0.5), (0.25, 0.5),
+                          (0.5, 0), (0.5, 0.5), (0.5, -0.5), (0.5, 0.25), (0.5, -0.25),
+                          (-1.5, 0), (-1.5, 0.5), (-1.5, -0.5), (-1.5, 0.25), (-1.5, -0.25)]
 
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
