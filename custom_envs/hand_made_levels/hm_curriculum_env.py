@@ -119,7 +119,7 @@ class HMCurriculumEnv(CMDP):
         self._curriculum = False
         # self.disable_progress = True
 
-        end_version_pattern = r'HM(\d+)'
+        end_version_pattern = r'HM(\d+|T)'
         end_version = re.search(end_version_pattern, env_id)
         self._end_task = end_version.group(1)
         self._start_task = self._end_task
@@ -140,7 +140,7 @@ class HMCurriculumEnv(CMDP):
         #     env_id = env_id.replace("Base", "")
         if "From" in env_id:
             self._curriculum = True
-            start_version_pattern = r'From(\d+)'
+            start_version_pattern = r'From(\d+|T)'
             start_version = re.search(start_version_pattern, env_id)
             self._start_task = start_version.group(1)
             env_id = env_id.replace(f"From{self._start_task}", "")

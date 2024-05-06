@@ -94,7 +94,7 @@ def get_agents(folder, algorithms, env_id, cfgs, curr_changes):
     for algorithm, cfg in zip(algorithms, cfgs):
         agent = omnisafe.Agent(algorithm, env_id, custom_cfgs=cfg)
         if "From" in env_id:
-            start_version_pattern = r'From(\d+)'
+            start_version_pattern = r'From(\d+|T)'
             start_version = re.search(start_version_pattern, env_id)
             start_task = start_version.group(1)
             
@@ -309,6 +309,8 @@ def print_eval(folder, train_df, eval_df, save_freq, cost_limit):
 
 def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, epochs, algorithm, env_id, folder, curr_changes):
     # Get configurations
+    if "HM1" in env_id or "HM2" in env_id:
+        epochs = 500
     cfgs = get_configs(folder=folder, algos=[algorithm], epochs=epochs, cost_limit=cost_limit, seed=seed, 
                        save_freq = save_freq)
 
@@ -321,9 +323,9 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
 
 def use_params(algorithm, end_task, algorithm_type, seed):
         if algorithm_type == "baseline":
-            env_id = f'SafetyPointHM{end_task}-v0'
+            env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
         elif algorithm_type == "curriculum":
-            env_id = f'SafetyPointFrom{end_task-1}HM{end_task}-v0'
+            env_id = f'SafetyPointFrom{end_task-1}HM{end_task if end_task < 6 else "T"}-v0'
         else:
             raise Exception("Invalid algorithm type, must be either 'baseline' or 'curriculum'.")
 
@@ -337,12 +339,12 @@ if __name__ == '__main__':
     cost_limit = 5.0
     steps_per_epoch = 1000
     save_freq = 10
-    epochs = 1000
+    epochs = 2000
     repetitions = 5
     baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
     curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "loading"
-    curr_changes = [10, 20, 40, 100]
+    folder_base = "incremental_static_curriculum"
+    curr_changes = [10, 20, 40, 100, 300, 700]
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
 
     # Repeat experiments
