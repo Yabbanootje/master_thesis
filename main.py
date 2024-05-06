@@ -110,8 +110,6 @@ def get_agents(folder, algorithms, env_id, cfgs, curr_changes):
 
     return agents
 
-
-
 def train_agent(agent, episodes = 1, render_episodes = 1, make_videos = False, epochs_to_render = []):
     agent.learn()
 
@@ -341,8 +339,8 @@ if __name__ == '__main__':
     save_freq = 10
     epochs = 1000
     repetitions = 5
-    baseline_algorithms = [] # ["PPO", "PPOLag", "CPO", "FOCOPS", "OnCRPO"] # ["PPO", "PPOLag", "CPO", "FOCOPS", "OnCRPO", "CUP", "PCPO", "PPOEarlyTerminated"]
-    curr_algorithms = ["PPOLag"] # ["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
+    baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
+    curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
     folder_base = "loading"
     curr_changes = [10, 20, 40, 100]
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
@@ -356,7 +354,7 @@ if __name__ == '__main__':
             args = args_curr + args_base
             p.starmap(use_params, args)
 
-    # # Plot the results
-    # train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
-    # eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
-    # print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
+    # Plot the results
+    train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
+    eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
+    print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
