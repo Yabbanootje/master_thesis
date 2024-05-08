@@ -133,10 +133,15 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
         for algorithm in algorithms:
             paths = [entry.path for entry in os.scandir(os.path.join(directory, algorithm))]
             for path in paths:
-                df = pd.read_csv(os.path.join(path, "progress.csv")).rename(columns={"Metrics/EpRet": "return", "Metrics/EpCost": "cost"})[['return', 'cost']]
+                df = pd.read_csv(os.path.join(path, "progress.csv")).rename(columns=
+                    {"Metrics/EpRet": "return", "Metrics/EpCost": "cost", "Metrics/EpLen": "length"}
+                )[['return', 'cost', 'length']]
                 df['Algorithm'] = algorithm.split("-")[0]
                 df['type'] = algorithm_type
                 df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-1].split("-")[1]
+                df['regret'] = (df["cost"] - cost_limit).clip(lower=0.0)
+                df = df.sort_index()
+                df['accumulative_regret'] = df['regret'].cumsum()
                 dfs.append(df)
         return pd.concat(dfs)
 
@@ -145,13 +150,13 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
 
     # Combine both baseline and curriculum dataframes
     combined_df = pd.concat([baseline_df, curr_df]).reset_index(names="step")
-
+    
     if not os.path.isdir("app/figures/" + folder):
         os.makedirs("app/figures/" + folder)
         
     last_change = curr_changes[-1]
 
-    for metric in ['return', 'cost', 'cost_zoom']:
+    for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret', 'accumulative_regret']:
         # Plotting using Seaborn
         sns.set_style("whitegrid")
         plt.figure(figsize=(10, 5), dpi=200)
@@ -164,7 +169,11 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
             zoomed = "_zoom"
 
         if metric == 'cost':
-            plt.axhline(y=cost_limit, color='r', linestyle='-')
+            plt.axhline(y=cost_limit, color='black', linestyle='-')
+        if metric == 'accumulative_regret':
+            x = range(combined_df["step"].max())
+            y = [cost_limit * x_val for x_val in x]
+            plt.plot(x, y, color='black', linestyle=':')
         sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
         if include_seeds:
             ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', estimator=None, legend=False)
@@ -176,16 +185,16 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
         if include_seeds:
             plt.setp(ax.lines[2:], alpha=0.2)
         plt.tight_layout(pad=2)
-        plt.title(f"{metric.capitalize()}s of agents using curriculum and baseline agent")
+        plt.title(f"{metric.replace('_', ' ').capitalize()}s of agents using curriculum and baseline agent")
         plt.xlabel("x1000 Steps")
-        plt.ylabel(metric.capitalize())
+        plt.ylabel(metric.replace('_', ' ').capitalize())
         plt.savefig(f"app/figures/{folder}/{metric}s{zoomed}.png")
         plt.show()
         plt.close()
 
     return combined_df
 
-def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
+def plot_eval(folder, curr_changes, cost_limit, save_freq, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
     def extract_values(pattern, text):
         return [float(match.group(1)) for match in re.finditer(pattern, text)]
 
@@ -206,6 +215,8 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
                 lengths = []
                 steps = []
 
+                reps = 0
+
                 for epoch in epochs:
                     with open(os.path.join(path, epoch, "result.txt"), 'r') as file:
                         data = file.read()
@@ -218,13 +229,22 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
                         costs += cost_
                         lengths += length_
 
+                        if reps == 0:
+                            reps = len(return_)
+
                         index = int(epoch.split("-")[1])
-                        steps += [index for i in range(len(return_))]
+                        steps += [index for i in range(reps)]
 
                 df = pd.DataFrame({'return': returns, 'cost': costs, 'length': lengths, 'step': steps})
                 df['Algorithm'] = algorithm.split("-")[0]
                 df['type'] = algorithm_type
                 df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-2].split("-")[1]
+                df['regret'] = (df["cost"] - cost_limit).clip(lower=0.0)
+
+                df['step'] = pd.to_numeric(df['step'])
+                df = df.sort_values(by=['step']).reset_index()
+                avg_regret = df.groupby(df.index // reps)['regret'].mean()
+                df['accumulative_regret'] = avg_regret.cumsum().repeat(reps).reset_index(drop=True)
                 dfs.append(df)
         return pd.concat(dfs)
 
@@ -235,11 +255,11 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
     curr_df = read_and_concat(curr_dir, curr_algorithms, 'curriculum')
 
     combined_df = pd.concat([baseline_df, curr_df]).reset_index(drop=True)
-
+    
     if not os.path.isdir("app/figures/" + folder):
         os.makedirs("app/figures/" + folder)
 
-    for metric in ['return', 'cost', 'length', 'cost_zoom']:
+    for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret', 'accumulative_regret']:
         sns.set_style("whitegrid")
         plt.figure(figsize=(10, 5), dpi=200)
         
@@ -251,7 +271,11 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
             zoomed = "_zoom"
 
         if metric == 'cost':
-            plt.axhline(y=cost_limit, color='r', linestyle='-')
+            plt.axhline(y=cost_limit, color='black', linestyle='-')
+        if metric == 'accumulative_regret':
+            x = range(0, combined_df["step"].max() + save_freq, save_freq)
+            y = [cost_limit * i for i in range(len(x))]
+            plt.plot(x, y, color='black', linestyle=':')
         sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
         if include_seeds:
             if include_repetitions:
@@ -267,9 +291,9 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
         if include_seeds:
             plt.setp(ax.lines[2:], alpha=0.2)
         plt.tight_layout(pad=2)
-        plt.title(f"{metric.capitalize() if metric != 'length' else 'Episode' + metric}s of agents using curriculum and baseline agent during evalutaion")
+        plt.title(f"{metric.replace('_', ' ').capitalize() if metric != 'length' else 'Episode' + metric}s of agents using curriculum and baseline agent during evalutaion")
         plt.xlabel("x1000 Steps")
-        plt.ylabel(metric.capitalize())
+        plt.ylabel(metric.replace('_', ' ').capitalize())
         plt.savefig(f"app/figures/{folder}/{metric}s{zoomed}_eval.png")
         plt.show()
         plt.close()
@@ -288,8 +312,8 @@ def print_eval(folder, train_df, eval_df, save_freq, cost_limit):
         eval_length = mean_eval_df["length"].iloc[-1]
         auc_cost = np.trapz(mean_train_df["cost"], dx=1)
         auc_eval_cost = np.trapz(mean_eval_df["cost"], dx=save_freq)
-        regret_train = (mean_train_df["cost"] - cost_limit).clip(lower=0.0).sum()
-        regret_eval = (mean_eval_df["cost"] - cost_limit).clip(lower=0.0).sum()
+        regret_train = mean_train_df["accumulative_regret"].iloc[-1]
+        regret_eval = mean_eval_df["accumulative_regret"].iloc[-1]
 
         if not os.path.isdir(f"app/figures/{folder}/{algorithm_type}_metrics"):
             os.makedirs(f"app/figures/{folder}/{algorithm_type}_metrics")
@@ -343,20 +367,20 @@ if __name__ == '__main__':
     repetitions = 5
     baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
     curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "incremental_static_curriculum"
-    curr_changes = [10, 20, 40, 100, 300, 700]
+    folder_base = "algorithm_comparison_extra"
+    curr_changes = [10, 20, 40, 100]#, 300, 700]
     seeds = [7337, 175, 4678, 9733, 3743] # [572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
 
     # Repeat experiments
-    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    for end_task in range(2, len(curr_changes) + 1):
-        with Pool(8) as p:
-            args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
-            args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
-            args = args_curr + args_base
-            p.starmap(use_params, args)
+    # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+    # for end_task in range(2, len(curr_changes) + 1):
+    #     with Pool(8) as p:
+    #         args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
+    #         args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
+    #         args = args_curr + args_base
+    #         p.starmap(use_params, args)
 
     # Plot the results
     train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
-    eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
+    eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, save_freq=save_freq)
     print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)

@@ -8,5 +8,5 @@ Evaluation episode length: 272.48
 All epochs results:
 AUC of the cost curve: 17374.200823594878
 AUC of the evaluation cost curve: 15689.813333333332
-Cost regret: 12382.111490251373
-Evaluation cost regret: 1075.208
+Cost regret: 14393.777265294393
+Evaluation cost regret: 1476.2
