@@ -345,7 +345,7 @@ if __name__ == '__main__':
     curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
     folder_base = "incremental_static_curriculum"
     curr_changes = [10, 20, 40, 100, 300, 700]
-    seeds = [7337, 175, 4678, 9733, 3743] # [, , , , ] # [int(rand.random() * 10000) for i in range(repetitions)]
+    seeds = [572, 5689, 3968, 7596, 5905] # [7337, 175, 4678, 9733, 3743] # [int(rand.random() * 10000) for i in range(repetitions)]
 
     # Repeat experiments
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
