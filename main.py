@@ -373,7 +373,7 @@ if __name__ == '__main__':
 
     # Repeat experiments
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    for end_task in range(2, len(curr_changes) + 1):
+    for end_task in range(1, len(curr_changes) + 1):
         with Pool(8) as p:
             args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
             args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
