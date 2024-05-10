@@ -15,7 +15,7 @@ from omnisafe.utils.config import get_default_kwargs_yaml
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 
 def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps_per_epoch = 1000, 
-                update_iters = 1, nn_size = 256, lag_multiplier_init = 0.1, lag_multiplier_lr = 0.01,
+                update_iters = 1, nn_size = 256, lag_multiplier_init = 0.1, lag_multiplier_lr = 0.035,
                 focops_eta = 0.02, focops_lam = 1.5):
     """
     steps_per_epoch (int): the number of steps before the policy is updated
@@ -139,9 +139,9 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
                 df['Algorithm'] = algorithm.split("-")[0]
                 df['type'] = algorithm_type
                 df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-1].split("-")[1]
-                df['regret'] = (df["cost"] - cost_limit).clip(lower=0.0)
+                df['regret_per_epoch'] = (df["cost"] - cost_limit).clip(lower=0.0)
                 df = df.sort_index()
-                df['accumulative_regret'] = df['regret'].cumsum()
+                df['regret'] = df['regret_per_epoch'].cumsum()
                 dfs.append(df)
         return pd.concat(dfs)
 
@@ -156,7 +156,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
         
     last_change = curr_changes[-1]
 
-    for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret', 'accumulative_regret']:
+    for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret']:
         # Plotting using Seaborn
         sns.set_style("whitegrid")
         plt.figure(figsize=(10, 5), dpi=200)
@@ -170,7 +170,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
 
         if metric == 'cost':
             plt.axhline(y=cost_limit, color='black', linestyle='-')
-        if metric == 'accumulative_regret':
+        if metric == 'regret':
             x = range(combined_df["step"].max())
             y = [cost_limit * x_val for x_val in x]
             plt.plot(x, y, color='black', linestyle=':')
@@ -239,12 +239,12 @@ def plot_eval(folder, curr_changes, cost_limit, save_freq, include_weak=False, i
                 df['Algorithm'] = algorithm.split("-")[0]
                 df['type'] = algorithm_type
                 df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-2].split("-")[1]
-                df['regret'] = (df["cost"] - cost_limit).clip(lower=0.0)
+                df['regret_per_epoch'] = (df["cost"] - cost_limit).clip(lower=0.0)
 
                 df['step'] = pd.to_numeric(df['step'])
                 df = df.sort_values(by=['step']).reset_index()
-                avg_regret = df.groupby(df.index // reps)['regret'].mean()
-                df['accumulative_regret'] = avg_regret.cumsum().repeat(reps).reset_index(drop=True)
+                avg_regret_per_epoch= df.groupby(df.index // reps)['regret_per_epoch'].mean()
+                df['regret'] = avg_regret_per_epoch.cumsum().repeat(reps).reset_index(drop=True)
                 dfs.append(df)
         return pd.concat(dfs)
 
@@ -259,7 +259,7 @@ def plot_eval(folder, curr_changes, cost_limit, save_freq, include_weak=False, i
     if not os.path.isdir("app/figures/" + folder):
         os.makedirs("app/figures/" + folder)
 
-    for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret', 'accumulative_regret']:
+    for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret']:
         sns.set_style("whitegrid")
         plt.figure(figsize=(10, 5), dpi=200)
         
@@ -272,7 +272,7 @@ def plot_eval(folder, curr_changes, cost_limit, save_freq, include_weak=False, i
 
         if metric == 'cost':
             plt.axhline(y=cost_limit, color='black', linestyle='-')
-        if metric == 'accumulative_regret':
+        if metric == 'regret':
             x = range(0, combined_df["step"].max() + save_freq, save_freq)
             y = [cost_limit * i for i in range(len(x))]
             plt.plot(x, y, color='black', linestyle=':')
@@ -312,8 +312,8 @@ def print_eval(folder, train_df, eval_df, save_freq, cost_limit):
         eval_length = mean_eval_df["length"].iloc[-1]
         auc_cost = np.trapz(mean_train_df["cost"], dx=1)
         auc_eval_cost = np.trapz(mean_eval_df["cost"], dx=save_freq)
-        regret_train = mean_train_df["accumulative_regret"].iloc[-1]
-        regret_eval = mean_eval_df["accumulative_regret"].iloc[-1]
+        regret_train = mean_train_df["regret"].iloc[-1]
+        regret_eval = mean_eval_df["regret"].iloc[-1]
 
         if not os.path.isdir(f"app/figures/{folder}/{algorithm_type}_metrics"):
             os.makedirs(f"app/figures/{folder}/{algorithm_type}_metrics")
@@ -365,20 +365,20 @@ if __name__ == '__main__':
     save_freq = 10
     epochs = 2000
     repetitions = 5
-    baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
-    curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "algorithm_comparison_extra"
-    curr_changes = [10, 20, 40, 100]#, 300, 700]
+    baseline_algorithms = ["FOCOPS"]
+    curr_algorithms = ["FOCOPS"]
+    folder_base = "incremental_static_curriculum_biglr"
+    curr_changes = [10, 20, 40, 100, 300, 700]
     seeds = [7337, 175, 4678, 9733, 3743] # [572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
 
     # Repeat experiments
-    # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    # for end_task in range(2, len(curr_changes) + 1):
-    #     with Pool(8) as p:
-    #         args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
-    #         args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
-    #         args = args_curr + args_base
-    #         p.starmap(use_params, args)
+    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+    for end_task in range(2, len(curr_changes) + 1):
+        with Pool(8) as p:
+            args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
+            args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
+            args = args_curr + args_base
+            p.starmap(use_params, args)
 
     # Plot the results
     train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
