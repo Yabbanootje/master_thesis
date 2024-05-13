@@ -12,10 +12,13 @@ class HMLevel0(HMLevelBase):
 
     def __init__(self, config):
         super().__init__(config=config)
+        self._add_geoms(Goal(size = self.geom_radius, keepout = 0, locations=[self.goal_location], reward_goal=self.goal_reward))
+        self.goal.reward_distance = self._goal_reward_distance
 
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
         self._add_geoms(Hazards(size = self.geom_radius, keepout = 0, num = 0))
+        
 
     def calculate_reward(self):
         """Determine reward depending on the agent and tasks."""

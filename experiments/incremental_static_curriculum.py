@@ -7,7 +7,7 @@ if __name__ == '__main__':
     steps_per_epoch = 1000
     save_freq = 10
     epochs = 2000
-    repetitions = 5
+    repetitions = 10
     baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
     curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
     folder_base = "incremental_static_curriculum"

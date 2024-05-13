@@ -46,6 +46,13 @@ from custom_envs.hand_made_levels.hm_level_target import HMLevelTarget
 
 from custom_envs.hand_made_levels.hm_eval_level_3 import HMEvalLevel3
 
+from custom_envs.hand_made_levels_reward.hmr_level_0 import HMRLevel0
+from custom_envs.hand_made_levels_reward.hmr_level_1 import HMRLevel1
+from custom_envs.hand_made_levels_reward.hmr_level_2 import HMRLevel2
+from custom_envs.hand_made_levels_reward.hmr_level_3 import HMRLevel3
+from custom_envs.hand_made_levels_reward.hmr_level_4 import HMRLevel4
+from custom_envs.hand_made_levels_reward.hmr_level_5 import HMRLevel5
+
 __all__ = [
     'register',
     'make',
@@ -200,3 +207,37 @@ class CustomBuilderHandMade(Builder):
             return task
     
 __combine(hm_goal_tasks, robots, max_episode_steps=1000, builder_name="CustomBuilderHandMade")
+
+hm_goal_tasks_reward = {'HMR0': {}, 'HMR1': {}, 'HMR2': {}, 'HMR3': {}, 'HMR4': {}, 'HMR5': {}}
+
+class CustomBuilderHandMadeReward(Builder):
+    # def __init__(self):
+    #     super.__init__()
+    #     self.tasks = {
+
+    #     }
+
+    def _get_task_from_string(self, class_name):
+        if class_name == "HMRLevel0":
+            return HMRLevel0
+        elif class_name == "HMRLevel1":
+            return HMRLevel1
+        elif class_name == "HMRLevel2":
+            return HMRLevel2
+        elif class_name == "HMRLevel3":
+            return HMRLevel3
+        elif class_name == "HMRLevel4":
+            return HMRLevel4
+        elif class_name == "HMRLevel5":
+            return HMRLevel5
+        else:
+            return super()._get_task()
+
+    def _get_task(self):
+            class_name = get_task_class_name(self.task_id)
+            task_class = self._get_task_from_string(class_name)
+            task = task_class(config=self.config)
+            task.build_observation_space()
+            return task
+    
+__combine(hm_goal_tasks_reward, robots, max_episode_steps=1000, builder_name="CustomBuilderHandMadeReward")

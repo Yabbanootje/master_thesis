@@ -1,4 +1,4 @@
-"""Goal level Target."""
+"""Goal level 3."""
 
 # Introduce the required objects
 from safety_gymnasium.assets.geoms import Goal, Hazards
@@ -7,7 +7,7 @@ from custom_envs.hand_made_levels.hm_level_base import HMLevelBase
 import random
 
 
-class HMLevelTarget(HMLevelBase):
+class HMRLevel3(HMLevelBase):
     """An agent must navigate to a goal."""
 
     def __init__(self, config):
@@ -15,38 +15,12 @@ class HMLevelTarget(HMLevelBase):
         self._add_geoms(Goal(size = self.geom_radius, keepout = 0, locations=[self.goal_location], reward_goal=self.goal_reward))
         self.goal.reward_distance = self._goal_reward_distance
 
-        # locations = self.randomized_locations(goal_location, geom_radius)
-        self.locations = [(-0.5, -0.5), (-0.25, -0.5), (0, -0.5), (0.25, -0.5),
-                          (-0.5, 0.5), (-0.25, 0.5), (0, 0.5), (0.25, 0.5),
-                          (0.5, 0), (0.5, 0.5), (0.5, -0.5), (0.5, 0.25), (0.5, -0.25),
-                          (-1.5, 0), (-1.5, 0.5), (-1.5, -0.5), (-1.5, 0.25), (-1.5, -0.25)]
+        self.locations = [(-1, 0), (-1, 0.5), (-1, -0.5), (-1, 0.25), (-1, -0.25),
+                          (0.5, 0), (0.5, 0.25), (0.5, -0.25)]
 
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
         self._add_geoms(Hazards(size = self.geom_radius, keepout = 0, num = len(self.locations), locations = self.locations))
-
-    def randomized_locations(self, goal_position, hazard_radius):
-        # initialize the static corners relative to the goal position
-        step_size = 2 * hazard_radius
-        corners = [(-step_size, -step_size), (step_size, step_size), (-step_size, step_size), (step_size, -step_size)]
-        corners = [tuple(map(sum, zip(pos, goal_position))) for pos in corners]
-
-        # choose a random entry point to the goal
-        possible_entry_points = [(0.0, -step_size), (0.0, step_size), (-step_size, 0.0), (step_size, 0.0)]
-        entry_point = random.choice(possible_entry_points)
-        possible_entry_points.remove(entry_point)
-        closed_entry_points = [tuple(map(sum, zip(pos, goal_position))) for pos in possible_entry_points]
-        
-        # build a wall of hazards on the side of the entry point,
-        # so that the agent cannot get to the entry point in a straight line
-        middle_wall = tuple([3 * coord for coord in entry_point])
-        if middle_wall[0] == 0.0:
-            wall_positions = [tuple(map(sum, zip((i * step_size, 0.0), middle_wall))) for i in range(-1,2)]
-        else:
-            wall_positions = [tuple(map(sum, zip((0.0, i * step_size), middle_wall))) for i in range(-1,2)]
-        wall_positions = [tuple(map(sum, zip(pos, goal_position))) for pos in wall_positions]
-
-        return corners + closed_entry_points + wall_positions
 
     def calculate_reward(self):
         """Determine reward depending on the agent and tasks."""

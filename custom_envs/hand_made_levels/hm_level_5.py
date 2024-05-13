@@ -11,6 +11,8 @@ class HMLevel5(HMLevelBase):
 
     def __init__(self, config):
         super().__init__(config=config)
+        self._add_geoms(Goal(size = self.geom_radius, keepout = 0, locations=[self.goal_location], reward_goal=self.goal_reward))
+        self.goal.reward_distance = self._goal_reward_distance
 
         self.locations = [(0.5, 0), (0.5, 0.5), (0.5, -0.5), (0.5, 0.25), (0.5, -0.25),
                           (-1.5, 0), (-1.5, 0.5), (-1.5, -0.5), (-1.5, 0.25), (-1.5, -0.25)]

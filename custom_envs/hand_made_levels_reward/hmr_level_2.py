@@ -1,29 +1,36 @@
-"""Goal level 1."""
+"""Goal level 2."""
 
 # Introduce the required objects
 from safety_gymnasium.assets.geoms import Goal, Hazards
 # Need to inherit from HMLevelBase
 from custom_envs.hand_made_levels.hm_level_base import HMLevelBase
 import random
+import numpy as np
+from safety_gymnasium.utils.random_generator import RandomGenerator
 
 
-class HMLevel1(HMLevelBase):
+class HMRLevel2(HMLevelBase):
     """An agent must navigate to a goal."""
 
     def __init__(self, config):
         super().__init__(config=config)
-        self._add_geoms(Goal(size = self.geom_radius, keepout = 0, locations=[self.goal_location], reward_goal=self.goal_reward))
+        new_goal_location, self.locations = self.randomized_locations(self.goal_location)
+        self._add_geoms(Goal(size = self.geom_radius, keepout = 0, locations=[new_goal_location], reward_goal=self.goal_reward))
         self.goal.reward_distance = self._goal_reward_distance
 
-        self.locations = self.randomized_locations()
-        # self.locations = [(1.5, -1.5)]
+        # self.locations = self.randomized_locations(self.goal_location)
+        # self.locations = [(1.5, 0)]
 
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
         self._add_geoms(Hazards(size = self.geom_radius, keepout = 0, num = len(self.locations), locations = self.locations))
 
-    def randomized_locations(self):
-        return [random.choice([(1.5, -1.5), (1.5, 1.5)])]
+    def randomized_locations(self, relative_position):
+        goal_locations = [tuple(map(lambda i, j: i + j, relative_position, (0, 0.5))), tuple(map(lambda i, j: i + j, relative_position, (0, -0.5)))]
+        hazard_locations = [[(0.5, 1), (0.5, 0.75), (0.5, 0.5)], 
+                            [(0.5, -1), (0.5, -0.75), (0.5, -0.5)]]
+        index = random.choice(range(len(goal_locations)))
+        return goal_locations[index], hazard_locations[index]
 
     def calculate_reward(self):
         """Determine reward depending on the agent and tasks."""

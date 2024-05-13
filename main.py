@@ -365,15 +365,15 @@ if __name__ == '__main__':
     save_freq = 10
     epochs = 2000
     repetitions = 5
-    baseline_algorithms = ["FOCOPS"]
-    curr_algorithms = ["FOCOPS"]
-    folder_base = "incremental_static_curriculum_biglr"
+    baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
+    curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
+    folder_base = "incremental_static_curriculum"
     curr_changes = [10, 20, 40, 100, 300, 700]
-    seeds = [7337, 175, 4678, 9733, 3743] # [572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
+    seeds = [int(rand.random() * 10000) for i in range(repetitions)] # [7337, 175, 4678, 9733, 3743] # [572, 5689, 3968, 7596, 5905]
 
     # Repeat experiments
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    for end_task in range(1, len(curr_changes) + 1):
+    for end_task in range(0, len(curr_changes) + 1):
         with Pool(8) as p:
             args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
             args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))

@@ -32,12 +32,12 @@ class HMLevelBase(BaseTask):
                                  (2, -1, 3, 1),
                                  (2, -0.5, 3, 0.5),
                                  ]
-        # self.agent.locations = [(1, 0)]
+        self.agent.locations = [(1, 0)]
         
         self._steps = 0
 
-        self._add_geoms(Goal(size = self.geom_radius, keepout = 0, locations=[self.goal_location], reward_goal=self.goal_reward))
-        self.goal.reward_distance = 1
+        # self._add_geoms(Goal(size = self.geom_radius, keepout = 0, locations=[self.goal_location], reward_goal=self.goal_reward))
+        self._goal_reward_distance = 1
         # - in x is to the right
         # - in y is to the top
         # (0, 0) is in the middle

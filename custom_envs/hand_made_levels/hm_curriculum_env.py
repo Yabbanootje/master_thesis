@@ -98,6 +98,8 @@ class HMCurriculumEnv(CMDP):
 
     # Create dummy environments, which are not actual environments but contain information on what to do
     # _base_support_envs = [env.replace("HM", "BaseHM") for env in _original_support_envs]
+    _reward_support_envs = [env.replace("HM", "HMR") for env in _original_support_envs]
+    _original_support_envs = _original_support_envs + _reward_support_envs
     _curr_starting_support_envs = [env.replace("HM", f"From{i}HM") for env in _original_support_envs for i in [0, 1, 2, 3, 4, 5, "T"]]
 
     _support_envs: ClassVar[list[str]] = _original_support_envs + _curr_starting_support_envs
@@ -119,7 +121,7 @@ class HMCurriculumEnv(CMDP):
         self._curriculum = False
         # self.disable_progress = True
 
-        end_version_pattern = r'HM(\d+|T)'
+        end_version_pattern = r'HM(R)?(\d+|T)'
         end_version = re.search(end_version_pattern, env_id)
         self._end_task = end_version.group(1)
         self._start_task = self._end_task

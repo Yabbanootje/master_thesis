@@ -1,29 +1,24 @@
-"""Goal level 1."""
+"""Goal level 0."""
 
 # Introduce the required objects
 from safety_gymnasium.assets.geoms import Goal, Hazards
-# Need to inherit from HMLevelBase
+# Need to inherit from BaseTask
+from safety_gymnasium.bases.base_task import BaseTask
 from custom_envs.hand_made_levels.hm_level_base import HMLevelBase
-import random
 
 
-class HMLevel1(HMLevelBase):
+class HMRLevel0(HMLevelBase):
     """An agent must navigate to a goal."""
 
     def __init__(self, config):
         super().__init__(config=config)
-        self._add_geoms(Goal(size = self.geom_radius, keepout = 0, locations=[self.goal_location], reward_goal=self.goal_reward))
+        self._add_geoms(Goal(size = self.geom_radius, keepout = 0, 
+                             locations=[tuple(map(lambda i, j: i + j, self.goal_location, (1, 0)))], reward_goal=self.goal_reward))
         self.goal.reward_distance = self._goal_reward_distance
-
-        self.locations = self.randomized_locations()
-        # self.locations = [(1.5, -1.5)]
 
         # Instantiate and register the object
         # placement = xmin, ymin, xmax, ymax
-        self._add_geoms(Hazards(size = self.geom_radius, keepout = 0, num = len(self.locations), locations = self.locations))
-
-    def randomized_locations(self):
-        return [random.choice([(1.5, -1.5), (1.5, 1.5)])]
+        self._add_geoms(Hazards(size = self.geom_radius, keepout = 0, num = 0))
 
     def calculate_reward(self):
         """Determine reward depending on the agent and tasks."""
