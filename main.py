@@ -51,7 +51,7 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
             'logger_cfgs': {
                 'log_dir': "./app/results/" + folder,
                 'save_model_freq': save_freq,
-                'use_wandb': True,
+                # 'use_wandb': True,
                 'wandb_project': folder.split("/")[0],
             },
             'model_cfgs': {
@@ -380,10 +380,9 @@ if __name__ == '__main__':
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
     for end_task in range(5, len(curr_changes) + 1):
         with Pool(8) as p:
-            args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
+            args_base = []#list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
             args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
             args = args_curr + args_base
-            print("args:", args)
             p.starmap(use_params, args)
 
     # Plot the results
