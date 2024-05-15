@@ -353,6 +353,8 @@ def use_params(algorithm, end_task, algorithm_type, seed):
         else:
             raise Exception("Invalid algorithm type, must be either 'baseline' or 'curriculum'.")
 
+        print("env_id:", env_id)
+
         run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
                         seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
                         env_id=env_id, folder=folder_base + "/" + algorithm_type, curr_changes=curr_changes)
@@ -374,7 +376,6 @@ if __name__ == '__main__':
     ppo_seeds = [175, 9733, 5689, 3968, 7596, 5905]
     ppo_early_seeds = [4678, 3743, 572, 3968, 5905]
 
-
     # Repeat experiments
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
     for end_task in range(5, len(curr_changes) + 1):
@@ -382,6 +383,7 @@ if __name__ == '__main__':
             args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
             args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
             args = args_curr + args_base
+            print("args:", args)
             p.starmap(use_params, args)
 
     # Plot the results
