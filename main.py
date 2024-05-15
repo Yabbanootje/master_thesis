@@ -51,7 +51,7 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
             'logger_cfgs': {
                 'log_dir': "./app/results/" + folder,
                 'save_model_freq': save_freq,
-                # 'use_wandb': True,
+                'use_wandb': True,
                 'wandb_project': folder.split("/")[0],
             },
             'model_cfgs': {
@@ -353,8 +353,6 @@ def use_params(algorithm, end_task, algorithm_type, seed):
         else:
             raise Exception("Invalid algorithm type, must be either 'baseline' or 'curriculum'.")
 
-        print("env_id:", env_id)
-
         run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
                         seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
                         env_id=env_id, folder=folder_base + "/" + algorithm_type, curr_changes=curr_changes)
@@ -380,7 +378,7 @@ if __name__ == '__main__':
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
     for end_task in range(5, len(curr_changes) + 1):
         with Pool(8) as p:
-            args_base = []#list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
+            args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
             args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
             args = args_curr + args_base
             p.starmap(use_params, args)
