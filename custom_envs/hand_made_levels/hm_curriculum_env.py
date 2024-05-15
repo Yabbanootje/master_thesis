@@ -125,7 +125,6 @@ class HMCurriculumEnv(CMDP):
         end_version = re.search(end_version_pattern, env_id)
         self._end_task = end_version.group(1)
         self._start_task = self._end_task
-        print("end_task:", self._end_task)
 
         self._curr_changes = {"0": 0,
                               "1": 10 * 1000,
@@ -259,6 +258,7 @@ class HMCurriculumEnv(CMDP):
         """
 
         if self._curriculum:
+            print("end_task:", self._end_task)
             if options != None and options.get("resetting_for_eval"):
                 self._env = eval(f"self._env_{self._end_task}")
             elif self._steps == self._curr_changes.get("1") and (int(self._end_task) >= 1 or self._end_task == "T"):
