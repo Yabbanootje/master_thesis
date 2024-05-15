@@ -369,11 +369,15 @@ if __name__ == '__main__':
     curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
     folder_base = "incremental_static_curriculum"
     curr_changes = [10, 20, 40, 100, 300, 700]
-    seeds = [int(rand.random() * 10000) for i in range(repetitions)] # [7337, 175, 4678, 9733, 3743] # [572, 5689, 3968, 7596, 5905]
+    seeds = [7337, 175, 4678, 9733, 3743] # [572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
+    cpo_seeds = [4678, 7337, 3743, 572, 5689, 3968, 7596, 5905]
+    ppo_seeds = [175, 9733, 5689, 3968, 7596, 5905]
+    ppo_early_seeds = [4678, 3743, 572, 3968, 5905]
+
 
     # Repeat experiments
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    for end_task in range(0, len(curr_changes) + 1):
+    for end_task in range(5, len(curr_changes) + 1):
         with Pool(8) as p:
             args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
             args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
