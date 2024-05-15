@@ -125,7 +125,7 @@ class HMCurriculumEnv(CMDP):
         end_version = re.search(end_version_pattern, env_id)
         self._end_task = end_version.group(1)
         self._start_task = self._end_task
-        print(self._end_task)
+        print("end_task:", self._end_task)
 
         self._curr_changes = {"0": 0,
                               "1": 10 * 1000,
