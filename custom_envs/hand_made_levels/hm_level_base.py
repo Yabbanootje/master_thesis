@@ -32,7 +32,7 @@ class HMLevelBase(BaseTask):
                                  (2, -1, 3, 1),
                                  (2, -0.5, 3, 0.5),
                                  ]
-        self.agent.locations = [(1, 0)]
+        # self.agent.locations = [(1, 0)]
         
         self._steps = 0
 
