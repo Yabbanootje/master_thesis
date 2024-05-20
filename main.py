@@ -370,22 +370,15 @@ if __name__ == '__main__':
     folder_base = "incremental_static_curriculum"
     curr_changes = [10, 20, 40, 100, 300, 700]
     seeds = [572, 5689, 3968, 7596, 5905] # [7337, 175, 4678, 9733, 3743] # [int(rand.random() * 10000) for i in range(repetitions)]
-    cpo_seeds = [4678, 7337, 3743, 572, 5689, 3968, 7596, 5905]
-    ppo_seeds = [175, 9733, 5689, 3968, 7596, 5905]
-    ppo_early_seeds = [4678, 3743, 572, 3968, 5905]
 
     # Repeat experiments
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    # for end_task in range(5, len(curr_changes) + 1):
-    with Pool(8) as p:
-        # args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
-        # args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
-        # args = args_curr + args_base
-        args_cpo = list(product(["CPO"], [4], ["baseline"], cpo_seeds))
-        args_ppo = list(product(["PPO"], [4], ["baseline"], ppo_seeds))
-        args_ppo_early = list(product(["PPOEarlyTerminated"], [4], ["baseline"], ppo_early_seeds))
-        args = args_ppo_early + args_ppo + args_cpo
-        p.starmap(use_params, args)
+    for end_task in range(6, len(curr_changes) + 1):
+        with Pool(8) as p:
+            args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
+            args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
+            args = args_curr # + args_base
+            p.starmap(use_params, args)
 
     # Plot the results
     train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
