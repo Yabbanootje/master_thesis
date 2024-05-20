@@ -260,19 +260,19 @@ class HMCurriculumEnv(CMDP):
         if self._curriculum:
             if options != None and options.get("resetting_for_eval"):
                 self._env = eval(f"self._env_{self._end_task}")
-            elif self._steps == self._curr_changes.get("1") and (int(self._end_task) >= 1 or self._end_task == "T"):
+            elif self._steps == self._curr_changes.get("1") and (self._end_task == "T" or int(self._end_task) >= 1):
                 print("Changed env to level 1")
                 self._env = self._env_1
-            elif self._steps == self._curr_changes.get("2") and (int(self._end_task) >= 2 or self._end_task == "T"):
+            elif self._steps == self._curr_changes.get("2") and (self._end_task == "T" or int(self._end_task) >= 2):
                 print("Changed env to level 2")
                 self._env = self._env_2
-            elif self._steps == self._curr_changes.get("3") and (int(self._end_task) >= 3 or self._end_task == "T"):
+            elif self._steps == self._curr_changes.get("3") and (self._end_task == "T" or int(self._end_task) >= 3):
                 print("Changed env to level 3")
                 self._env = self._env_3
-            elif self._steps == self._curr_changes.get("4") and (int(self._end_task) >= 4 or self._end_task == "T"):
+            elif self._steps == self._curr_changes.get("4") and (self._end_task == "T" or int(self._end_task) >= 4):
                 print("Changed env to level 4")
                 self._env = self._env_4
-            elif self._steps == self._curr_changes.get("5") and (int(self._end_task) >= 5 or self._end_task == "T"):
+            elif self._steps == self._curr_changes.get("5") and (self._end_task == "T" or int(self._end_task) >= 5):
                 print("Changed env to level 5")
                 self._env = self._env_5
             elif self._steps == self._curr_changes.get("T") and self._end_task == "T":
