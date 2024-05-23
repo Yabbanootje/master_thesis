@@ -101,10 +101,8 @@ def get_agents(folder, algorithms, env_id, cfgs, curr_changes):
             if int(start_task) != 0:
                 algo_folders = os.listdir("app/results/" + folder)
                 algo_folder = [fldr for fldr in algo_folders if algorithm in fldr and "HM" + start_task in fldr][0]
-                print("The algo_folder found is:", algo_folder)
                 algo_path = os.path.join("app/results/", folder, algo_folder)
                 seed_folder = [fldr for fldr in os.listdir(algo_path) if "seed-" + str(cfg.get("seed")).zfill(3) in fldr][0]
-                print("The seed_folder found is:", seed_folder)
                 agent.agent.load(curr_changes[int(start_task) - 1], os.path.join(algo_path, seed_folder))
         agents.append(agent)
 
@@ -349,7 +347,7 @@ def use_params(algorithm, end_task, algorithm_type, seed):
         if algorithm_type == "baseline":
             env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
         elif algorithm_type == "curriculum":
-            env_id = f'SafetyPointFrom{end_task-1}HM{end_task if end_task < 6 else "T"}-v0'
+            env_id = f'SafetyPointFrom0HM{end_task if end_task < 6 else "T"}-v0'
         else:
             raise Exception("Invalid algorithm type, must be either 'baseline' or 'curriculum'.")
 
@@ -364,16 +362,16 @@ if __name__ == '__main__':
     steps_per_epoch = 1000
     save_freq = 10
     epochs = 2000
-    repetitions = 5
-    baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
-    curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "incremental_static_curriculum"
+    repetitions = 10
+    baseline_algorithms = []#["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
+    curr_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated"]
+    folder_base = "incremental_static_curriculum_lr_ablation"
     curr_changes = [10, 20, 40, 100, 300, 700]
-    seeds = [7337, 175, 4678, 9733, 3743] # [572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
+    seeds = [7337, 175, 4678, 9733, 3743, 572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
 
     # Repeat experiments
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    for end_task in range(6, len(curr_changes) + 1):
+    for end_task in range(2, len(curr_changes) + 1):
         with Pool(8) as p:
             args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
             args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
