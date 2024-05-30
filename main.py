@@ -331,8 +331,6 @@ def print_eval(folder, train_df, eval_df, save_freq, cost_limit):
 
 def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, epochs, algorithm, env_id, folder, curr_changes):
     # Get configurations
-    if "HM1" in env_id or "HM2" in env_id:
-        epochs = 500
     cfgs = get_configs(folder=folder, algos=[algorithm], epochs=epochs, cost_limit=cost_limit, seed=seed, 
                        save_freq = save_freq)
 
@@ -363,22 +361,31 @@ if __name__ == '__main__':
     save_freq = 10
     epochs = 2000
     repetitions = 10
-    baseline_algorithms = []#["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
-    curr_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "incremental_static_curriculum_lr_ablation"
+    baseline_algorithms = ["PPOEarlyTerminated"]#["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
+    curr_algorithms = ["PPOEarlyTerminated"]#["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
+    folder_base = "algorithm_comparison_ppoet"
     curr_changes = [10, 20, 40, 100, 300, 700]
     seeds = [7337, 175, 4678, 9733, 3743, 572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
 
     # Repeat experiments
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    for end_task in range(2, len(curr_changes) + 1):
-        with Pool(8) as p:
-            args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
-            args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
-            args = args_curr # + args_base
-            p.starmap(use_params, args)
+    with Pool(8) as p:
+        epochs = 1000
+        seeds = [541, 1913, 2361, 2700, 2860, 2961, 3220, 3411, 3621, 5733, 5886, 6367, 6431, 7585, 8753]
+        args_base = list(product(baseline_algorithms, [4], ["baseline"], seeds))
+        args_curr = list(product(curr_algorithms, [4], ["curriculum"], seeds))
+        args = args_curr + args_base
+        p.starmap(use_params, args)
+    # for end_task in range(1, len(curr_changes) + 1):
+    with Pool(8) as p:
+        epochs = 2000
+        seeds = [7337, 175, 4678, 9733, 3743, 572, 5689, 3968, 7596, 5905]
+        args_base = list(product(baseline_algorithms, [1], ["baseline"], seeds))
+        args_curr = list(product(curr_algorithms, [1], ["curriculum"], seeds))
+        args = args_curr + args_base
+        p.starmap(use_params, args)
 
     # Plot the results
-    train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
-    eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, save_freq=save_freq)
-    print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
+    # train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
+    # eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, save_freq=save_freq)
+    # print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)

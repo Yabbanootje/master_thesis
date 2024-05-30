@@ -145,6 +145,8 @@ class HMCurriculumEnv(CMDP):
             start_version_pattern = r'From(\d+|T)'
             start_version = re.search(start_version_pattern, env_id)
             self._start_task = start_version.group(1)
+            if self._start_task != "T" and self._end_task != "T" and int(self._start_task) > int(self._end_task):
+                raise Exception(f"Start task cannot be higher than end task in CMDP {env_id}")
             env_id = env_id.replace(f"From{self._start_task}", "")
 
         if num_envs > 1:
