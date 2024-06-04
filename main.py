@@ -342,16 +342,20 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
         train_agent(agent, eval_episodes, render_episodes, True, [int(epochs/2), epochs])
 
 def use_params(algorithm, end_task, algorithm_type, seed):
-        if algorithm_type == "baseline":
-            env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
-        elif algorithm_type == "curriculum":
-            env_id = f'SafetyPointFrom{end_task - 1}HMR{end_task if end_task < 6 else "T"}-v0'
-        else:
-            raise Exception("Invalid algorithm type, must be either 'baseline' or 'curriculum'.")
+    if end_task == 1:
+        epochs = 500
+    if end_task == 4:
+        epochs = 1000
+    if algorithm_type == "baseline":
+        env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
+    elif algorithm_type == "curriculum":
+        env_id = f'SafetyPointFrom0HM{end_task if end_task < 6 else "T"}-v0'
+    else:
+        raise Exception("Invalid algorithm type, must be either 'baseline' or 'curriculum'.")
 
-        run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
-                        seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
-                        env_id=env_id, folder=folder_base + "/" + algorithm_type, curr_changes=curr_changes)
+    run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
+                    seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
+                    env_id=env_id, folder=folder_base + "/" + algorithm_type, curr_changes=curr_changes)
 
 if __name__ == '__main__':
     eval_episodes = 5
@@ -359,22 +363,29 @@ if __name__ == '__main__':
     cost_limit = 5.0
     steps_per_epoch = 1000
     save_freq = 10
-    epochs = 2000
+    epochs = 1000
     repetitions = 10
-    baseline_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
-    curr_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "incremental_static_curriculum_r"
+    baseline_algorithms = ["PPOEarlyTerminated"]#["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
+    curr_algorithms = ["PPOEarlyTerminated"]#["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
+    folder_base = "algorithm_comparison_ppoet"
     curr_changes = [10, 20, 40, 100, 300, 700]
     seeds = [7337, 175, 4678, 9733, 3743, 572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
 
     # Repeat experiments
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    for end_task in range(1, len(curr_changes) + 1):
-        with Pool(8) as p:
-            args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
-            args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
-            args = args_curr + args_base
-            p.starmap(use_params, args)
+    with Pool(8) as p:
+        seeds = [541, 1913, 2361, 2700, 2860, 2961, 3220, 3411, 3621, 5733, 5886, 6367, 6431, 7585, 8753]
+        args_base = list(product(baseline_algorithms, [4], ["baseline"], seeds))
+        args_curr = list(product(curr_algorithms, [4], ["curriculum"], seeds))
+        args = args_curr + args_base
+        p.starmap(use_params, args)
+    # for end_task in range(1, len(curr_changes) + 1):
+    with Pool(8) as p:
+        seeds = [7337, 175, 4678, 9733, 3743, 572, 5689, 3968, 7596, 5905]
+        args_base = list(product(baseline_algorithms, [1], ["baseline"], seeds))
+        args_curr = list(product(curr_algorithms, [1], ["curriculum"], seeds))
+        args = args_curr + args_base
+        p.starmap(use_params, args)
 
     # Plot the results
     # train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
