@@ -27,7 +27,7 @@ from omnisafe.envs.core import CMDP, env_register
 from omnisafe.typing import DEVICE_CPU, Box
 
 @env_register
-class HMCurriculumEnv(CMDP):
+class HMAdaptiveCurriculumEnv(CMDP):
     """Curriculum Environment.
 
     Args:
@@ -100,9 +100,9 @@ class HMCurriculumEnv(CMDP):
     # _base_support_envs = [env.replace("HM", "BaseHM") for env in _original_support_envs]
     _reward_support_envs = [env.replace("HM", "HMR") for env in _original_support_envs]
     _original_support_envs = _original_support_envs + _reward_support_envs
-    _curr_starting_support_envs = [env.replace("HM", f"From{i}HM") for env in _original_support_envs for i in [0, 1, 2, 3, 4, 5, "T"]]
+    _curr_starting_support_envs = [env.replace("HM", f"From{i}HMA") for env in _original_support_envs for i in [0, 1, 2, 3, 4, 5, "T"]]
 
-    _support_envs: ClassVar[list[str]] = _original_support_envs + _curr_starting_support_envs
+    _support_envs: ClassVar[list[str]] = _curr_starting_support_envs
 
     def __init__(
         self,
@@ -118,8 +118,6 @@ class HMCurriculumEnv(CMDP):
 
         self._kwargs = kwargs
         self._steps = 0
-        self._curriculum = False
-        # self.disable_progress = True
 
         self._task_to_int = {"0": 0,
                              "1": 1,
@@ -130,24 +128,18 @@ class HMCurriculumEnv(CMDP):
                              "T": 6,
                             }
 
-        end_version_pattern = r'HMR?(\d+|T)'
+        end_version_pattern = r'HMA(\d+|T)'
         end_version = re.search(end_version_pattern, env_id)
         self._end_task = end_version.group(1)
         self._start_task = self._end_task
 
-        # if "HM0" in env_id:
-        #     self._curriculum = True
-        # if "Base" in env_id:
-        #     self._curriculum = False
-        #     env_id = env_id.replace("Base", "")
-        if "From" in env_id:
-            self._curriculum = True
-            start_version_pattern = r'From(\d+|T)'
-            start_version = re.search(start_version_pattern, env_id)
-            self._start_task = start_version.group(1)
-            if self._task_to_int[self._start_task] > self._task_to_int[self._end_task]:
-                raise Exception(f"Start task cannot be higher than end task in CMDP {env_id}")
-            env_id = env_id.replace(f"From{self._start_task}", "")
+        start_version_pattern = r'From(\d+|T)'
+        start_version = re.search(start_version_pattern, env_id)
+        self._start_task = start_version.group(1)
+        env_id = env_id.replace(f"From{self._start_task}", "")
+
+        if self._task_to_int[self._start_task] > self._task_to_int[self._end_task]:
+            raise Exception(f"Start task cannot be higher than end task in CMDP {env_id}")
 
         self._curr_changes = {"0": 0,
                               "1": 10 * 1000,
@@ -157,6 +149,13 @@ class HMCurriculumEnv(CMDP):
                               "5": 300 * 1000,
                               "T": 700 * 1000,
                               }
+        
+        # TODO allow start task to be T
+        # TODO have distribution only include tasks between start and end
+        tasks = list(self._task_to_int.keys())[self._task_to_int[self._start_task]:self._task_to_int[self._end_task] + 1]
+        self.distribution = dict(map(lambda i,j : (i,j), tasks, [0.0 if task != int(self._start_task) else 1.0 for task in range(self._task_to_int[self._start_task], 
+                                                                                                                                 self._task_to_int[self._end_task] + 1)]))
+        self.changed_task = True
 
         if num_envs > 1:
             self._env = safety_gymnasium.vector.make(env_id=env_id, num_envs=num_envs, **kwargs)
@@ -172,18 +171,15 @@ class HMCurriculumEnv(CMDP):
             self.need_auto_reset_wrapper = True
 
             # For the curriculum, create all future environments
-            if self._curriculum:
-                self._env_0 = safety_gymnasium.make(id="SafetyPointHM0-v0", autoreset=True, **self._kwargs)
-                self._env_1 = safety_gymnasium.make(id="SafetyPointHM1-v0", autoreset=True, **self._kwargs)
-                self._env_2 = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
-                self._env_3 = safety_gymnasium.make(id="SafetyPointHM3-v0", autoreset=True, **self._kwargs)
-                self._env_4 = safety_gymnasium.make(id="SafetyPointHM4-v0", autoreset=True, **self._kwargs)
-                self._env_5 = safety_gymnasium.make(id="SafetyPointHM5-v0", autoreset=True, **self._kwargs)
-                self._env_T = safety_gymnasium.make(id="SafetyPointHMT-v0", autoreset=True, **self._kwargs)
-                self._env = eval(f"self._env_{self._start_task}")
-                self._steps = self._curr_changes.get(self._start_task)
-            else:
-                self._env = safety_gymnasium.make(id=env_id, autoreset=True, **kwargs)
+            self._env_0 = safety_gymnasium.make(id="SafetyPointHM0-v0", autoreset=True, **self._kwargs)
+            self._env_1 = safety_gymnasium.make(id="SafetyPointHM1-v0", autoreset=True, **self._kwargs)
+            self._env_2 = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
+            self._env_3 = safety_gymnasium.make(id="SafetyPointHM3-v0", autoreset=True, **self._kwargs)
+            self._env_4 = safety_gymnasium.make(id="SafetyPointHM4-v0", autoreset=True, **self._kwargs)
+            self._env_5 = safety_gymnasium.make(id="SafetyPointHM5-v0", autoreset=True, **self._kwargs)
+            self._env_T = safety_gymnasium.make(id="SafetyPointHMT-v0", autoreset=True, **self._kwargs)
+            self._env = eval(f"self._env_{self._start_task}")
+            self._steps = self._curr_changes.get(self._start_task)
 
             assert isinstance(self._env.action_space, Box), 'Only support Box action space.'
             assert isinstance(
@@ -268,27 +264,13 @@ class HMCurriculumEnv(CMDP):
             info: Some information logged by the environment.
         """
 
-        if self._curriculum:
-            if options != None and options.get("resetting_for_eval"):
-                self._env = eval(f"self._env_{self._end_task}")
-            elif self._steps == self._curr_changes.get("1") and (self._end_task == "T" or int(self._end_task) >= 1):
-                print("Changed env to level 1")
-                self._env = self._env_1
-            elif self._steps == self._curr_changes.get("2") and (self._end_task == "T" or int(self._end_task) >= 2):
-                print("Changed env to level 2")
-                self._env = self._env_2
-            elif self._steps == self._curr_changes.get("3") and (self._end_task == "T" or int(self._end_task) >= 3):
-                print("Changed env to level 3")
-                self._env = self._env_3
-            elif self._steps == self._curr_changes.get("4") and (self._end_task == "T" or int(self._end_task) >= 4):
-                print("Changed env to level 4")
-                self._env = self._env_4
-            elif self._steps == self._curr_changes.get("5") and (self._end_task == "T" or int(self._end_task) >= 5):
-                print("Changed env to level 5")
-                self._env = self._env_5
-            elif self._steps == self._curr_changes.get("T") and self._end_task == "T":
-                print("Changed env to level Target")
-                self._env = self._env_T
+        if options != None and options.get("resetting_for_eval"):
+            self._env = eval(f"self._env_{self._end_task}")
+        else:
+            print(self.distribution)
+            next_task = np.random.choice(list(self.distribution.keys()), p=list(self.distribution.values()))
+            self._env = eval(f"self._env_{next_task}")
+            self.changed_task = True
 
         obs, info = self._env.reset(seed=seed, options=options)
         # self._env.task.agent.locations = [(-1.5, 0)]
@@ -327,3 +309,44 @@ class HMCurriculumEnv(CMDP):
     def close(self) -> None:
         """Close the environment."""
         self._env.close()
+
+    def update(self, metric_value):
+        if not hasattr(self, 'completed_tasks'):
+            self.completed_tasks = 0
+        print("metric_value is:", metric_value)
+        # if metric_value >= 2.0 and self.changed_task:
+        #     self.update_distribution()    
+        completed_task, cost = metric_value
+        if completed_task:
+            self.completed_tasks += 1
+
+        # TODO get cost_limit here
+        if self.completed_tasks >= 10 and cost <= 5.0:
+            self.completed_tasks = 0
+            self.update_distribution()
+
+    def update_distribution(self):
+        keys = list(self.distribution.keys())
+        values = list(self.distribution.values())
+        
+        # Find the index of the task with probability 1
+        current_task_index = values.index(1.0)
+        
+        # Shift the probability to the next task
+        values[current_task_index] = 0.0
+        if current_task_index + 1 < len(values):
+            next_task_index = current_task_index + 1
+            values[next_task_index] = 1.0
+            
+            # Update dictionary with the shifted probabilities
+            self.distribution = dict(zip(keys, values))
+
+            print("------------------------------")
+            print("------------------------------")
+            print("------------------------------")
+            print("changing to task:", keys[next_task_index])
+            print("------------------------------")
+            print("------------------------------")
+            print("------------------------------")
+
+            self.changed_task = False

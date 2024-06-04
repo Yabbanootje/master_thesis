@@ -13,6 +13,7 @@ import wandb
 from itertools import product
 from omnisafe.utils.config import get_default_kwargs_yaml
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
+from custom_envs.hand_made_levels.hm_adaptive_curriculum_env import HMAdaptiveCurriculumEnv
 
 def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps_per_epoch = 1000, 
                 update_iters = 1, nn_size = 256, lag_multiplier_init = 0.1, lag_multiplier_lr = 0.01,
@@ -51,7 +52,7 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
             'logger_cfgs': {
                 'log_dir': "./app/results/" + folder,
                 'save_model_freq': save_freq,
-                'use_wandb': True,
+                # 'use_wandb': True,
                 'wandb_project': folder.split("/")[0],
             },
             'model_cfgs': {
@@ -345,7 +346,9 @@ def use_params(algorithm, end_task, algorithm_type, seed):
         if algorithm_type == "baseline":
             env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
         elif algorithm_type == "curriculum":
-            env_id = f'SafetyPointFrom{end_task - 1}HMR{end_task if end_task < 6 else "T"}-v0'
+            env_id = f'SafetyPointFrom0HM{end_task if end_task < 6 else "T"}-v0'
+        elif algorithm_type == "adaptive_curriculum":
+            env_id = f'SafetyPointFrom0HMA{end_task if end_task < 6 else "T"}-v0'
         else:
             raise Exception("Invalid algorithm type, must be either 'baseline' or 'curriculum'.")
 
@@ -359,22 +362,24 @@ if __name__ == '__main__':
     cost_limit = 5.0
     steps_per_epoch = 1000
     save_freq = 10
-    epochs = 2000
+    epochs = 100
     repetitions = 10
-    baseline_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
-    curr_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "incremental_static_curriculum_r"
+    baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
+    curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
+    folder_base = "adaptive_curriculum"
     curr_changes = [10, 20, 40, 100, 300, 700]
     seeds = [7337, 175, 4678, 9733, 3743, 572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
 
     # Repeat experiments
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    for end_task in range(1, len(curr_changes) + 1):
-        with Pool(8) as p:
-            args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
-            args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
-            args = args_curr + args_base
-            p.starmap(use_params, args)
+    # for end_task in range(1, len(curr_changes) + 1):
+        # with Pool(8) as p:
+            # args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
+            # args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
+            # args = args_curr + args_base
+            # p.starmap(use_params, args)
+
+    use_params(*("PPOLag", 3, "adaptive_curriculum", 42))
 
     # Plot the results
     # train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
