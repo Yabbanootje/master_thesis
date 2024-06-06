@@ -1,5 +1,6 @@
 import omnisafe
 import torch
+import shutil
 import os
 import argparse
 import random as rand
@@ -119,6 +120,21 @@ def train_agent(agent, episodes = 1, render_episodes = 1, make_videos = False, e
     if make_videos and render_episodes >= 1:
         agent.render(num_episodes=render_episodes, render_mode='rgb_array', width=256, height=256, 
                      epochs_to_render=epochs_to_render)
+        
+    # Remove wandb folder
+    wandb_path = os.path.join(agent.agent.logger._log_dir, "wandb")
+    shutil.rmtree(wandb_path)
+
+def remove_wandb(folder):
+    for type in ["baseline", "curriculum"]:
+        algo_folders = os.listdir("app/results/" + folder + "/" + type)
+        for algo_folder in algo_folders:
+            algo_path = os.path.join("app/results/", folder, type, algo_folder)
+            seed_folders = os.listdir(algo_path)
+            for seed_folder in seed_folders:
+                wandb_path = os.path.join("app/results/", folder, type, algo_folder, seed_folder, "wandb")
+                print(wandb_path)
+                shutil.rmtree(wandb_path, ignore_errors = True)
 
 def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, use_std=False):
     # Get folder names for all algorithms
@@ -366,7 +382,7 @@ if __name__ == '__main__':
     repetitions = 10
     baseline_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
     curr_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "incremental_static_curriculum_r"
+    folder_base = "algorithm_comparison_extra"
     curr_changes = [10, 20, 40, 100, 300, 700]
     seeds = [7337, 175, 4678, 9733, 3743, 572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
 
