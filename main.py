@@ -362,7 +362,7 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
 
 def use_params(algorithm, end_task, algorithm_type, seed):
     if algorithm_type == "baseline":
-        env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
+        env_id = f'SafetyPointHMR{end_task if end_task < 6 else "T"}-v0'
     elif algorithm_type == "curriculum":
         env_id = f'SafetyPointFrom{end_task - 1}HMR{end_task if end_task < 6 else "T"}-v0'
     else:
