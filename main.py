@@ -101,7 +101,7 @@ def get_agents(folder, algorithms, env_id, cfgs, curr_changes):
             
             if int(start_task) != 0:
                 algo_folders = os.listdir("app/results/" + folder)
-                algo_folder = [fldr for fldr in algo_folders if algorithm in fldr and "HM" + start_task in fldr][0]
+                algo_folder = [fldr for fldr in algo_folders if algorithm in fldr and "HMR" + start_task in fldr][0]
                 algo_path = os.path.join("app/results/", folder, algo_folder)
                 seed_folder = [fldr for fldr in os.listdir(algo_path) if "seed-" + str(cfg.get("seed")).zfill(3) in fldr][0]
                 agent.agent.load(curr_changes[int(start_task) - 1], os.path.join(algo_path, seed_folder))
