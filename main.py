@@ -101,7 +101,7 @@ def get_agents(folder, algorithms, env_id, cfgs, curr_changes):
             
             if int(start_task) != 0:
                 algo_folders = os.listdir("app/results/" + folder)
-                algo_folder = [fldr for fldr in algo_folders if algorithm in fldr and "HMR" + start_task in fldr][0]
+                algo_folder = [fldr for fldr in algo_folders if algorithm in fldr and "HM" + start_task in fldr][0]
                 algo_path = os.path.join("app/results/", folder, algo_folder)
                 seed_folder = [fldr for fldr in os.listdir(algo_path) if "seed-" + str(cfg.get("seed")).zfill(3) in fldr][0]
                 agent.agent.load(curr_changes[int(start_task) - 1], os.path.join(algo_path, seed_folder))
@@ -123,7 +123,7 @@ def train_agent(agent, episodes = 1, render_episodes = 1, make_videos = False, e
         
     # Remove wandb folder
     wandb_path = os.path.join(agent.agent.logger._log_dir, "wandb")
-    shutil.rmtree(wandb_path)
+    shutil.rmtree(wandb_path, ignore_errors=True)
 
 def remove_wandb(folder):
     for type in ["baseline", "curriculum"]:
@@ -182,18 +182,15 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
             plt.ylim(0, 2 * cost_limit)
             zoomed = "_zoom"
 
-        if metric == 'cost':
-            plt.axhline(y=cost_limit, color='black', linestyle='-')
-        if metric == 'regret':
-            x = range(combined_df["step"].max())
-            y = [cost_limit * x_val for x_val in x]
-            plt.plot(x, y, color='black', linestyle=':')
         sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
         if include_seeds:
             ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', estimator=None, legend=False)
 
         for change in curr_changes:
             plt.axvline(x=change, color="gray", linestyle='-')
+
+        if metric == 'cost':
+            plt.axhline(y=cost_limit, color='black', linestyle=':', label=f'Cost Limit ({cost_limit})')
 
         plt.legend(loc=(1.01, 0.01), ncol=1)
         if include_seeds:
@@ -284,12 +281,6 @@ def plot_eval(folder, curr_changes, cost_limit, save_freq, include_weak=False, i
             plt.ylim(0, 2 * cost_limit)
             zoomed = "_zoom"
 
-        if metric == 'cost':
-            plt.axhline(y=cost_limit, color='black', linestyle='-')
-        if metric == 'regret':
-            x = range(0, combined_df["step"].max() + save_freq, save_freq)
-            y = [cost_limit * i for i in range(len(x))]
-            plt.plot(x, y, color='black', linestyle=':')
         sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
         if include_seeds:
             if include_repetitions:
@@ -300,6 +291,9 @@ def plot_eval(folder, curr_changes, cost_limit, save_freq, include_weak=False, i
 
         for change in curr_changes:
             plt.axvline(x=change, color="gray", linestyle='-')
+
+        if metric == 'cost':
+            plt.axhline(y=cost_limit, color='black', linestyle=':', label=f'Cost Limit ({cost_limit})')
 
         plt.legend(loc=(1.01, 0.01), ncol=1)
         if include_seeds:
@@ -346,9 +340,6 @@ def print_eval(folder, train_df, eval_df, save_freq, cost_limit):
             file.close()
 
 def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, epochs, algorithm, env_id, folder, curr_changes):
-    if "HMR1" in env_id or "HMR2" in env_id:
-        epochs = 500
-    
     # Get configurations
     cfgs = get_configs(folder=folder, algos=[algorithm], epochs=epochs, cost_limit=cost_limit, seed=seed, 
                        save_freq = save_freq)
@@ -362,9 +353,9 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
 
 def use_params(algorithm, end_task, algorithm_type, seed):
     if algorithm_type == "baseline":
-        env_id = f'SafetyPointHMR{end_task if end_task < 6 else "T"}-v0'
+        env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
     elif algorithm_type == "curriculum":
-        env_id = f'SafetyPointFrom{end_task - 1}HMR{end_task if end_task < 6 else "T"}-v0'
+        env_id = f'SafetyPointFrom{end_task - 1}HM{end_task if end_task < 6 else "T"}-v0'
     else:
         raise Exception("Invalid algorithm type, must be either 'baseline' or 'curriculum'.")
 
@@ -382,18 +373,21 @@ if __name__ == '__main__':
     repetitions = 10
     baseline_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
     curr_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "incremental_static_curriculum_r"
+    folder_base = "show_tasks_and_start"
     curr_changes = [10, 20, 40, 100, 300, 700]
     seeds = [7337, 175, 4678, 9733, 3743, 572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
 
     # Repeat experiments
-    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    for end_task in range(2, len(curr_changes) + 1):
-        with Pool(8) as p:
-            args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
-            args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
-            args = args_curr + args_base
-            p.starmap(use_params, args)
+    # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+    # for end_task in range(1, len(curr_changes) + 1):
+    #     with Pool(8) as p:
+    #         args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds))
+    #         args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds))
+    #         args = args_curr + args_base
+    #         p.starmap(use_params, args)
+
+    # for i in range(7):
+    #     use_params(*("PPOLag", i, "baseline", 42))
 
     # Plot the results
     # train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
