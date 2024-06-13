@@ -28,8 +28,10 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
 
     if torch.cuda.is_available():
         device = "cuda:0"
+        use_wandb = True
     else:
         device = "cpu"
+        use_wandb = False
 
     custom_cfgs = []
 
@@ -52,7 +54,7 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
             'logger_cfgs': {
                 'log_dir': "./app/results/" + folder,
                 'save_model_freq': save_freq,
-                'use_wandb': True,
+                'use_wandb': use_wandb,
                 'wandb_project': folder.split("/")[0],
             },
             'model_cfgs': {
@@ -151,6 +153,9 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
                     {"Metrics/EpRet": "return", "Metrics/EpCost": "cost", "Metrics/EpLen": "length"}
                 )[['return', 'cost', 'length']]
                 df['Algorithm'] = algorithm.split("-")[0]
+                end_version_pattern = r'HMR?(\d+|T)'
+                end_version = re.search(end_version_pattern, algorithm.split("-")[1])
+                df['end_task'] = end_version.group(1)
                 df['type'] = algorithm_type
                 df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-1].split("-")[1]
                 df['regret_per_epoch'] = (df["cost"] - cost_limit).clip(lower=0.0)
@@ -170,38 +175,52 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
         
     last_change = curr_changes[-1]
 
-    for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret']:
-        # Plotting using Seaborn
-        sns.set_style("whitegrid")
-        plt.figure(figsize=(10, 5), dpi=200)
+    def create_plot(combined_df, additional_folder = "", additional_file_text = "", additional_title_text = ""):
+        for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret']:
+            # Plotting using Seaborn
+            sns.set_style("whitegrid")
+            plt.figure(figsize=(10, 5), dpi=200)
 
-        # include a zoomed in cost curve
-        zoomed = ""
-        if metric == 'cost_zoom':
-            metric = 'cost'
-            plt.ylim(0, 2 * cost_limit)
-            zoomed = "_zoom"
+            # include a zoomed in cost curve
+            zoomed = ""
+            if metric == 'cost_zoom':
+                metric = 'cost'
+                plt.ylim(0, 2 * cost_limit)
+                zoomed = "_zoom"
 
-        sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
-        if include_seeds:
-            ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', estimator=None, legend=False)
+            sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
+            if include_seeds:
+                ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', estimator=None, legend=False)
 
-        for change in curr_changes:
-            plt.axvline(x=change, color="gray", linestyle='-')
+            for change in curr_changes:
+                plt.axvline(x=change, color="gray", linestyle='-')
 
-        if metric == 'cost':
-            plt.axhline(y=cost_limit, color='black', linestyle=':', label=f'Cost Limit ({cost_limit})')
+            if metric == 'cost':
+                plt.axhline(y=cost_limit, color='black', linestyle=':', label=f'Cost Limit ({cost_limit})')
 
-        plt.legend(loc=(1.01, 0.01), ncol=1)
-        if include_seeds:
-            plt.setp(ax.lines[2:], alpha=0.2)
-        plt.tight_layout(pad=2)
-        plt.title(f"{metric.replace('_', ' ').capitalize()}s of agents using curriculum and baseline agent")
-        plt.xlabel("x1000 Steps")
-        plt.ylabel(metric.replace('_', ' ').capitalize())
-        plt.savefig(f"app/figures/{folder}/{metric}s{zoomed}.png")
-        plt.show()
-        plt.close()
+            plt.legend(loc=(1.01, 0.01), ncol=1)
+            if include_seeds:
+                plt.setp(ax.lines[2:], alpha=0.2)
+            plt.tight_layout(pad=2)
+            plt.title(f"{metric.replace('_', ' ').capitalize()}s of{' ' + additional_title_text if additional_title_text != '' else ''} agents using curriculum and baseline agent")
+            plt.xlabel("x1000 Steps")
+            plt.ylabel(metric.replace('_', ' ').capitalize())
+            if not os.path.isdir(f"app/figures/{folder}/{additional_folder}"):
+                os.makedirs(f"app/figures/{folder}/{additional_folder}")
+            plt.savefig(f"app/figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}.png")
+            plt.show()
+            plt.close()
+
+    # Create plots for whole data
+    create_plot(combined_df=combined_df)
+
+    # # Create plots for each environment
+    # for end_task in combined_df["end_task"].unique():
+    #     create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], additional_folder="HM" + end_task, additional_title_text="HM" + end_task)
+
+    # Create plots for each algorithm
+    for algo in combined_df["Algorithm"].unique():
+        create_plot(combined_df=combined_df[combined_df['Algorithm'] == algo], additional_folder=algo, additional_title_text=algo)
 
     return combined_df
 
@@ -270,41 +289,55 @@ def plot_eval(folder, curr_changes, cost_limit, save_freq, include_weak=False, i
     if not os.path.isdir("app/figures/" + folder):
         os.makedirs("app/figures/" + folder)
 
-    for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret']:
-        sns.set_style("whitegrid")
-        plt.figure(figsize=(10, 5), dpi=200)
-        
-        # include a zoomed in cost curve
-        zoomed = ""
-        if metric == 'cost_zoom':
-            metric = 'cost'
-            plt.ylim(0, 2 * cost_limit)
-            zoomed = "_zoom"
+    def create_plot(combined_df, additional_folder = "", additional_file_text = "", additional_title_text = ""):
+        for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret']:
+            sns.set_style("whitegrid")
+            plt.figure(figsize=(10, 5), dpi=200)
+            
+            # include a zoomed in cost curve
+            zoomed = ""
+            if metric == 'cost_zoom':
+                metric = 'cost'
+                plt.ylim(0, 2 * cost_limit)
+                zoomed = "_zoom"
 
-        sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
-        if include_seeds:
-            if include_repetitions:
-                ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', errorbar=None, estimator=None, legend=False)
-            else:
-                ax = sns.lineplot(data=combined_df.groupby(["step", "Algorithm", "type", "seed"]).mean(), x='step', y=metric, hue='Algorithm', 
-                                  style='type', units='seed', errorbar=None, estimator=None, legend=False)
+            sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
+            if include_seeds:
+                if include_repetitions:
+                    ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', errorbar=None, estimator=None, legend=False)
+                else:
+                    ax = sns.lineplot(data=combined_df.groupby(["step", "Algorithm", "type", "seed"]).mean(), x='step', y=metric, hue='Algorithm', 
+                                    style='type', units='seed', errorbar=None, estimator=None, legend=False)
 
-        for change in curr_changes:
-            plt.axvline(x=change, color="gray", linestyle='-')
+            for change in curr_changes:
+                plt.axvline(x=change, color="gray", linestyle='-')
 
-        if metric == 'cost':
-            plt.axhline(y=cost_limit, color='black', linestyle=':', label=f'Cost Limit ({cost_limit})')
+            if metric == 'cost':
+                plt.axhline(y=cost_limit, color='black', linestyle=':', label=f'Cost Limit ({cost_limit})')
 
-        plt.legend(loc=(1.01, 0.01), ncol=1)
-        if include_seeds:
-            plt.setp(ax.lines[2:], alpha=0.2)
-        plt.tight_layout(pad=2)
-        plt.title(f"{metric.replace('_', ' ').capitalize() if metric != 'length' else 'Episode' + metric}s of agents using curriculum and baseline agent during evalutaion")
-        plt.xlabel("x1000 Steps")
-        plt.ylabel(metric.replace('_', ' ').capitalize())
-        plt.savefig(f"app/figures/{folder}/{metric}s{zoomed}_eval.png")
-        plt.show()
-        plt.close()
+            plt.legend(loc=(1.01, 0.01), ncol=1)
+            if include_seeds:
+                plt.setp(ax.lines[2:], alpha=0.2)
+            plt.tight_layout(pad=2)
+            plt.title(f"{metric.replace('_', ' ').capitalize() if metric != 'length' else 'Episode' + metric}s of{' ' + additional_title_text if additional_title_text != '' else ''} agents using curriculum and baseline agent during evalutaion")
+            plt.xlabel("x1000 Steps")
+            plt.ylabel(metric.replace('_', ' ').capitalize())
+            if not os.path.isdir(f"app/figures/{folder}/{additional_folder}"):
+                os.makedirs(f"app/figures/{folder}/{additional_folder}")
+            plt.savefig(f"app/figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}_eval.png")
+            plt.show()
+            plt.close()
+
+    # Create plots for whole data
+    create_plot(combined_df=combined_df)
+
+    # # Create plots for each environment
+    # for end_task in combined_df["end_task"].unique():
+    #     create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], additional_folder="HM" + end_task, additional_title_text="HM" + end_task)
+
+    # Create plots for each algorithm
+    for algo in combined_df["Algorithm"].unique():
+        create_plot(combined_df=combined_df[combined_df['Algorithm'] == algo], additional_folder=algo, additional_title_text=algo)
 
     return combined_df
 
@@ -373,8 +406,8 @@ if __name__ == '__main__':
     repetitions = 10
     baseline_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
     curr_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "show_tasks_and_start"
-    curr_changes = [10, 20, 40, 100, 300, 700]
+    folder_base = "algorithm_comparison_extra"
+    curr_changes = [10, 20, 40, 100]#, 300, 700]
     seeds = [7337, 175, 4678, 9733, 3743, 572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
 
     # Repeat experiments
@@ -391,5 +424,5 @@ if __name__ == '__main__':
 
     # Plot the results
     # train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
-    # eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, save_freq=save_freq)
+    eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, save_freq=save_freq)
     # print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
