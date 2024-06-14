@@ -36,24 +36,21 @@ class HMLevelBase(BaseTask):
                                  ]
         # self.agent.locations = [(2.5, 0)]
 
-        # Show start locations
+        # # Show start locations
         # start_areas = [(2, -3, 3, 2),
-        #                          (-2, 2, 3, 3),
-        #                          (-3, -2, -2, 3),
-        #                          (-3, -3, 2, -2),
-        #                          # Bias towards difficult starting positions
-        #                          (2, -2, 3, 2),
-        #                          (2, -1.5, 3, 1.5),
-        #                          (2, -1, 3, 1),
-        #                          (2, -0.5, 3, 0.5),
-        #                          ]
+        #                (-2, 2, 3, 3),
+        #                (-3, -2, -2, 3),
+        #                (-3, -3, 2, -2),
+        #                (2, -2, 3, 2),
+        #                (2, -1.5, 3, 1.5),
+        #                (2, -1, 3, 1),
+        #                (2, -0.5, 3, 0.5),
+        #                ]
         # for i, (x_min, y_min, x_max, y_max) in enumerate(start_areas):
         #     x_width = (x_max - x_min) / 2
         #     y_width = (y_max - y_min) / 2
         #     x_pos = (x_max + x_min) / 2
         #     y_pos = (y_max + y_min) / 2
-        #     print(x_width, y_width, x_pos, y_pos)
-        #     print("inidication_area"+str(i))
         #     random.seed(i)
         #     name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=7))
         #     self._add_geoms(IndicationArea(name=name, num=1, keepout=-100, locations=[(x_pos, y_pos)], x_width=abs(x_width), y_width=abs(y_width)))

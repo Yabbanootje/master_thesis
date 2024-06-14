@@ -164,13 +164,15 @@ class HMCurriculumEnv(CMDP):
 
             # For the curriculum, create all future environments
             if self._curriculum:
-                self._env_0 = safety_gymnasium.make(id="SafetyPointHM0-v0", autoreset=True, **self._kwargs)
-                self._env_1 = safety_gymnasium.make(id="SafetyPointHM1-v0", autoreset=True, **self._kwargs)
-                self._env_2 = safety_gymnasium.make(id="SafetyPointHM2-v0", autoreset=True, **self._kwargs)
-                self._env_3 = safety_gymnasium.make(id="SafetyPointHM3-v0", autoreset=True, **self._kwargs)
-                self._env_4 = safety_gymnasium.make(id="SafetyPointHM4-v0", autoreset=True, **self._kwargs)
-                self._env_5 = safety_gymnasium.make(id="SafetyPointHM5-v0", autoreset=True, **self._kwargs)
-                self._env_T = safety_gymnasium.make(id="SafetyPointHMT-v0", autoreset=True, **self._kwargs)
+                env_base = env_id.split("HM")[0]
+                version_base = end_version.group()[:-1]
+                self._env_0 = safety_gymnasium.make(id=env_base+version_base+"0-v0", autoreset=True, **self._kwargs)
+                self._env_1 = safety_gymnasium.make(id=env_base+version_base+"1-v0", autoreset=True, **self._kwargs)
+                self._env_2 = safety_gymnasium.make(id=env_base+version_base+"2-v0", autoreset=True, **self._kwargs)
+                self._env_3 = safety_gymnasium.make(id=env_base+version_base+"3-v0", autoreset=True, **self._kwargs)
+                self._env_4 = safety_gymnasium.make(id=env_base+version_base+"4-v0", autoreset=True, **self._kwargs)
+                self._env_5 = safety_gymnasium.make(id=env_base+version_base+"5-v0", autoreset=True, **self._kwargs)
+                self._env_T = safety_gymnasium.make(id=env_base+"HMT-v0", autoreset=True, **self._kwargs)
                 self._env = eval(f"self._env_{self._start_task}")
                 self._steps = self._curr_changes.get(self._start_task)
             else:
