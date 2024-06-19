@@ -164,12 +164,12 @@ if __name__ == '__main__':
     render_episodes = 3
     cost_limit = 5.0
     steps_per_epoch = 1000
-    save_freq = 10
+    save_freq = 20
     epochs = 2000
     repetitions = 10
     baseline_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
     curr_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "algorithm_comparison_extra"
+    folder_base = "algorithm_comparison_penalty"
     curr_changes = [10, 20, 40, 100]#, 300, 700]
     seeds = [7337, 175, 4678, 9733, 3743, 572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
 
@@ -189,3 +189,4 @@ if __name__ == '__main__':
     # train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
     # eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, save_freq=save_freq)
     # print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
+    
