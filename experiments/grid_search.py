@@ -153,6 +153,8 @@ if __name__ == '__main__':
 
     #     last_means = pd.concat([last_means, parameter_means])
 
+    # last_means.to_csv("app/figures/grid_search/last_means.csv")
+
     # Load data
     last_means = pd.read_csv("app/figures/grid_search/last_means.csv")
 
@@ -172,7 +174,7 @@ if __name__ == '__main__':
         last_means[column] = (last_means[column] - last_means[column].min()) / (last_means[column].max() - last_means[column].min())
 
     # Plotting the heatmap
-    plt.figure(figsize=(11, 13)) # figsize=(11, 5)
+    plt.figure(figsize=(12, 13)) # figsize=(11, 5)
     plt.imshow(last_means.values, cmap='viridis', aspect='auto')
     plt.grid(False)
 

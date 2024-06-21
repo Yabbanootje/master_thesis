@@ -92,7 +92,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
 
     return combined_df
 
-def plot_eval(folder, curr_changes, cost_limit, save_freq, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
+def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
     def extract_values(pattern, text):
         return [float(match.group(1)) for match in re.finditer(pattern, text)]
 
