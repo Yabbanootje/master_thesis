@@ -118,6 +118,9 @@ class HMAdaptiveCurriculumEnv(CMDP):
 
         self._kwargs = kwargs
         self._steps = 0
+        self.evaluating = False
+        self.beta = 1.0
+        self.kappa = 10
 
         self._task_to_int = {"0": 0,
                              "1": 1,
@@ -153,9 +156,11 @@ class HMAdaptiveCurriculumEnv(CMDP):
         # TODO allow start task to be T
         # TODO have distribution only include tasks between start and end
         tasks = list(self._task_to_int.keys())[self._task_to_int[self._start_task]:self._task_to_int[self._end_task] + 1]
-        self.distribution = dict(map(lambda i,j : (i,j), tasks, [0.0 if task != int(self._start_task) else 1.0 for task in range(self._task_to_int[self._start_task], 
-                                                                                                                                 self._task_to_int[self._end_task] + 1)]))
+        self.distribution = dict(map(lambda i,j : (i,j), tasks, 
+                                     [0.0 if task != int(self._start_task) else 1.0 for task in range(self._task_to_int[self._start_task], 
+                                                                                                      self._task_to_int[self._end_task] + 1)]))
         self.changed_task = True
+        self.current_task = self._start_task
 
         if num_envs > 1:
             self._env = safety_gymnasium.vector.make(env_id=env_id, num_envs=num_envs, **kwargs)
@@ -246,6 +251,11 @@ class HMAdaptiveCurriculumEnv(CMDP):
             )
 
         return obs, reward, cost, terminated, truncated, info
+    
+    @property
+    def max_episode_steps(self) -> int:
+        """The max steps per episode."""
+        return self._env.spec.max_episode_steps  # type: ignore
 
     def reset(
         self,
@@ -265,15 +275,19 @@ class HMAdaptiveCurriculumEnv(CMDP):
         """
 
         if options != None and options.get("resetting_for_eval"):
-            self._env = eval(f"self._env_{self._end_task}")
-        else:
+            self.current_task = self._end_task
+            self.evaluating = True
+            self._env = eval(f"self._env_{self.current_task}")
+        elif not self.evaluating:
             print(self.distribution)
             next_task = np.random.choice(list(self.distribution.keys()), p=list(self.distribution.values()))
-            self._env = eval(f"self._env_{next_task}")
+            self.current_task = next_task
+            self._env = eval(f"self._env_{self.current_task}")
             self.changed_task = True
 
         obs, info = self._env.reset(seed=seed, options=options)
         # self._env.task.agent.locations = [(-1.5, 0)]
+        info["current_task"] = self._task_to_int[self.current_task]
 
         return torch.as_tensor(obs, dtype=torch.float32, device=self._device), info
 
@@ -310,18 +324,26 @@ class HMAdaptiveCurriculumEnv(CMDP):
         """Close the environment."""
         self._env.close()
 
-    def update(self, metric_value):
+    def set_beta(self, beta):
+        print("set beta to:", beta)
+        self.beta = beta
+
+    def set_kappa(self, kappa):
+        print("set kappa to:", kappa)
+        self.kappa = kappa
+
+    def update(self, metric_dict):
         if not hasattr(self, 'completed_tasks'):
             self.completed_tasks = 0
-        print("metric_value is:", metric_value)
-        # if metric_value >= 2.0 and self.changed_task:
-        #     self.update_distribution()    
-        completed_task, cost = metric_value
-        if completed_task:
+        print("metric_dict is:", metric_dict)
+        done_task = metric_dict["done_task"]
+        cost = metric_dict["Metrics/EpCost"]
+
+        if done_task and cost <= self.beta * 5.0:
             self.completed_tasks += 1
 
         # TODO get cost_limit here
-        if self.completed_tasks >= 10 and cost <= 5.0:
+        if self.completed_tasks >= self.kappa:
             self.completed_tasks = 0
             self.update_distribution()
 
