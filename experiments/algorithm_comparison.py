@@ -81,15 +81,16 @@ if __name__ == '__main__':
                 
                 ax.axline((0, 0), slope=1, color="black", linestyle="--", zorder=1, label='Diagonal')
                 ax.axvline(pivot_train_df.loc['PPO', 'baseline'], linestyle="-.", color="#8c564b", label='PPO Train')
-                ax.axhline(pivot_train_df.loc['PPO', 'baseline'], linestyle="-.", color="#8c564b", label='PPO Train')
+                ax.axhline(pivot_train_df.loc['PPO', 'baseline'], linestyle="-.", color="#8c564b")
                 ax.axvline(pivot_eval_df.loc['PPO', 'baseline'], linestyle=":", color="#8c564b", label='PPO Evaluation')
-                ax.axhline(pivot_eval_df.loc['PPO', 'baseline'], linestyle=":", color="#8c564b", label='PPO Evaluation')
+                ax.axhline(pivot_eval_df.loc['PPO', 'baseline'], linestyle=":", color="#8c564b")
 
             # Adjust layout and colorbarplt.legend(loc=(1.01, 0.01), ncol=1)
             plt.legend(loc=(1.01, 0.01), ncol=1)
             plt.suptitle('Scatterplot of baseline performance vs. curriculum performance')
             plt.tight_layout(rect=[0, 0.03, 1, 0.95])
             plt.savefig(f"app/figures/{folder_base}/comparison/comparison{'_outlier' if not exclude_outlier else ''}.png")
+            plt.savefig(f"app/figures/{folder_base}/comparison/comparison{'_outlier' if not exclude_outlier else ''}.pdf")
             plt.show()
             plt.close()
 
@@ -140,16 +141,17 @@ if __name__ == '__main__':
                     ax.axline((0, 0), slope=1, color="black", linestyle="--", zorder=1, label='Diagonal')
                     if "non" in set:
                         ax.axvline(pivot_df.loc['PPO', 'baseline'], linestyle="-.", color="#8c564b", label='PPO Train')
-                        ax.axhline(pivot_df.loc['PPO', 'baseline'], linestyle="-.", color="#8c564b", label='PPO Train')
+                        ax.axhline(pivot_df.loc['PPO', 'baseline'], linestyle="-.", color="#8c564b")
                     else:
                         ax.axvline(pivot_df.loc['PPO', 'baseline'], linestyle=":", color="#8c564b", label='PPO Evaluation')
-                        ax.axhline(pivot_df.loc['PPO', 'baseline'], linestyle=":", color="#8c564b", label='PPO Evaluation')
+                        ax.axhline(pivot_df.loc['PPO', 'baseline'], linestyle=":", color="#8c564b")
 
                 # Adjust layout and colorbar
                 plt.legend(loc=(1.01, 0.01), ncol=1)
                 plt.suptitle('Scatterplot of baseline performance vs. curriculum performance')
                 plt.tight_layout(rect=[0, 0.03, 1, 0.95])
                 plt.savefig(f"app/figures/{folder_base}/comparison/{set}comparison{'_outlier' if not exclude_outlier else ''}.png")
+                plt.savefig(f"app/figures/{folder_base}/comparison/{set}comparison{'_outlier' if not exclude_outlier else ''}.pdf")
                 plt.show()
                 plt.close()
 

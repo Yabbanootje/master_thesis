@@ -76,6 +76,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
             if not os.path.isdir(f"app/figures/{folder}/{additional_folder}"):
                 os.makedirs(f"app/figures/{folder}/{additional_folder}")
             plt.savefig(f"app/figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}.png")
+            plt.savefig(f"app/figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}.pdf")
             plt.show()
             plt.close()
 
@@ -193,6 +194,7 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
             if not os.path.isdir(f"app/figures/{folder}/{additional_folder}"):
                 os.makedirs(f"app/figures/{folder}/{additional_folder}")
             plt.savefig(f"app/figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}_eval.png")
+            plt.savefig(f"app/figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}_eval.pdf")
             plt.show()
             plt.close()
 

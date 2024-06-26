@@ -252,6 +252,11 @@ class HMCurriculumEnv(CMDP):
             )
 
         return obs, reward, cost, terminated, truncated, info
+    
+    @property
+    def max_episode_steps(self) -> int:
+        """The max steps per episode."""
+        return self._env.spec.max_episode_steps  # type: ignore
 
     def reset(
         self,
