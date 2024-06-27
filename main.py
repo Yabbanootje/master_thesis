@@ -192,14 +192,14 @@ if __name__ == '__main__':
     for seed in seeds:
         with Pool(8) as p:
             args_base = list(product(baseline_algorithms, [6], ["baseline"], seeds, betas, kappas))
-            args_curr = list(product(curr_algorithms, [6], ["curriculum"], seeds, betas, kappas))
+            args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, betas, kappas))
             args = args_curr + args_base
             p.starmap(use_params, args)
 
     for seed in [int(rand.random() * 10000) for i in range(repetitions)]:
         with Pool(8) as p:
             args_base = list(product(baseline_algorithms, [6], ["baseline"], seeds, betas, kappas))
-            args_curr = list(product(curr_algorithms, [6], ["curriculum"], seeds, betas, kappas))
+            args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, betas, kappas))
             args = args_curr + args_base
             p.starmap(use_params, args)
 
