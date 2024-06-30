@@ -177,7 +177,7 @@ if __name__ == '__main__':
     cost_limit = 5.0
     steps_per_epoch = 1000
     save_freq = 10
-    epochs = 2000
+    epochs = 3000
     repetitions = 15
     baseline_algorithms = []#["PPO", "CPO", "OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
     curr_algorithms = ["PPOLag"]#["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
