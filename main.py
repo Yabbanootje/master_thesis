@@ -12,6 +12,7 @@ from omnisafe.utils.config import get_default_kwargs_yaml
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 from custom_envs.hand_made_levels.hm_adaptive_curriculum_env import HMAdaptiveCurriculumEnv
 from plot_functions import *
+from plot_functions_incremental import *
 
 def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps_per_epoch = 1000, 
                 update_iters = 1, nn_size = 256, lag_multiplier_init = 0.1, lag_multiplier_lr = 0.01,
@@ -50,7 +51,7 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
                 # 'penalty_coef': 0.05,
             },
             'logger_cfgs': {
-                'log_dir': "./app/results/" + folder,
+                'log_dir': f".{'/app' if on_server else ''}/results/" + folder,
                 'save_model_freq': save_freq,
                 'use_wandb': use_wandb,
                 'wandb_project': folder.split("/")[0],
@@ -99,19 +100,27 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
 
 def get_agents(folder, algorithms, env_id, cfgs, curr_changes):
     agents = []
+    with open('texttt.txt', 'a') as f:
+        print("inside get_agents", file=f)
     for algorithm, cfg in zip(algorithms, cfgs):
         agent = omnisafe.Agent(algorithm, env_id, custom_cfgs=cfg)
+        with open('texttt.txt', 'a') as f:
+            print("inside for-loop", file=f)
         if "From" in env_id:
+            with open('texttt.txt', 'a') as f:
+                print("inside if", file=f)
             start_version_pattern = r'From(\d+|T)'
             start_version = re.search(start_version_pattern, env_id)
             start_task = start_version.group(1)
             
             if int(start_task) != 0:
-                algo_folders = os.listdir("app/results/" + folder)
+                algo_folders = os.listdir(f"{'app/' if on_server else ''}results/" + folder)
                 algo_folder = [fldr for fldr in algo_folders if algorithm in fldr and "HM" + start_task in fldr][0]
-                algo_path = os.path.join("app/results/", folder, algo_folder)
+                algo_path = os.path.join(f"{'app/' if on_server else ''}results/", folder, algo_folder)
                 seed_folder = [fldr for fldr in os.listdir(algo_path) if "seed-" + str(cfg.get("seed")).zfill(3) in fldr][0]
-                agent.agent.load(curr_changes[int(start_task) - 1], os.path.join(algo_path, seed_folder))
+                agent.agent.load(curr_changes[int(start_task)], os.path.join(algo_path, seed_folder))
+                with open('texttt.txt', 'a') as f:
+                    print("loaded agent from:", os.path.join(algo_path, seed_folder), file=f)
         agents.append(agent)
 
     return agents
@@ -134,12 +143,12 @@ def train_agent(agent, episodes = 1, render_episodes = 1, make_videos = False, e
 
 def remove_wandb(folder):
     for type in ["baseline", "curriculum"]:
-        algo_folders = os.listdir("app/results/" + folder + "/" + type)
+        algo_folders = os.listdir(f"{'app/' if on_server else ''}results/" + folder + "/" + type)
         for algo_folder in algo_folders:
-            algo_path = os.path.join("app/results/", folder, type, algo_folder)
+            algo_path = os.path.join(f"{'app/' if on_server else ''}results/", folder, type, algo_folder)
             seed_folders = os.listdir(algo_path)
             for seed_folder in seed_folders:
-                wandb_path = os.path.join("app/results/", folder, type, algo_folder, seed_folder, "wandb")
+                wandb_path = os.path.join(f"{'app/' if on_server else ''}results/", folder, type, algo_folder, seed_folder, "wandb")
                 print(wandb_path)
                 shutil.rmtree(wandb_path, ignore_errors = True)
 
@@ -157,19 +166,26 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
         train_agent(agent, eval_episodes, render_episodes, True, [int(epochs/4), int(epochs/2), int(3 * epochs/4), epochs])
 
 def use_params(algorithm, end_task, algorithm_type, seed, beta, kappa):
-        if algorithm_type == "baseline":
-            env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
-        elif algorithm_type == "curriculum":
-            env_id = f'SafetyPointFrom0HM{end_task if end_task < 6 else "T"}-v0'
-        elif algorithm_type == "adaptive_curriculum":
-            env_id = f'SafetyPointFrom0HMA{end_task if end_task < 6 else "T"}-v0'
-        else:
-            raise Exception("Invalid algorithm type, must be either 'baseline' or 'curriculum'.")
+    if end_task <= 2:
+        epochs = 500
+    elif end_task == 6:
+        epochs = 3000
+    else:
+        epochs = 2000
 
-        run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
-                        seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
-                        env_id=env_id, folder=f"{folder_base}/{algorithm_type}{'/beta-'+str(beta)+'/kappa-'+str(kappa) if algorithm_type == 'adaptive_curriculum' else ''}", 
-                        curr_changes=curr_changes, beta = beta, kappa = kappa)
+    if algorithm_type == "baseline":
+        env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
+    elif algorithm_type == "curriculum":
+        env_id = f'SafetyPointFrom{end_task - 1}HM{end_task if end_task < 6 else "T"}-v0'
+    elif algorithm_type == "adaptive_curriculum":
+        env_id = f'SafetyPointFrom0HMA{end_task if end_task < 6 else "T"}-v0'
+    else:
+        raise Exception("Invalid algorithm type, must be either 'baseline' or 'curriculum'.")
+
+    run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
+                    seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
+                    env_id=env_id, folder=f"{folder_base}/{algorithm_type}{'/beta-'+str(beta)+'/kappa-'+str(kappa) if algorithm_type == 'adaptive_curriculum' else ''}", 
+                    curr_changes=curr_changes, beta = beta, kappa = kappa)
 
 if __name__ == '__main__':
     eval_episodes = 5
@@ -177,38 +193,64 @@ if __name__ == '__main__':
     cost_limit = 5.0
     steps_per_epoch = 1000
     save_freq = 10
-    epochs = 3000
+    epochs = 2000
     repetitions = 15
     baseline_algorithms = []#["PPO", "CPO", "OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
     curr_algorithms = ["PPOLag"]#["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
-    folder_base = "tune_beta_kappa"
+    folder_base = "incremental_static_again_test"
     curr_changes = [10, 20, 40, 100, 300, 700]
-    seeds = [7337, 175, 4678, 9733, 3743, 572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
+    seeds = [11, 42, 1142]# [7337, 175, 4678, 9733, 3743, 572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
     betas = [0.5, 1.0, 1.5]
     kappas = [5, 10, 20]
 
+    on_server = torch.cuda.is_available()
+
     # Repeat experiments
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    for seed in seeds:
-        with Pool(8) as p:
-            args_base = list(product(baseline_algorithms, [6], ["baseline"], seeds, betas, kappas))
-            args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, betas, kappas))
+    for end_task in range(1, len(curr_changes) + 1):
+        with Pool(3) as p:
+            args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds, [1.0], [10]))
+            args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds, [1.0], [10]))
             args = args_curr + args_base
             p.starmap(use_params, args)
 
-    for seed in [int(rand.random() * 10000) for i in range(repetitions)]:
-        with Pool(8) as p:
-            args_base = list(product(baseline_algorithms, [6], ["baseline"], seeds, betas, kappas))
-            args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, betas, kappas))
-            args = args_curr + args_base
-            p.starmap(use_params, args)
+    # # Repeat experiments
+    # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+    # for seed in seeds:
+    #     with Pool(8) as p:
+    #         args_base = list(product(baseline_algorithms, [6], ["baseline"], seeds, betas, kappas))
+    #         args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, betas, kappas))
+    #         args = args_curr + args_base
+    #         p.starmap(use_params, args)
 
-    # use_params(*("PPOLag", 4, "adaptive_curriculum", 1142, 1.1, 5))
+    # for seed in [int(rand.random() * 10000) for i in range(repetitions)]:
+    #     with Pool(8) as p:
+    #         args_base = list(product(baseline_algorithms, [6], ["baseline"], seeds, betas, kappas))
+    #         args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, betas, kappas))
+    #         args = args_curr + args_base
+    #         p.starmap(use_params, args)
 
-    # Plot the results
-    train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
-    eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
-    print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
+    # use_params(*("PPOLag", 2, "curriculum", 1142, 1.0, 10))
 
-    # for i in range(7):
-    #     use_params(*("PPOLag", i, "baseline", 42))
+    # # Plot the results
+    # train_df = plot_incremental_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
+    # eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
+    # print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
+
+    # # for i in range(7):
+    # #     use_params(*("PPOLag", i, "baseline", 42))
+
+    # Repeat experiments
+    # for end_task in range(1, 3):
+    #     use_params(*("PPOLag", end_task, "curriculum", 1142, 1.0, 10))
+
+    # # Plot the results
+    # train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
+    # eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
+    # print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
+
+    # train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    # eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
+
+    # train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    # eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")

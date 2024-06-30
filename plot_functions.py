@@ -6,10 +6,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, use_std=False):
+def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, use_std=False, on_server=False):
     # Get folder names for all algorithms
-    baseline_dir = "app/results/" + folder + "/baseline"
-    curr_dir = "app/results/" + folder + "/curriculum"
+    baseline_dir = f"{'app/' if on_server else ''}results/" + folder + "/baseline"
+    curr_dir = f"{'app/' if on_server else ''}results/" + folder + "/curriculum"
 
     # Function to read progress csv and concatenate
     def read_and_concat(directory, algorithms, algorithm_type):
@@ -38,8 +38,8 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
     # Combine both baseline and curriculum dataframes
     combined_df = pd.concat([baseline_df, curr_df]).reset_index(names="step")
     
-    if not os.path.isdir("app/figures/" + folder):
-        os.makedirs("app/figures/" + folder)
+    if not os.path.isdir(f"{'app/' if on_server else ''}figures/" + folder):
+        os.makedirs(f"{'app/' if on_server else ''}figures/" + folder)
         
     last_change = curr_changes[-1]
 
@@ -73,10 +73,10 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
             plt.title(f"{metric.replace('_', ' ').capitalize()}s of{' ' + additional_title_text if additional_title_text != '' else ''} agents using curriculum and baseline agent")
             plt.xlabel("x1000 Steps")
             plt.ylabel(metric.replace('_', ' ').capitalize())
-            if not os.path.isdir(f"app/figures/{folder}/{additional_folder}"):
-                os.makedirs(f"app/figures/{folder}/{additional_folder}")
-            plt.savefig(f"app/figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}.png")
-            plt.savefig(f"app/figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}.pdf")
+            if not os.path.isdir(f"{'app/' if on_server else ''}figures/{folder}/{additional_folder}"):
+                os.makedirs(f"{'app/' if on_server else ''}figures/{folder}/{additional_folder}")
+            plt.savefig(f"{'app/' if on_server else ''}figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}.png")
+            plt.savefig(f"{'app/' if on_server else ''}figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}.pdf")
             plt.show()
             plt.close()
 
@@ -93,12 +93,12 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
 
     return combined_df
 
-def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
+def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False, on_server=False):
     def extract_values(pattern, text):
         return [float(match.group(1)) for match in re.finditer(pattern, text)]
 
-    baseline_dir = "app/results/" + folder + "/baseline"
-    curr_dir = "app/results/" + folder + "/curriculum"
+    baseline_dir = f"{'app/' if on_server else ''}results/" + folder + "/baseline"
+    curr_dir = f"{'app/' if on_server else ''}results/" + folder + "/curriculum"
 
     def read_and_concat(directory, algorithms, algorithm_type):
         dfs = []
@@ -155,8 +155,8 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
 
     combined_df = pd.concat([baseline_df, curr_df]).reset_index(drop=True)
     
-    if not os.path.isdir("app/figures/" + folder):
-        os.makedirs("app/figures/" + folder)
+    if not os.path.isdir(f"{'app/' if on_server else ''}figures/" + folder):
+        os.makedirs(f"{'app/' if on_server else ''}figures/" + folder)
 
     def create_plot(combined_df, additional_folder = "", additional_file_text = "", additional_title_text = ""):
         for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret']:
@@ -191,10 +191,10 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
             plt.title(f"{metric.replace('_', ' ').capitalize() if metric != 'length' else 'Episode' + metric}s of{' ' + additional_title_text if additional_title_text != '' else ''} agents using curriculum and baseline agent during evalutaion")
             plt.xlabel("x1000 Steps")
             plt.ylabel(metric.replace('_', ' ').capitalize())
-            if not os.path.isdir(f"app/figures/{folder}/{additional_folder}"):
-                os.makedirs(f"app/figures/{folder}/{additional_folder}")
-            plt.savefig(f"app/figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}_eval.png")
-            plt.savefig(f"app/figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}_eval.pdf")
+            if not os.path.isdir(f"{'app/' if on_server else ''}figures/{folder}/{additional_folder}"):
+                os.makedirs(f"{'app/' if on_server else ''}figures/{folder}/{additional_folder}")
+            plt.savefig(f"{'app/' if on_server else ''}figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}_eval.png")
+            plt.savefig(f"{'app/' if on_server else ''}figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}_eval.pdf")
             plt.show()
             plt.close()
 
