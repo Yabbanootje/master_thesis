@@ -115,10 +115,10 @@ def get_agents(folder, algorithms, env_id, cfgs, curr_changes):
             
             if int(start_task) != 0:
                 algo_folders = os.listdir(f"{'app/' if on_server else ''}results/" + folder)
-                algo_folder = [fldr for fldr in algo_folders if algorithm in fldr and "HM" + start_task in fldr][0]
+                algo_folder = [fldr for fldr in algo_folders if algorithm in fldr and "HM" + str(int(start_task) - 1) in fldr][0]
                 algo_path = os.path.join(f"{'app/' if on_server else ''}results/", folder, algo_folder)
                 seed_folder = [fldr for fldr in os.listdir(algo_path) if "seed-" + str(cfg.get("seed")).zfill(3) in fldr][0]
-                agent.agent.load(curr_changes[int(start_task)], os.path.join(algo_path, seed_folder))
+                agent.agent.load(curr_changes[int(start_task) - 1], os.path.join(algo_path, seed_folder))
                 with open('texttt.txt', 'a') as f:
                     print("loaded agent from:", os.path.join(algo_path, seed_folder), file=f)
         agents.append(agent)
@@ -165,6 +165,10 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
     for agent in agents:
         train_agent(agent, eval_episodes, render_episodes, True, [int(epochs/4), int(epochs/2), int(3 * epochs/4), epochs])
 
+    
+    with open('texttt.txt', 'a') as f:
+        print(f"Finished training folder: {folder}", file=f)
+
 def use_params(algorithm, end_task, algorithm_type, seed, beta, kappa):
     if end_task <= 2:
         epochs = 500
@@ -176,7 +180,7 @@ def use_params(algorithm, end_task, algorithm_type, seed, beta, kappa):
     if algorithm_type == "baseline":
         env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
     elif algorithm_type == "curriculum":
-        env_id = f'SafetyPointFrom{end_task - 1}HM{end_task if end_task < 6 else "T"}-v0'
+        env_id = f'SafetyPointFrom{end_task if end_task < 6 else "T"}HM{end_task if end_task < 6 else "T"}-v0'
     elif algorithm_type == "adaptive_curriculum":
         env_id = f'SafetyPointFrom0HMA{end_task if end_task < 6 else "T"}-v0'
     else:
@@ -194,12 +198,14 @@ if __name__ == '__main__':
     steps_per_epoch = 1000
     save_freq = 10
     epochs = 2000
-    repetitions = 15
-    baseline_algorithms = []#["PPO", "CPO", "OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
-    curr_algorithms = ["PPOLag"]#["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
-    folder_base = "incremental_static_again_test"
+    repetitions = 10
+    # baseline_algorithms = []#["PPO", "CPO", "OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
+    # curr_algorithms = ["PPOLag"]#["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
+    baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
+    curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
+    folder_base = "incremental_static_curriculum_again"
     curr_changes = [10, 20, 40, 100, 300, 700]
-    seeds = [11, 42, 1142]# [7337, 175, 4678, 9733, 3743, 572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
+    seeds = [7337, 175, 4678, 9733, 3743]# [572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
     betas = [0.5, 1.0, 1.5]
     kappas = [5, 10, 20]
 
@@ -207,11 +213,13 @@ if __name__ == '__main__':
 
     # Repeat experiments
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    for end_task in range(1, len(curr_changes) + 1):
-        with Pool(3) as p:
+    for end_task in range(len(curr_changes) + 1):
+        with Pool(8) as p:
             args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds, [1.0], [10]))
             args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds, [1.0], [10]))
-            args = args_curr + args_base
+            args = args_curr #+ args_base
+            if end_task == 6:
+                args = args_curr + args_base                
             p.starmap(use_params, args)
 
     # # Repeat experiments
@@ -230,19 +238,19 @@ if __name__ == '__main__':
     #         args = args_curr + args_base
     #         p.starmap(use_params, args)
 
-    # use_params(*("PPOLag", 2, "curriculum", 1142, 1.0, 10))
+    # use_params(*("PPOLag", 4, "curriculum", 1142, 1.0, 10))
+
+    # # Repeat experiments
+    # for end_task in range(4, 5):
+    #     use_params(*("PPOLag", end_task, "curriculum", 1142, 0.5, 10))
 
     # # Plot the results
     # train_df = plot_incremental_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
-    # eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
-    # print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
+    # eval_df = plot_incremental_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
+    # print_incremental_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
 
     # # for i in range(7):
     # #     use_params(*("PPOLag", i, "baseline", 42))
-
-    # Repeat experiments
-    # for end_task in range(1, 3):
-    #     use_params(*("PPOLag", end_task, "curriculum", 1142, 1.0, 10))
 
     # # Plot the results
     # train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
