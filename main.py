@@ -100,15 +100,9 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
 
 def get_agents(folder, algorithms, env_id, cfgs, curr_changes):
     agents = []
-    with open('texttt.txt', 'a') as f:
-        print("inside get_agents", file=f)
     for algorithm, cfg in zip(algorithms, cfgs):
         agent = omnisafe.Agent(algorithm, env_id, custom_cfgs=cfg)
-        with open('texttt.txt', 'a') as f:
-            print("inside for-loop", file=f)
         if "From" in env_id:
-            with open('texttt.txt', 'a') as f:
-                print("inside if", file=f)
             start_version_pattern = r'From(\d+|T)'
             start_version = re.search(start_version_pattern, env_id)
             start_task = start_version.group(1)
@@ -119,8 +113,6 @@ def get_agents(folder, algorithms, env_id, cfgs, curr_changes):
                 algo_path = os.path.join(f"{'app/' if on_server else ''}results/", folder, algo_folder)
                 seed_folder = [fldr for fldr in os.listdir(algo_path) if "seed-" + str(cfg.get("seed")).zfill(3) in fldr][0]
                 agent.agent.load(curr_changes[int(start_task) - 1], os.path.join(algo_path, seed_folder))
-                with open('texttt.txt', 'a') as f:
-                    print("loaded agent from:", os.path.join(algo_path, seed_folder), file=f)
         agents.append(agent)
 
     return agents
@@ -164,10 +156,6 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
     # Train agents
     for agent in agents:
         train_agent(agent, eval_episodes, render_episodes, True, [int(epochs/4), int(epochs/2), int(3 * epochs/4), epochs])
-
-    
-    with open('texttt.txt', 'a') as f:
-        print(f"Finished training folder: {folder}", file=f)
 
 def use_params(algorithm, end_task, algorithm_type, seed, beta, kappa):
     if end_task <= 2:
