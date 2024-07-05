@@ -193,7 +193,7 @@ if __name__ == '__main__':
     curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
     folder_base = "incremental_static_curriculum_again"
     curr_changes = [10, 20, 40, 100, 300, 700]
-    seeds = [7337, 175, 4678, 9733, 3743]# [572, 5689, 3968, 7596, 5905] # [int(rand.random() * 10000) for i in range(repetitions)]
+    seeds = [572, 5689, 3968, 7596, 5905]# [7337, 175, 4678, 9733, 3743] # [int(rand.random() * 10000) for i in range(repetitions)]
     betas = [0.5, 1.0, 1.5]
     kappas = [5, 10, 20]
 
