@@ -8,8 +8,8 @@ import seaborn as sns
 
 def plot_incremental_train(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, use_std=False):
     # Get folder names for all algorithms
-    baseline_dir = "app/results/" + folder + "/baseline"
-    curr_dir = "app/results/" + folder + "/curriculum"
+    baseline_dir = "results/" + folder + "/baseline"
+    curr_dir = "results/" + folder + "/curriculum"
 
     # Function to read progress csv and concatenate
     def read_and_concat(directory, algorithms, algorithm_type):
@@ -38,8 +38,8 @@ def plot_incremental_train(folder, curr_changes, cost_limit, include_weak=False,
     # Combine both baseline and curriculum dataframes
     combined_df = pd.concat([baseline_df, curr_df]).reset_index(names="step")
     
-    if not os.path.isdir("app/figures/" + folder):
-        os.makedirs("app/figures/" + folder)
+    if not os.path.isdir("figures/" + folder):
+        os.makedirs("figures/" + folder)
         
     last_change = curr_changes[-1]
 
@@ -81,11 +81,10 @@ def plot_incremental_train(folder, curr_changes, cost_limit, include_weak=False,
             plt.title(f"{metric.replace('_', ' ').capitalize()}s of{' ' + additional_title_text if additional_title_text != '' else ''} agents using curriculum and baseline agent")
             plt.xlabel("x1000 Steps")
             plt.ylabel(metric.replace('_', ' ').capitalize())
-            if not os.path.isdir(f"app/figures/{folder}/{additional_folder}"):
-                os.makedirs(f"app/figures/{folder}/{additional_folder}")
-            plt.savefig(f"app/figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}.png")
-            plt.savefig(f"app/figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}.pdf")
-            plt.show()
+            if not os.path.isdir(f"figures/{folder}/{additional_folder}"):
+                os.makedirs(f"figures/{folder}/{additional_folder}")
+            plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}.png")
+            plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}.pdf")
             plt.close()
 
     # Create plots for whole data
@@ -109,8 +108,8 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, include_weak=False, 
     def extract_values(pattern, text):
         return [float(match.group(1)) for match in re.finditer(pattern, text)]
 
-    baseline_dir = "app/results/" + folder + "/baseline"
-    curr_dir = "app/results/" + folder + "/curriculum"
+    baseline_dir = "results/" + folder + "/baseline"
+    curr_dir = "results/" + folder + "/curriculum"
 
     def read_and_concat(directory, algorithms, algorithm_type):
         dfs = []
@@ -149,7 +148,9 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, include_weak=False, 
                 df = pd.DataFrame({'return': returns, 'cost': costs, 'length': lengths, 'step': steps})
                 df['Algorithm'] = algorithm.split("-")[0]
                 df['type'] = algorithm_type
-                df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-2].split("-")[1]
+                print("train: ", str(path).split("/" if "/" in str(path) else '\\')[-1].split("-")[1])
+                print("eval: ", str(path).split("/" if "/" in str(path) else '\\')[-2].split("-")[1])
+                df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-1].split("-")[1]
                 df['regret_per_epoch'] = (df["cost"] - cost_limit).clip(lower=0.0)
 
                 df['step'] = pd.to_numeric(df['step'])
@@ -167,8 +168,8 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, include_weak=False, 
 
     combined_df = pd.concat([baseline_df, curr_df]).reset_index(drop=True)
     
-    if not os.path.isdir("app/figures/" + folder):
-        os.makedirs("app/figures/" + folder)
+    if not os.path.isdir("figures/" + folder):
+        os.makedirs("figures/" + folder)
 
     def create_plot(combined_df, additional_folder = "", additional_file_text = "", additional_title_text = ""):
         for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret']:
@@ -203,11 +204,10 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, include_weak=False, 
             plt.title(f"{metric.replace('_', ' ').capitalize() if metric != 'length' else 'Episode' + metric}s of{' ' + additional_title_text if additional_title_text != '' else ''} agents using curriculum and baseline agent during evalutaion")
             plt.xlabel("x1000 Steps")
             plt.ylabel(metric.replace('_', ' ').capitalize())
-            if not os.path.isdir(f"app/figures/{folder}/{additional_folder}"):
-                os.makedirs(f"app/figures/{folder}/{additional_folder}")
-            plt.savefig(f"app/figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}_eval.png")
-            plt.savefig(f"app/figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}_eval.pdf")
-            plt.show()
+            if not os.path.isdir(f"figures/{folder}/{additional_folder}"):
+                os.makedirs(f"figures/{folder}/{additional_folder}")
+            plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}_eval.png")
+            plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}_eval.pdf")
             plt.close()
 
     # Create plots for whole data
@@ -238,9 +238,9 @@ def print_incremental_eval(folder, train_df, eval_df, save_freq, cost_limit):
         regret_train = mean_train_df["regret"].iloc[-1]
         regret_eval = mean_eval_df["regret"].iloc[-1]
 
-        if not os.path.isdir(f"app/figures/{folder}/{algorithm_type}_metrics"):
-            os.makedirs(f"app/figures/{folder}/{algorithm_type}_metrics")
-        with open(os.path.join(f"app/figures/{folder}/", f"{algorithm_type}_metrics/{algorithm}-metrics.txt"), 'w') as file:
+        if not os.path.isdir(f"figures/{folder}/{algorithm_type}_metrics"):
+            os.makedirs(f"figures/{folder}/{algorithm_type}_metrics")
+        with open(os.path.join(f"figures/{folder}/", f"{algorithm_type}_metrics/{algorithm}-metrics.txt"), 'w') as file:
             file.write("Last epoch results:\n")
             file.write(f"Return: {return_}\n")
             file.write(f"Cost: {cost}\n")

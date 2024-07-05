@@ -157,6 +157,8 @@ class HMCurriculumEnv(CMDP):
                               "5": 300 * 1000,
                               "T": 700 * 1000,
                               }
+        
+        self.current_task = self._task_to_int[self._start_task]
 
         if num_envs > 1:
             self._env = safety_gymnasium.vector.make(env_id=env_id, num_envs=num_envs, **kwargs)
@@ -277,28 +279,36 @@ class HMCurriculumEnv(CMDP):
 
         if self._curriculum:
             if options != None and options.get("resetting_for_eval"):
+                self.current_task = self._end_task
                 self._env = eval(f"self._env_{self._end_task}")
-            elif self._steps == self._curr_changes.get("1") and (self._end_task == "T" or int(self._end_task) >= 1):
+            elif self._steps == self._curr_changes.get("1") and self._task_to_int[self._end_task] >= 1:
                 print("Changed env to level 1")
+                self.current_task = 1
                 self._env = self._env_1
-            elif self._steps == self._curr_changes.get("2") and (self._end_task == "T" or int(self._end_task) >= 2):
+            elif self._steps == self._curr_changes.get("2") and self._task_to_int[self._end_task] >= 2:
                 print("Changed env to level 2")
+                self.current_task = 2
                 self._env = self._env_2
-            elif self._steps == self._curr_changes.get("3") and (self._end_task == "T" or int(self._end_task) >= 3):
+            elif self._steps == self._curr_changes.get("3") and self._task_to_int[self._end_task] >= 3:
                 print("Changed env to level 3")
+                self.current_task = 3
                 self._env = self._env_3
-            elif self._steps == self._curr_changes.get("4") and (self._end_task == "T" or int(self._end_task) >= 4):
+            elif self._steps == self._curr_changes.get("4") and self._task_to_int[self._end_task] >= 4:
                 print("Changed env to level 4")
+                self.current_task = 4
                 self._env = self._env_4
-            elif self._steps == self._curr_changes.get("5") and (self._end_task == "T" or int(self._end_task) >= 5):
+            elif self._steps == self._curr_changes.get("5") and self._task_to_int[self._end_task] >= 5:
                 print("Changed env to level 5")
+                self.current_task = 5
                 self._env = self._env_5
-            elif self._steps == self._curr_changes.get("T") and self._end_task == "T":
+            elif self._steps == self._curr_changes.get("T") and self._task_to_int[self._end_task] >= 6:
                 print("Changed env to level Target")
+                self.current_task = 6
                 self._env = self._env_T
 
         obs, info = self._env.reset(seed=seed, options=options)
         # self._env.task.agent.locations = [(-1.5, 0)]
+        info["current_task"] = self.current_task
 
         return torch.as_tensor(obs, dtype=torch.float32, device=self._device), info
 

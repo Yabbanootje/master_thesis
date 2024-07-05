@@ -339,10 +339,10 @@ class HMAdaptiveCurriculumEnv(CMDP):
         done_task = metric_dict["done_task"]
         cost = metric_dict["Metrics/EpCost"]
 
+        # TODO get cost_limit here
         if done_task and cost <= self.beta * 5.0:
             self.completed_tasks += 1
 
-        # TODO get cost_limit here
         if self.completed_tasks >= self.kappa:
             self.completed_tasks = 0
             self.update_distribution()
