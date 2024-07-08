@@ -158,12 +158,12 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
         train_agent(agent, eval_episodes, render_episodes, True, [int(epochs/4), int(epochs/2), int(3 * epochs/4), epochs])
 
 def use_params(algorithm, end_task, algorithm_type, seed, beta, kappa):
-    if end_task <= 2:
-        epochs = 500
-    elif end_task == 6:
-        epochs = 3000
-    else:
-        epochs = 2000
+    # if end_task <= 2:
+    #     epochs = 500
+    # elif end_task == 6:
+    #     epochs = 3000
+    # else:
+    #     epochs = 2000
 
     if algorithm_type == "baseline":
         env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
@@ -189,9 +189,9 @@ if __name__ == '__main__':
     repetitions = 15
     # baseline_algorithms = []#["PPO", "CPO", "OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
     # curr_algorithms = ["PPOLag"]#["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
-    baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
-    curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "incremental_static_curriculum_again"
+    baseline_algorithms = []#"PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
+    curr_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated"]
+    folder_base = "tune_beta_kappa"
     curr_changes = [10, 20, 40, 100, 300, 700]
     seeds = [572, 5689, 3968] #[7596, 5905, 7337]# [175, 4678, 9733, 3743] #[175, 4678, 9733, 3743, 7596, 5905, 7337, 572, 5689, 3968]#  [int(rand.random() * 10000) for i in range(repetitions)]
     betas = [0.5, 1.0, 1.5]
@@ -199,19 +199,19 @@ if __name__ == '__main__':
 
     on_server = torch.cuda.is_available()
 
-    # Repeat experiments
-    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    for end_task in range(4, len(curr_changes) + 1):
-        with Pool(8) as p:
-            args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds, [1.0], [10]))
-            args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds, [1.0], [10]))
-            args = args_curr #+ args_base
-            if end_task == 6:
-                args = args_curr + args_base 
-            p.starmap(use_params, args)
-
     # # Repeat experiments
     # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+    # for end_task in range(0, len(curr_changes) + 1):
+    #     with Pool(8) as p:
+    #         args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds, [1.0], [10]))
+    #         args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds, [1.0], [10]))
+    #         args = args_curr #+ args_base
+    #         # if end_task == 6:
+    #         #     args = args_curr + args_base 
+    #         p.starmap(use_params, args)
+
+    # Repeat experiments
+    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
     # for seed in seeds:
     #     with Pool(8) as p:
     #         args_base = list(product(baseline_algorithms, [6], ["baseline"], seeds, betas, kappas))
@@ -219,12 +219,12 @@ if __name__ == '__main__':
     #         args = args_curr + args_base
     #         p.starmap(use_params, args)
 
-    # for seed in [int(rand.random() * 10000) for i in range(repetitions)]:
-    #     with Pool(8) as p:
-    #         args_base = list(product(baseline_algorithms, [6], ["baseline"], seeds, betas, kappas))
-    #         args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, betas, kappas))
-    #         args = args_curr + args_base
-    #         p.starmap(use_params, args)
+    for seed in [int(rand.random() * 10000) for i in range(repetitions)]:
+        with Pool(8) as p:
+            args_base = list(product(baseline_algorithms, [6], ["baseline"], seeds, betas, kappas))
+            args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, betas, kappas))
+            args = args_curr + args_base
+            p.starmap(use_params, args)
 
     # use_params(*("PPOLag", 4, "curriculum", 1142, 1.0, 10))
 
