@@ -169,9 +169,9 @@ def use_params(algorithm, end_task, algorithm_type, seed, beta, kappa):
         epochs = 2000
 
     if algorithm_type == "baseline":
-        env_id = f'SafetyPointHMR{end_task if end_task < 6 else "T"}-v0'
+        env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
     elif algorithm_type == "curriculum":
-        env_id = f'SafetyPointFrom{end_task if end_task < 6 else "T"}HMR{end_task if end_task < 6 else "T"}-v0'
+        env_id = f'SafetyPointFrom{end_task if end_task < 6 else "T"}HM{end_task if end_task < 6 else "T"}-v0'
     elif algorithm_type == "adaptive_curriculum":
         env_id = f'SafetyPointFrom0HMA{end_task if end_task < 6 else "T"}-v0'
     else:
@@ -192,11 +192,11 @@ if __name__ == '__main__':
     repetitions = 15
     # baseline_algorithms = []#["PPO", "CPO", "OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
     # curr_algorithms = ["PPOLag"]#["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
-    baseline_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
-    curr_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "incremental_static_curriculum_r_again"
+    baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
+    curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
+    folder_base = "incremental_static_curriculum_again"
     curr_changes = [10, 20, 40, 100, 300, 700]
-    seeds = [175, 4678, 9733, 3743, 7596, 5905, 7337, 572, 5689, 3968]#  [int(rand.random() * 10000) for i in range(repetitions)]
+    seeds = [175, 4678, 9733, 3743, 7596] #[5905, 7337, 572, 5689, 3968]#  [int(rand.random() * 10000) for i in range(repetitions)]
     betas = [0.5, 1.0, 1.5]
     kappas = [5, 10, 20]
 
@@ -208,7 +208,7 @@ if __name__ == '__main__':
         with Pool(8) as p:
             args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds, [1.0], [10]))
             args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds, [1.0], [10]))
-            args = args_curr #+ args_base
+            args = args_base#args_curr #+ args_base
             # if end_task == 6:
             #     args = args_curr + args_base 
             p.starmap(use_params, args)
