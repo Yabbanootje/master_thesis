@@ -192,7 +192,7 @@ if __name__ == '__main__':
     repetitions = 15
     # baseline_algorithms = []#["PPO", "CPO", "OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
     # curr_algorithms = ["PPOLag"]#["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
-    baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
+    baseline_algorithms = ["FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"] # "PPOLag", 
     curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
     folder_base = "incremental_static_curriculum_again"
     curr_changes = [10, 20, 40, 100, 300, 700]
@@ -227,7 +227,7 @@ if __name__ == '__main__':
     #         args = args_curr + args_base
     #         p.starmap(use_params, args)
 
-    use_params(*("PPOLag", 4, "curriculum", 1142, 1.0, 10))
+    # use_params(*("PPOLag", 4, "curriculum", 1142, 1.0, 10))
 
     # # Repeat experiments
     # for end_task in range(4, 5):
