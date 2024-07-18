@@ -192,11 +192,11 @@ if __name__ == '__main__':
     repetitions = 15
     # baseline_algorithms = []#["PPO", "CPO", "OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
     # curr_algorithms = ["PPOLag"]#["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
-    baseline_algorithms = ["FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"] # "PPOLag", 
-    curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
+    baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
+    curr_algorithms = ["PPOEarlyTerminated"] # "PPOLag", "FOCOPS", "CUP", 
     folder_base = "incremental_static_curriculum_again"
     curr_changes = [10, 20, 40, 100, 300, 700]
-    seeds = [175, 4678, 9733, 3743, 7596] # [5905, 7337, 572, 5689, 3968] # [int(rand.random() * 10000) for i in range(repetitions)]
+    seeds = [175, 4678, 9733, 3743, 7596, 5905, 7337, 572, 5689, 3968] # [int(rand.random() * 10000) for i in range(repetitions)]
     betas = [0.5, 1.0, 1.5]
     kappas = [5, 10, 20]
 
@@ -204,11 +204,11 @@ if __name__ == '__main__':
 
     # Repeat experiments
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    for end_task in range(6, len(curr_changes) + 1):
+    for end_task in range(3, len(curr_changes) + 1):
         with Pool(8) as p:
             args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds, [1.0], [10]))
             args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds, [1.0], [10]))
-            args = args_base # args_curr #+ args_base
+            args = args_curr #+ args_base
             p.starmap(use_params, args)
 
     # # Repeat experiments
