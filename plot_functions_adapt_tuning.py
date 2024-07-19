@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, use_std=False):
+def plot_train_adapt_tune(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, use_std=False):
     # Get folder names for all algorithms
     baseline_dir = f"results/" + folder + "/baseline"
     curr_dir = f"results/" + folder + "/curriculum"
@@ -22,7 +22,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
                     {"Metrics/EpRet": "return", "Metrics/EpCost": "cost", "Metrics/EpLen": "length"}
                 )[['return', 'cost', 'length']]
                 df['Algorithm'] = algorithm.split("-")[0]
-                end_version_pattern = r'HMR?A?(\d+|T)'
+                end_version_pattern = r'HMR?(\d+|T)'
                 end_version = re.search(end_version_pattern, algorithm.split("-")[1])
                 df['end_task'] = end_version.group(1)
                 df['type'] = algorithm_type
@@ -31,6 +31,36 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
                 df = df.sort_index()
                 df['regret'] = df['regret_per_epoch'].cumsum()
                 dfs.append(df)
+        return pd.concat(dfs)
+    
+    def read_and_concat_adaptive(directory):
+        dfs = []
+        for beta_dir in os.listdir(directory):
+            beta_path = os.path.join(directory, beta_dir)
+            beta_value = beta_dir.split("-")[1]
+            for kappa_dir in os.listdir(beta_path):
+                kappa_path = os.path.join(beta_path, kappa_dir)
+                kappa_value = kappa_dir.split("-")[1]
+                algorithms = os.listdir(kappa_path)
+                for algorithm in algorithms:
+                    paths = [entry.path for entry in os.scandir(os.path.join(kappa_path, algorithm))]
+                    for path in paths:
+                        df = pd.read_csv(os.path.join(path, "progress.csv")).rename(columns=
+                            {"Metrics/EpRet": "return", "Metrics/EpCost": "cost", "Metrics/EpLen": "length", "Current_task": "current_task"}
+                        )[['return', 'cost', 'length', 'current_task']]
+                        df['Algorithm'] = algorithm.split("-")[0]
+                        end_version_pattern = r'HMR?A?(\d+|T)'
+                        end_version = re.search(end_version_pattern, algorithm.split("-")[1])
+                        df['end_task'] = end_version.group(1)
+                        df['type'] = 'adaptive_curriculum'
+                        df['beta'] = beta_value
+                        df['kappa'] = kappa_value
+                        df['beta_kappa'] = str(beta_value) + "-" + str(kappa_value)
+                        df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-1].split("-")[1]
+                        df['regret_per_epoch'] = (df["cost"] - cost_limit).clip(lower=0.0)
+                        df = df.sort_index()
+                        df['regret'] = df['regret_per_epoch'].cumsum()
+                        dfs.append(df)
         return pd.concat(dfs)
 
     dfs = []
@@ -41,7 +71,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
         curr_df = read_and_concat(curr_dir, os.listdir(curr_dir), 'curriculum')
         dfs.append(curr_df)
     if os.path.isdir(adapt_curr_dir):
-        adapt_curr_df = read_and_concat(adapt_curr_dir, os.listdir(adapt_curr_dir), 'adaptive_curriculum')
+        adapt_curr_df = read_and_concat_adaptive(adapt_curr_dir)
         dfs.append(adapt_curr_df)
 
     # Combine both baseline and curriculum dataframes
@@ -53,7 +83,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
     last_change = curr_changes[-1]
 
     def create_plot(combined_df, additional_folder = "", additional_file_text = "", additional_title_text = ""):
-        for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret']:
+        for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret', 'current_task']:
             # Plotting using Seaborn
             sns.set_style("whitegrid")
             plt.figure(figsize=(10, 5), dpi=200)
@@ -65,9 +95,9 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
                 plt.ylim(0, 2 * cost_limit)
                 zoomed = "_zoom"
 
-            sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
+            sns.lineplot(data=combined_df, x='step', y=metric, hue='beta_kappa', errorbar="sd" if use_std else "se")
             if include_seeds:
-                ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', estimator=None, legend=False)
+                ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='beta_kappa', units='seed', estimator=None, legend=False)
 
             for change in curr_changes:
                 plt.axvline(x=change, color="gray", linestyle='-')
@@ -101,7 +131,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
 
     return combined_df
 
-def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
+def plot_eval_adapt_tune(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
     def extract_values(pattern, text):
         return [float(match.group(1)) for match in re.finditer(pattern, text)]
 
@@ -156,6 +186,65 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
                 dfs.append(df)
         return pd.concat(dfs)
 
+    def read_and_concat_adaptive(directory):
+        dfs = []
+        for beta_dir in os.listdir(directory):
+            beta_path = os.path.join(directory, beta_dir)
+            beta_value = beta_dir.split("-")[1]
+            for kappa_dir in os.listdir(beta_path):
+                kappa_path = os.path.join(beta_path, kappa_dir)
+                kappa_value = kappa_dir.split("-")[1]
+                algorithms = os.listdir(kappa_path)
+                for algorithm in algorithms:
+                    seed_paths = [entry.path for entry in os.scandir(os.path.join(kappa_path, algorithm))]
+                    eval_paths = [os.path.join(path, "evaluation") for path in seed_paths]
+
+                    for path in eval_paths:
+                        print(path)
+                        path = path.replace("\\", "/")
+                        epochs = [entry.name for entry in os.scandir(path)]
+
+                        returns = []
+                        costs = []
+                        lengths = []
+                        steps = []
+
+                        reps = 0
+
+                        for epoch in epochs:
+                            with open(os.path.join(path, epoch, "result.txt"), 'r') as file:
+                                data = file.read()
+
+                                return_ = extract_values(r'Episode reward: ([\d\.-]+)', data)
+                                cost_ = extract_values(r'Episode cost: ([\d\.-]+)', data)
+                                length_ = extract_values(r'Episode length: ([\d\.-]+)', data)
+
+                                returns += return_
+                                costs += cost_
+                                lengths += length_
+
+                                if reps == 0:
+                                    reps = len(return_)
+
+                                index = int(epoch.split("-")[1])
+                                steps += [index for i in range(reps)]
+                                
+                        df = pd.DataFrame({'return': returns, 'cost': costs, 'length': lengths, 'step': steps})
+                        df['Algorithm'] = algorithm.split("-")[0]
+                        df['type'] = 'adaptive_curriculum'
+                        df['beta'] = beta_value
+                        df['kappa'] = kappa_value
+                        df['beta_kappa'] = str(beta_value) + "-" + str(kappa_value)
+                        df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-2].split("-")[1]
+                        df['regret_per_epoch'] = (df["cost"] - cost_limit).clip(lower=0.0)
+
+                        df['step'] = pd.to_numeric(df['step'])
+                        df = df.sort_values(by=['step']).reset_index()
+                        avg_regret_per_epoch= df.groupby(df.index // reps)['regret_per_epoch'].mean()
+                        df['regret'] = avg_regret_per_epoch.cumsum().repeat(reps).reset_index(drop=True)
+                        dfs.append(df)
+        return pd.concat(dfs)
+
     dfs = []
     if os.path.isdir(baseline_dir):
         baseline_df = read_and_concat(baseline_dir, os.listdir(baseline_dir), 'baseline')
@@ -164,7 +253,7 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
         curr_df = read_and_concat(curr_dir, os.listdir(curr_dir), 'curriculum')
         dfs.append(curr_df)
     if os.path.isdir(adapt_curr_dir):
-        adapt_curr_df = read_and_concat(adapt_curr_dir, os.listdir(adapt_curr_dir), 'adaptive_curriculum')
+        adapt_curr_df = read_and_concat_adaptive(adapt_curr_dir)
         dfs.append(adapt_curr_df)
 
     combined_df = pd.concat(dfs).reset_index(drop=True)
