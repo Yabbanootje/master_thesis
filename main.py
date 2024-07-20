@@ -211,14 +211,11 @@ if __name__ == '__main__':
     #     args = args_curr #+ args_base
     #     p.starmap(use_params, args)
 
-    with Pool(4) as p:
+    with Pool(1) as p:
         args_base = list(product(baseline_algorithms, [6], ["baseline"], seeds, betas, kappas))
         args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, betas, kappas))
         # args = args_curr + args_base
-        args = [("PPOLag", 6, "adaptive_curriculum", int(rand.random() * 10000), 0.5, 20), 
-                ("PPOLag", 6, "adaptive_curriculum", int(rand.random() * 10000), 0.5, 20),
-                ("PPOLag", 6, "adaptive_curriculum", int(rand.random() * 10000), 1.0, 10),
-                ("PPOLag", 6, "adaptive_curriculum", int(rand.random() * 10000), 1.0, 10)]
+        args = [("PPOLag", 6, "adaptive_curriculum", int(rand.random() * 10000), 1.0, 20)]
         p.starmap(use_params, args)
 
     # # Repeat experiments
@@ -248,6 +245,8 @@ if __name__ == '__main__':
     # train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
     # eval_df = plot_eval_adapt_tune(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
     # eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
+    # train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    # eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
     # print_incremental_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
 
     # # for i in range(7):
@@ -257,6 +256,3 @@ if __name__ == '__main__':
     # train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
     # eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
     # print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
-
-    # train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    # eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
