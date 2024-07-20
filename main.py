@@ -204,7 +204,7 @@ if __name__ == '__main__':
     on_server = torch.cuda.is_available()
 
     # # Repeat experiments
-    # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
     # with Pool(8) as p:
     #     # args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds, [1.0], [10]))
     #     args_curr = list(product(curr_algorithms, [4, 6, 5], ["curriculum"], seeds, [1.0], [10]))
