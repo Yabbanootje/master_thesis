@@ -211,11 +211,12 @@ if __name__ == '__main__':
     #     args = args_curr #+ args_base
     #     p.starmap(use_params, args)
 
-    with Pool(1) as p:
+    with Pool(2) as p:
         args_base = list(product(baseline_algorithms, [6], ["baseline"], seeds, betas, kappas))
         args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, betas, kappas))
         # args = args_curr + args_base
-        args = [("PPOLag", 6, "adaptive_curriculum", int(rand.random() * 10000), 1.0, 20)]
+        args = [("PPOLag", 6, "adaptive_curriculum", int(rand.random() * 10000), 1.5, 10),
+                ("PPOLag", 6, "adaptive_curriculum", int(rand.random() * 10000), 1.5, 20),]
         p.starmap(use_params, args)
 
     # # Repeat experiments
