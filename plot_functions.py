@@ -92,8 +92,8 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
     create_plot(combined_df=combined_df)
 
     # # Create plots for each environment
-    # for end_task in combined_df["end_task"].unique():
-    #     create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], additional_folder="HM" + end_task, additional_title_text="HM" + end_task)
+    for end_task in combined_df["end_task"].unique():
+        create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], additional_folder="HM" + end_task, additional_title_text="HM" + end_task)
 
     # Create plots for each algorithm
     for algo in combined_df["Algorithm"].unique():
@@ -116,6 +116,7 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
             eval_paths = [os.path.join(path, "evaluation") for path in seed_paths]
 
             for path in eval_paths:
+                path = path.replace("\\", "/")
                 epochs = [entry.name for entry in os.scandir(path)]
 
                 returns = []
@@ -145,6 +146,9 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
 
                 df = pd.DataFrame({'return': returns, 'cost': costs, 'length': lengths, 'step': steps})
                 df['Algorithm'] = algorithm.split("-")[0]
+                end_version_pattern = r'HMR?A?(\d+|T)'
+                end_version = re.search(end_version_pattern, algorithm.split("-")[1])
+                df['end_task'] = end_version.group(1)
                 df['type'] = algorithm_type
                 df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-2].split("-")[1]
                 df['regret_per_epoch'] = (df["cost"] - cost_limit).clip(lower=0.0)
@@ -214,9 +218,9 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
     # Create plots for whole data
     create_plot(combined_df=combined_df)
 
-    # # Create plots for each environment
-    # for end_task in combined_df["end_task"].unique():
-    #     create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], additional_folder="HM" + end_task, additional_title_text="HM" + end_task)
+    # Create plots for each environment
+    for end_task in combined_df["end_task"].unique():
+        create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], additional_folder="HM" + end_task, additional_title_text="HM" + end_task)
 
     # Create plots for each algorithm
     for algo in combined_df["Algorithm"].unique():
