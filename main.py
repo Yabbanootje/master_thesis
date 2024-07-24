@@ -195,24 +195,24 @@ if __name__ == '__main__':
     # baseline_algorithms = []#["PPO", "CPO", "OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
     # curr_algorithms = ["PPOLag"]#["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
     baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
-    curr_algorithms = ["PPOEarlyTerminated"]#["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "incremental_static_curriculum_again"
+    curr_algorithms = ["PPOLag"]#, "FOCOPS", "CUP", "PPOEarlyTerminated"]
+    folder_base = "tune_beta_kappa"
     curr_changes = [10, 20, 40, 100, 300, 700]
-    seeds = [7596, 3743, 9733, 4678, 175, 3968, 5689, 572, 7337, 5905] # [5905, 7337, 572, 5689, 3968] # [175, 4678, 9733, 3743, 7596] # [int(rand.random() * 10000) for i in range(repetitions)]
+    seeds = [5905, 7337, 572, 5689, 3968] # [175, 4678, 9733, 3743, 7596] # [int(rand.random() * 10000) for i in range(repetitions)]
     betas = [0.5, 1.0, 1.5]
     kappas = [5, 10, 20]
 
     on_server = torch.cuda.is_available()
 
-    # Repeat experiments
-    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    os.environ["WANDB__SERVICE_WAIT"] = "300"
-    for end_task in range(6, len(curr_changes) + 1):
-        with Pool(8) as p:
-            args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds, [1.0], [10]))
-            args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds, [1.0], [10]))
-            args = args_curr #+ args_base
-            p.starmap(use_params, args)
+    # # Repeat experiments
+    # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+    # os.environ["WANDB__SERVICE_WAIT"] = "300"
+    # for end_task in range(0, len(curr_changes) + 1):
+    #     with Pool(8) as p:
+    #         args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds, [1.0], [10]))
+    #         args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds, [1.0], [10]))
+    #         args = args_curr #+ args_base
+    #         p.starmap(use_params, args)
 
     # with Pool(8) as p:
     #     # args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds, [1.0], [10]))
@@ -251,13 +251,13 @@ if __name__ == '__main__':
     # for end_task in range(4, 5):
     #     use_params(*("PPOLag", end_task, "curriculum", 1142, 0.5, 10))
 
-    # # Plot the results
+    # Plot the results
     # train_df = plot_adapt_tune_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
     # train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    # eval_df = plot_adapt_tune_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
+    # eval_df = plot_adapt_tune_eval([train_df, eval_df], curr_changes=curr_changes, cost_limit=cost_limit)
     # eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
-    # train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    # eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
+    train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
     # print_adapt_tune_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
 
     # # for i in range(7):

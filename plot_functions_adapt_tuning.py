@@ -5,8 +5,9 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.gridspec as gridspec
 
-def plot_train_adapt_tune(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, use_std=False):
+def plot_adapt_tune_train(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, use_std=False):
     # Get folder names for all algorithms
     baseline_dir = f"results/" + folder + "/baseline"
     curr_dir = f"results/" + folder + "/curriculum"
@@ -18,6 +19,7 @@ def plot_train_adapt_tune(folder, curr_changes, cost_limit, include_weak=False, 
         for algorithm in algorithms:
             paths = [entry.path for entry in os.scandir(os.path.join(directory, algorithm))]
             for path in paths:
+                path = path.replace("\\", "/")
                 df = pd.read_csv(os.path.join(path, "progress.csv")).rename(columns=
                     {"Metrics/EpRet": "return", "Metrics/EpCost": "cost", "Metrics/EpLen": "length"}
                 )[['return', 'cost', 'length']]
@@ -45,6 +47,7 @@ def plot_train_adapt_tune(folder, curr_changes, cost_limit, include_weak=False, 
                 for algorithm in algorithms:
                     paths = [entry.path for entry in os.scandir(os.path.join(kappa_path, algorithm))]
                     for path in paths:
+                        path = path.replace("\\", "/")
                         df = pd.read_csv(os.path.join(path, "progress.csv")).rename(columns=
                             {"Metrics/EpRet": "return", "Metrics/EpCost": "cost", "Metrics/EpLen": "length", "Current_task": "current_task"}
                         )[['return', 'cost', 'length', 'current_task']]
@@ -97,10 +100,10 @@ def plot_train_adapt_tune(folder, curr_changes, cost_limit, include_weak=False, 
 
             sns.lineplot(data=combined_df, x='step', y=metric, hue='beta_kappa', errorbar="sd" if use_std else "se")
             if include_seeds:
-                ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='beta_kappa', units='seed', estimator=None, legend=False)
+                ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='seed', estimator=None, legend=False)
 
-            for change in curr_changes:
-                plt.axvline(x=change, color="gray", linestyle='-')
+            # for change in curr_changes:
+            #     plt.axvline(x=change, color="gray", linestyle='-')
 
             if metric == 'cost':
                 plt.axhline(y=cost_limit, color='black', linestyle=':', label=f'Cost Limit ({cost_limit})')
@@ -109,7 +112,7 @@ def plot_train_adapt_tune(folder, curr_changes, cost_limit, include_weak=False, 
             if include_seeds:
                 plt.setp(ax.lines[2:], alpha=0.2)
             plt.tight_layout(pad=2)
-            plt.title(f"{metric.replace('_', ' ').capitalize()}s of{' ' + additional_title_text if additional_title_text != '' else ''} agents using curriculum and baseline agent")
+            plt.title(f"{metric.replace('_', ' ').capitalize()}s of{' ' + additional_title_text if additional_title_text != '' else ''} agents using an adaptive curriculum")
             plt.xlabel("x1000 Steps")
             plt.ylabel(metric.replace('_', ' ').capitalize())
             if not os.path.isdir(f"figures/{folder}/{additional_folder}"):
@@ -118,20 +121,56 @@ def plot_train_adapt_tune(folder, curr_changes, cost_limit, include_weak=False, 
             plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}.pdf")
             plt.close()
 
+    def create_subplot_grid(combined_df, additional_folder="", additional_file_text="", additional_title_text=""):
+        
+        # Create a 2x3 subplot grid
+        fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(12, 4), dpi=200)
+        for ax_row, metric in zip(axes, ["return", "regret", "current_task"]):
+            for ax in ax_row:
+                sns.set_style("whitegrid")
+                
+                sns.lineplot(data=combined_df, x='step', y=metric, hue='beta_kappa', errorbar="sd" if use_std else "se", ax=ax)
+                
+                # for change in curr_changes[:idx]:
+                #     ax.axvline(x=change, color="gray", linestyle='-')
+                
+                if metric == 'cost':
+                    ax.axhline(y=cost_limit, color='black', linestyle=':', label=f'Cost Limit ({cost_limit})')
+                    
+                ax.set_xlabel("x1000 Steps")
+                ax.get_legend().remove()
+                ax.set_title(metric.replace('_', ' ').capitalize())
+                if metric == "current_task":
+                    handles, labels = ax.get_legend_handles_labels()
+                    ax.legend(handles, labels, loc=(1.01, 0.01), ncol=1)
+        
+        plt.tight_layout(pad=2)
+        if not os.path.isdir(f"figures/{folder}/{additional_folder}"):
+            os.makedirs(f"figures/{folder}/{additional_folder}")
+        plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}grid_again.png")
+        plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}grid_again.pdf")
+        plt.close()
+
     # Create plots for whole data
-    create_plot(combined_df=combined_df)
+    # create_plot(combined_df=combined_df)
 
     # # Create plots for each environment
     # for end_task in combined_df["end_task"].unique():
     #     create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], additional_folder="HM" + end_task, additional_title_text="HM" + end_task)
 
-    # Create plots for each algorithm
-    for algo in combined_df["Algorithm"].unique():
-        create_plot(combined_df=combined_df[combined_df['Algorithm'] == algo], additional_folder=algo, additional_title_text=algo)
+    # # Create plots for each algorithm
+    # for beta_kappa in combined_df["beta_kappa"].unique():
+    #     include_seeds = True
+    #     create_plot(combined_df=combined_df[combined_df['beta_kappa'] == beta_kappa], additional_folder=beta_kappa, additional_title_text=beta_kappa)
+    #     include_seeds = False
+
+    # create_plot(combined_df=combined_df[(combined_df['beta_kappa'] == "1.5-5") & (combined_df["seed"] == "4678")], additional_folder="best_seed", additional_title_text="")
+    # create_plot(combined_df=combined_df[(combined_df['beta_kappa'].isin(["1.5-5", "0.5-5", "0.5-20", "0.5-10", "1.0-20"]))], additional_folder="best_params", additional_title_text="")
+    create_subplot_grid(combined_df=combined_df[(combined_df['beta_kappa'].isin(["1.5-5", "0.5-5", "0.5-20", "0.5-10", "1.0-20"]))], additional_folder="best_params", additional_title_text="")
 
     return combined_df
 
-def plot_eval_adapt_tune(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
+def plot_adapt_tune_eval(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
     def extract_values(pattern, text):
         return [float(match.group(1)) for match in re.finditer(pattern, text)]
 
@@ -146,6 +185,7 @@ def plot_eval_adapt_tune(folder, curr_changes, cost_limit, include_weak=False, i
             eval_paths = [os.path.join(path, "evaluation") for path in seed_paths]
 
             for path in eval_paths:
+                path = path.replace("\\", "/")
                 epochs = [entry.name for entry in os.scandir(path)]
 
                 returns = []
@@ -200,7 +240,6 @@ def plot_eval_adapt_tune(folder, curr_changes, cost_limit, include_weak=False, i
                     eval_paths = [os.path.join(path, "evaluation") for path in seed_paths]
 
                     for path in eval_paths:
-                        print(path)
                         path = path.replace("\\", "/")
                         epochs = [entry.name for entry in os.scandir(path)]
 
@@ -273,25 +312,25 @@ def plot_eval_adapt_tune(folder, curr_changes, cost_limit, include_weak=False, i
                 plt.ylim(0, 2 * cost_limit)
                 zoomed = "_zoom"
 
-            sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
-            if include_seeds:
-                if include_repetitions:
-                    ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', errorbar=None, estimator=None, legend=False)
-                else:
-                    ax = sns.lineplot(data=combined_df.groupby(["step", "Algorithm", "type", "seed"]).mean(), x='step', y=metric, hue='Algorithm', 
-                                    style='type', units='seed', errorbar=None, estimator=None, legend=False)
+            sns.lineplot(data=combined_df, x='step', y=metric, hue='beta_kappa', errorbar="sd" if use_std else "se")
+            # if include_seeds:
+            #     if include_repetitions:
+            #         ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', errorbar=None, estimator=None, legend=False)
+            #     else:
+            #         ax = sns.lineplot(data=combined_df.groupby(["step", "Algorithm", "type", "seed"]).mean(), x='step', y=metric, hue='Algorithm', 
+            #                         style='type', units='seed', errorbar=None, estimator=None, legend=False)
 
-            for change in curr_changes:
-                plt.axvline(x=change, color="gray", linestyle='-')
+            # for change in curr_changes:
+            #     plt.axvline(x=change, color="gray", linestyle='-')
 
             if metric == 'cost':
                 plt.axhline(y=cost_limit, color='black', linestyle=':', label=f'Cost Limit ({cost_limit})')
 
             plt.legend(loc=(1.01, 0.01), ncol=1)
-            if include_seeds:
-                plt.setp(ax.lines[2:], alpha=0.2)
+            # if include_seeds:
+            #     plt.setp(ax.lines[2:], alpha=0.2)
             plt.tight_layout(pad=2)
-            plt.title(f"{metric.replace('_', ' ').capitalize() if metric != 'length' else 'Episode' + metric}s of{' ' + additional_title_text if additional_title_text != '' else ''} agents using curriculum and baseline agent during evalutaion")
+            plt.title(f"{metric.replace('_', ' ').capitalize() if metric != 'length' else 'Episode' + metric}s of{' ' + additional_title_text if additional_title_text != '' else ''} agents using an adaptive curriculum during evalutaion")
             plt.xlabel("x1000 Steps")
             plt.ylabel(metric.replace('_', ' ').capitalize())
             if not os.path.isdir(f"figures/{folder}/{additional_folder}"):
@@ -307,13 +346,16 @@ def plot_eval_adapt_tune(folder, curr_changes, cost_limit, include_weak=False, i
     # for end_task in combined_df["end_task"].unique():
     #     create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], additional_folder="HM" + end_task, additional_title_text="HM" + end_task)
 
-    # Create plots for each algorithm
-    for algo in combined_df["Algorithm"].unique():
-        create_plot(combined_df=combined_df[combined_df['Algorithm'] == algo], additional_folder=algo, additional_title_text=algo)
+    # # Create plots for each algorithm
+    # for algo in combined_df["Algorithm"].unique():
+    #     create_plot(combined_df=combined_df[combined_df['Algorithm'] == algo], additional_folder=algo, additional_title_text=algo)    
+
+    create_plot(combined_df=combined_df[(combined_df['beta_kappa'] == "1.5-5") & (combined_df["seed"] == "4678")], additional_folder="best_seed", additional_title_text="")
+    create_plot(combined_df=combined_df[(combined_df['beta_kappa'].isin(["1.5-5", "0.5-5", "0.5-20", "0.5-10", "1.0-20"]))], additional_folder="best_params", additional_title_text="")
 
     return combined_df
 
-def print_eval(folder, train_df, eval_df, save_freq, cost_limit):
+def print_adapt_tune_eval(folder, train_df, eval_df, save_freq, cost_limit):
     for (algorithm, algorithm_type), filtered_train_df in train_df.groupby(["Algorithm", 'type']):
         filtered_eval_df = eval_df[(eval_df["Algorithm"] == algorithm) & (eval_df['type'] == algorithm_type)]
         mean_train_df = filtered_train_df.groupby(["step"]).mean(numeric_only=True)
@@ -328,9 +370,9 @@ def print_eval(folder, train_df, eval_df, save_freq, cost_limit):
         regret_train = mean_train_df["regret"].iloc[-1]
         regret_eval = mean_eval_df["regret"].iloc[-1]
 
-        if not os.path.isdir(f"app/figures/{folder}/{algorithm_type}_metrics"):
-            os.makedirs(f"app/figures/{folder}/{algorithm_type}_metrics")
-        with open(os.path.join(f"app/figures/{folder}/", f"{algorithm_type}_metrics/{algorithm}-metrics.txt"), 'w') as file:
+        if not os.path.isdir(f"figures/{folder}/{algorithm_type}_metrics"):
+            os.makedirs(f"figures/{folder}/{algorithm_type}_metrics")
+        with open(os.path.join(f"figures/{folder}/", f"{algorithm_type}_metrics/{algorithm}-metrics.txt"), 'w') as file:
             file.write("Last epoch results:\n")
             file.write(f"Return: {return_}\n")
             file.write(f"Cost: {cost}\n")

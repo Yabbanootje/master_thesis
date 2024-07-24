@@ -18,6 +18,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
         for algorithm in algorithms:
             paths = [entry.path for entry in os.scandir(os.path.join(directory, algorithm))]
             for path in paths:
+                path = path.replace("\\", "/")
                 df = pd.read_csv(os.path.join(path, "progress.csv")).rename(columns=
                     {"Metrics/EpRet": "return", "Metrics/EpCost": "cost", "Metrics/EpLen": "length"}
                 )[['return', 'cost', 'length']]
@@ -243,9 +244,9 @@ def print_eval(folder, train_df, eval_df, save_freq, cost_limit):
         regret_train = mean_train_df["regret"].iloc[-1]
         regret_eval = mean_eval_df["regret"].iloc[-1]
 
-        if not os.path.isdir(f"app/figures/{folder}/{algorithm_type}_metrics"):
-            os.makedirs(f"app/figures/{folder}/{algorithm_type}_metrics")
-        with open(os.path.join(f"app/figures/{folder}/", f"{algorithm_type}_metrics/{algorithm}-metrics.txt"), 'w') as file:
+        if not os.path.isdir(f"figures/{folder}/{algorithm_type}_metrics"):
+            os.makedirs(f"figures/{folder}/{algorithm_type}_metrics")
+        with open(os.path.join(f"figures/{folder}/", f"{algorithm_type}_metrics/{algorithm}-metrics.txt"), 'w') as file:
             file.write("Last epoch results:\n")
             file.write(f"Return: {return_}\n")
             file.write(f"Cost: {cost}\n")
