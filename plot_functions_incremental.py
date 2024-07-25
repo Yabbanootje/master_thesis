@@ -18,6 +18,7 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
             paths = [entry.path for entry in os.scandir(os.path.join(directory, algorithm))]
             for path in paths:
                 path = path.replace("\\", "/")
+                # print(path)
                 df = pd.read_csv(os.path.join(path, "progress.csv")).rename(columns=
                     {"Metrics/EpRet": "return", "Metrics/EpCost": "cost", "Metrics/EpLen": "length"}
                 )[['return', 'cost', 'length']]
@@ -33,12 +34,15 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
                 dfs.append(df)
         return pd.concat(dfs)
 
-    # if combined_df is None:
-    baseline_df = read_and_concat(baseline_dir, os.listdir(baseline_dir), 'ablation')
-    curr_df = read_and_concat(curr_dir, os.listdir(curr_dir), 'lr reset')
+    baseline_df = read_and_concat(baseline_dir, os.listdir(baseline_dir), 'baseline')
+    curr_df = read_and_concat(curr_dir, os.listdir(curr_dir), 'curriculum')
 
-    # Combine both baseline and curriculum dataframes
-    combined_df = pd.concat([combined_df, baseline_df, curr_df]).reset_index(names="step")
+    if combined_df is not None:
+        # Combine both baseline and curriculum dataframes
+        # combined_df = pd.concat([combined_df, pd.concat([baseline_df, curr_df]).reset_index(names="step")])
+        combined_df = combined_df
+    else:
+        combined_df = pd.concat([baseline_df, curr_df]).reset_index(names="step")
     
     if not os.path.isdir("figures/" + folder):
         os.makedirs("figures/" + folder)
@@ -58,20 +62,12 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
                 plt.ylim(0, 2 * cost_limit)
                 zoomed = "_zoom"
 
-            sns.lineplot(data=combined_df, x='step', y=metric, hue='type', errorbar="sd" if use_std else "se")
+            sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
             if include_seeds:
                 ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', estimator=None, legend=False)
 
-            if "end_task-" in additional_folder:
-                end_task = additional_folder.split("-")[-1]
-                if end_task == "T":
-                    end_task = -1
-                end_task = int(end_task)
-                for change in curr_changes[:end_task]:
-                    plt.axvline(x=change, color="gray", linestyle='-')
-            else:
-                for change in curr_changes:
-                    plt.axvline(x=change, color="gray", linestyle='-')
+            for change in curr_changes:
+                plt.axvline(x=change, color="gray", linestyle='-')
 
             if metric == 'cost':
                 plt.axhline(y=cost_limit, color='black', linestyle=':', label=f'Cost Limit ({cost_limit})')
@@ -104,9 +100,14 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
     # for algo in combined_df["Algorithm"].unique():
     #     create_plot(combined_df=combined_df[combined_df['Algorithm'] == algo], additional_folder=algo, additional_title_text=algo)
 
-    # for end_task in combined_df["end_task"].unique():
-    #     create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], additional_folder="end_task-" + str(end_task), 
-    #                 additional_title_text="end task: " + str(end_task))
+    print(combined_df["end_task"].unique())
+    for end_task in combined_df["end_task"].unique():
+        if end_task == "T":
+            idx = 6
+        else:
+            idx = int(end_task)
+        create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], curr_changes=curr_changes[:idx], additional_folder="HM" + str(end_task), 
+                    additional_title_text="HM" + str(end_task))
         
     # def create_subplot_grid(combined_df, curr_changes, additional_folder="", additional_file_text="", additional_title_text=""):
     #     end_tasks = combined_df['end_task'].unique()
@@ -153,7 +154,7 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
 
     return combined_df
 
-def plot_incremental_eval(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
+def plot_incremental_eval(folder, curr_changes, cost_limit, combined_df=None, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
     def extract_values(pattern, text):
         return [float(match.group(1)) for match in re.finditer(pattern, text)]
 
@@ -168,6 +169,7 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, include_weak=False, 
 
             for path in eval_paths:
                 path = path.replace("\\", "/")
+                # print(path)
                 epochs = [entry.name for entry in os.scandir(path)]
 
                 returns = []
@@ -203,7 +205,7 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, include_weak=False, 
                 df['type'] = algorithm_type
                 # print("train: ", str(path).split("/" if "/" in str(path) else '\\')[-1].split("-")[1])
                 # print("eval: ", str(path).split("/" if "/" in str(path) else '\\')[-2].split("-")[1])
-                df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-1].split("-")[1]
+                df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-2].split("-")[1]
                 df['regret_per_epoch'] = (df["cost"] - cost_limit).clip(lower=0.0)
 
                 df['step'] = pd.to_numeric(df['step'])
@@ -216,10 +218,15 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, include_weak=False, 
     baseline_algorithms = os.listdir(baseline_dir)
     curr_algorithms = os.listdir(curr_dir)
 
-    baseline_df = read_and_concat(baseline_dir, baseline_algorithms, 'ablation')
-    curr_df = read_and_concat(curr_dir, curr_algorithms, 'lr reset')
+    baseline_df = read_and_concat(baseline_dir, baseline_algorithms, 'baseline')
+    curr_df = read_and_concat(curr_dir, curr_algorithms, 'curriculum')
 
-    combined_df = pd.concat([baseline_df, curr_df]).reset_index(drop=True)
+    if combined_df is not None:
+        # Combine both baseline and curriculum dataframes
+        # combined_df = pd.concat([combined_df, pd.concat([baseline_df, curr_df]).reset_index(drop=True)])
+        combined_df = combined_df
+    else:
+        combined_df = pd.concat([baseline_df, curr_df]).reset_index(drop=True)
     
     if not os.path.isdir("figures/" + folder):
         os.makedirs("figures/" + folder)
@@ -236,7 +243,7 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, include_weak=False, 
                 plt.ylim(0, 2 * cost_limit)
                 zoomed = "_zoom"
 
-            sns.lineplot(data=combined_df, x='step', y=metric, hue='type', errorbar="sd" if use_std else "se")
+            sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
             if include_seeds:
                 if include_repetitions:
                     ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', errorbar=None, estimator=None, legend=False)
@@ -263,24 +270,26 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, include_weak=False, 
             plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}_eval.pdf")
             plt.close()
 
-    # Create plots for whole data
-    create_plot(combined_df=combined_df)
+    # # Create plots for whole data
+    # create_plot(combined_df=combined_df)
 
     # Create plots for each environment
+    print(combined_df["end_task"].unique())
     for end_task in combined_df["end_task"].unique():
         if end_task == "T":
             idx = 6
         else:
             idx = int(end_task)
-        create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], curr_changes=curr_changes[:idx], additional_folder="HM" + end_task, additional_title_text="HM" + end_task)
+        create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], curr_changes=curr_changes[:idx], additional_folder="HM" + str(end_task), 
+                    additional_title_text="HM" + str(end_task))
 
-    # Create plots for each algorithm
-    for algo in combined_df["Algorithm"].unique():
-        create_plot(combined_df=combined_df[combined_df['Algorithm'] == algo], additional_folder=algo, additional_title_text=algo)
+    # # Create plots for each algorithm
+    # for algo in combined_df["Algorithm"].unique():
+    #     create_plot(combined_df=combined_df[combined_df['Algorithm'] == algo], additional_folder=algo, additional_title_text=algo)
 
     return combined_df
 
-def print_incremental_eval(folder, train_df, eval_df, save_freq, cost_limit):
+def print_incremental_eval(folder, train_df, eval_df, save_freq, cost_limit, additional_folder = ""):
     for (algorithm, algorithm_type), filtered_train_df in train_df.groupby(["Algorithm", 'type']):
         filtered_eval_df = eval_df[(eval_df["Algorithm"] == algorithm) & (eval_df['type'] == algorithm_type)]
         mean_train_df = filtered_train_df.groupby(["step"]).mean(numeric_only=True)
@@ -295,9 +304,10 @@ def print_incremental_eval(folder, train_df, eval_df, save_freq, cost_limit):
         regret_train = mean_train_df["regret"].iloc[-1]
         regret_eval = mean_eval_df["regret"].iloc[-1]
 
-        if not os.path.isdir(f"figures/{folder}/{algorithm_type}_metrics"):
-            os.makedirs(f"figures/{folder}/{algorithm_type}_metrics")
-        with open(os.path.join(f"figures/{folder}/", f"{algorithm_type}_metrics/{algorithm}-metrics.txt"), 'w') as file:
+        if not os.path.isdir(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{algorithm_type}_metrics"):
+            os.makedirs(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{algorithm_type}_metrics")
+        with open(os.path.join(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}", 
+                               f"{algorithm_type}_metrics/{algorithm}-metrics.txt"), 'w') as file:
             file.write("Last epoch results:\n")
             file.write(f"Return: {return_}\n")
             file.write(f"Cost: {cost}\n")

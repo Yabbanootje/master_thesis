@@ -1,0 +1,12 @@
+Last epoch results:
+Return: 11.157086569070817
+Cost: 3.447999954223633
+Evaluation return: 10.740357964185316
+Evaluation cost: 4.72
+Evaluation episode length: 250.7
+
+All epochs results:
+AUC of the cost curve: 13033.553220817446
+AUC of the evaluation cost curve: 12810.4
+Cost regret: 6133.29388961792
+Evaluation cost regret: 1126.6999999999998
