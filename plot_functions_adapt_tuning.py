@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.gridspec as gridspec
+from scipy.interpolate import make_interp_spline, BSpline
 
 def plot_adapt_tune_train(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, use_std=False):
     # Get folder names for all algorithms

@@ -5,11 +5,13 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy.interpolate import make_interp_spline, BSpline
 
 def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, include_weak=False, include_seeds=False, use_std=False):
     # Get folder names for all algorithms
     baseline_dir = "results/" + folder + "/baseline"
     curr_dir = "results/" + folder + "/curriculum"
+    adapt_curr_dir = f"results/" + folder + "/adaptive_curriculum"
 
     # Function to read progress csv and concatenate
     def read_and_concat(directory, algorithms, algorithm_type):
@@ -34,15 +36,26 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
                 dfs.append(df)
         return pd.concat(dfs)
 
-    baseline_df = read_and_concat(baseline_dir, os.listdir(baseline_dir), 'baseline')
-    curr_df = read_and_concat(curr_dir, os.listdir(curr_dir), 'curriculum')
+    dfs = []
+    if os.path.isdir(baseline_dir):
+        baseline_df = read_and_concat(baseline_dir, os.listdir(baseline_dir), 'baseline')
+        dfs.append(baseline_df)
+    if os.path.isdir(curr_dir):
+        curr_df = read_and_concat(curr_dir, os.listdir(curr_dir), 'curriculum')
+        dfs.append(curr_df)
+    if os.path.isdir(adapt_curr_dir):
+        adapt_curr_df = read_and_concat(adapt_curr_dir, os.listdir(adapt_curr_dir), 'adaptive_curriculum')
+        dfs.append(adapt_curr_df)
 
-    if combined_df is not None:
-        # Combine both baseline and curriculum dataframes
-        # combined_df = pd.concat([combined_df, pd.concat([baseline_df, curr_df]).reset_index(names="step")])
-        combined_df = combined_df
-    else:
-        combined_df = pd.concat([baseline_df, curr_df]).reset_index(names="step")
+    # Combine both baseline and curriculum dataframes
+    combined_df = pd.concat(dfs).reset_index(names="step")
+
+    # if combined_df is not None:
+    #     # Combine both baseline and curriculum dataframes
+    #     # combined_df = pd.concat([combined_df, pd.concat([baseline_df, curr_df]).reset_index(names="step")])
+    #     combined_df = combined_df
+    # else:
+    #     combined_df = pd.concat([baseline_df, curr_df]).reset_index(names="step")
     
     if not os.path.isdir("figures/" + folder):
         os.makedirs("figures/" + folder)
@@ -88,14 +101,6 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
     # # Create plots for whole data
     # create_plot(combined_df=combined_df)
 
-    # # Create plots for each environment
-    # for end_task in combined_df["end_task"].unique():
-    #     if end_task == "T":
-    #         idx = 6
-    #     else:
-    #         idx = int(end_task)
-    #     create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], curr_changes=curr_changes[:idx], additional_folder="HM" + end_task, additional_title_text="HM" + end_task)
-
     # # Create plots for each algorithm
     # for algo in combined_df["Algorithm"].unique():
     #     create_plot(combined_df=combined_df[combined_df['Algorithm'] == algo], additional_folder=algo, additional_title_text=algo)
@@ -106,8 +111,11 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
             idx = 6
         else:
             idx = int(end_task)
-        create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], curr_changes=curr_changes[:idx], additional_folder="HM" + str(end_task), 
-                    additional_title_text="HM" + str(end_task))
+        # create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], curr_changes=curr_changes[:idx], additional_folder="HM" + str(end_task), 
+        #             additional_title_text="HM" + str(end_task))
+        
+        create_plot(combined_df=combined_df[(combined_df['end_task'] == end_task) & (combined_df['seed'].isin(map(str,[5905, 7337, 572, 5689, 3968])))], curr_changes=curr_changes[:idx], 
+                    additional_folder="FairHM" + str(end_task), additional_title_text="FairHM" + str(end_task))
         
     # def create_subplot_grid(combined_df, curr_changes, additional_folder="", additional_file_text="", additional_title_text=""):
     #     end_tasks = combined_df['end_task'].unique()
@@ -160,6 +168,7 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, combined_df=None, in
 
     baseline_dir = "results/" + folder + "/baseline"
     curr_dir = "results/" + folder + "/curriculum"
+    adapt_curr_dir = f"results/" + folder + "/adaptive_curriculum"
 
     def read_and_concat(directory, algorithms, algorithm_type):
         dfs = []
@@ -215,18 +224,25 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, combined_df=None, in
                 dfs.append(df)
         return pd.concat(dfs)
 
-    baseline_algorithms = os.listdir(baseline_dir)
-    curr_algorithms = os.listdir(curr_dir)
+    dfs = []
+    if os.path.isdir(baseline_dir):
+        baseline_df = read_and_concat(baseline_dir, os.listdir(baseline_dir), 'baseline')
+        dfs.append(baseline_df)
+    if os.path.isdir(curr_dir):
+        curr_df = read_and_concat(curr_dir, os.listdir(curr_dir), 'curriculum')
+        dfs.append(curr_df)
+    if os.path.isdir(adapt_curr_dir):
+        adapt_curr_df = read_and_concat(adapt_curr_dir, os.listdir(adapt_curr_dir), 'adaptive_curriculum')
+        dfs.append(adapt_curr_df)
 
-    baseline_df = read_and_concat(baseline_dir, baseline_algorithms, 'baseline')
-    curr_df = read_and_concat(curr_dir, curr_algorithms, 'curriculum')
+    combined_df = pd.concat(dfs).reset_index(drop=True)
 
-    if combined_df is not None:
-        # Combine both baseline and curriculum dataframes
-        # combined_df = pd.concat([combined_df, pd.concat([baseline_df, curr_df]).reset_index(drop=True)])
-        combined_df = combined_df
-    else:
-        combined_df = pd.concat([baseline_df, curr_df]).reset_index(drop=True)
+    # if combined_df is not None:
+    #     # Combine both baseline and curriculum dataframes
+    #     # combined_df = pd.concat([combined_df, pd.concat([baseline_df, curr_df]).reset_index(drop=True)])
+    #     combined_df = combined_df
+    # else:
+    #     combined_df = pd.concat([baseline_df, curr_df]).reset_index(drop=True)
     
     if not os.path.isdir("figures/" + folder):
         os.makedirs("figures/" + folder)
@@ -282,6 +298,9 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, combined_df=None, in
             idx = int(end_task)
         create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], curr_changes=curr_changes[:idx], additional_folder="HM" + str(end_task), 
                     additional_title_text="HM" + str(end_task))
+        
+        create_plot(combined_df=combined_df[(combined_df['end_task'] == end_task) & (combined_df['seed'].isin([5905, 7337, 572, 5689, 3968]))], curr_changes=curr_changes[:idx], 
+                    additional_folder="FairHM" + str(end_task), additional_title_text="FairHM" + str(end_task))
 
     # # Create plots for each algorithm
     # for algo in combined_df["Algorithm"].unique():
