@@ -231,7 +231,7 @@ if __name__ == '__main__':
         seeds = [5905, 7337, 572, 5689, 3968]
         for end_task in range(0, len(curr_changes) + 1):
             with Pool(8) as p:
-                args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, exp, betas, kappas))
+                args_curr = list(product(curr_algorithms, [end_task], ["adaptive_curriculum"], seeds, exp, betas, kappas))
                 p.starmap(use_params, args_curr)
     elif exp == 2:
         # Repeat experiments
@@ -240,7 +240,7 @@ if __name__ == '__main__':
         seeds = [175, 4678, 9733, 3743, 7596]
         for end_task in range(0, len(curr_changes) + 1):
             with Pool(8) as p:
-                args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, exp, betas, kappas))
+                args_curr = list(product(curr_algorithms, [end_task], ["adaptive_curriculum"], seeds, exp, betas, kappas))
                 p.starmap(use_params, args_curr)
     # elif exp == 3:
 
