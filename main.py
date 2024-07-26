@@ -175,12 +175,13 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
         train_agent(agent, eval_episodes, render_episodes, True, [int(epochs/4), int(epochs/2), int(3 * epochs/4), epochs])
 
 def use_params(algorithm, end_task, algorithm_type, seed, exp, beta = 1.0, kappa = 20):
-    if end_task <= 2:
-        epochs = 500
-    elif end_task == 6:
-        epochs = 3000
-    else:
-        epochs = 2000
+    if exp <= 2:
+        if end_task <= 2:
+            epochs = 500
+        elif end_task == 6:
+            epochs = 3000
+        else:
+            epochs = 2000
 
     if algorithm_type == "baseline":
         env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
@@ -243,7 +244,14 @@ if __name__ == '__main__':
                 args_curr = list(product(curr_algorithms, [end_task], ["adaptive_curriculum"], seeds, exp, betas, kappas))
                 p.starmap(use_params, args_curr)
     # elif exp == 3:
-
+    #     # Repeat experiments
+    #     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+    #     os.environ["WANDB__SERVICE_WAIT"] = "300"
+    #     seeds = [175, 4678, 9733, 3743, 7596]
+    #     for end_task in range(0, len(curr_changes) + 1):
+    #         with Pool(8) as p:
+    #             args_curr = list(product(curr_algorithms, [end_task], ["adaptive_curriculum"], seeds, exp, betas, kappas))
+    #             p.starmap(use_params, args_curr)
                 
     # with Pool(8) as p:
     #     # args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds, [1.0], [10]))
