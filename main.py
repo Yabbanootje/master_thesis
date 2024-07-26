@@ -14,13 +14,16 @@ from custom_envs.hand_made_levels.hm_adaptive_curriculum_env import HMAdaptiveCu
 from plot_functions import *
 from plot_functions_incremental import *
 from plot_functions_adapt_tuning import *
+import warnings
 
 def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps_per_epoch = 1000, 
                 update_iters = 1, nn_size = 256, lag_multiplier_init = 0.1, lag_multiplier_lr = 0.01,
-                focops_eta = 0.02, focops_lam = 1.5, beta = 1.0, kappa = 20):
+                focops_eta = 0.02, focops_lam = 1.5, beta = 1.0, kappa = 20, early_stop_before = 0):
     """
     steps_per_epoch (int): the number of steps before the policy is updated
     update_iters (int): the number of update iterations per update
+
+    early_stop_before (int): the first task that we do not want to stop early
     """
 
     if save_freq == None:
@@ -73,8 +76,15 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
             env_cfgs = {
                 'beta': beta,
                 'kappa': kappa,
+                'early_stop_before': early_stop_before,
             }
             custom_cfg["env_cfgs"] = env_cfgs
+        # TODO find a way to know inside policy_gradient that a static curriculum needs to be stopped
+        # else:
+        #     env_cfgs = {
+        #         'early_stop_before': early_stop_before,
+        #     }
+        #     custom_cfg["env_cfgs"] = env_cfgs
 
         # Add cost_limit depending on specific algorithm, the cost is discounted
         if kwargs.get("lagrange_cfgs"):
@@ -93,7 +103,7 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
             if kwargs["algo_cfgs"].get("cost_limit"):
                 custom_cfg["algo_cfgs"].update({'cost_limit': cost_limit,})
 
-        print(f"{algo}: {custom_cfg}")
+        print(f"Initializing {algo}: {custom_cfg}")
 
         custom_cfgs.append(custom_cfg)
 
@@ -113,10 +123,13 @@ def get_agents(folder, algorithms, env_id, cfgs, curr_changes):
             
             if int(start_task) != 0:
                 algo_folders = os.listdir(f"{'app/' if on_server else ''}results/" + folder)
-                algo_folder = [fldr for fldr in algo_folders if algorithm in fldr and any(prefix + str(int(start_task) - 1) in fldr for prefix in ["HM", "HMR"])][0]
+                algo_folder = [fldr for fldr in algo_folders if algorithm in fldr and any(prefix + str(int(start_task) - 1) in fldr for prefix in ["HM", "HMR", "HMA"])][0]
                 algo_path = os.path.join(f"{'app/' if on_server else ''}results/", folder, algo_folder)
                 seed_folder = [fldr for fldr in os.listdir(algo_path) if "seed-" + str(cfg.get("seed")).zfill(3) in fldr][0]
-                agent.agent.load(curr_changes[int(start_task) - 1], os.path.join(algo_path, seed_folder))
+                if "HMA" in env_id:
+                    agent.agent.load(path=os.path.join(algo_path, seed_folder))
+                else:
+                    agent.agent.load(epoch=curr_changes[int(start_task) - 1], path=os.path.join(algo_path, seed_folder))
         agents.append(agent)
 
     return agents
@@ -148,10 +161,11 @@ def remove_wandb(folder):
                 print(wandb_path)
                 shutil.rmtree(wandb_path, ignore_errors = True)
 
-def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, epochs, algorithm, env_id, folder, curr_changes):
+def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, epochs, algorithm, env_id, folder, curr_changes,
+                   early_stop_before = 0, beta = 1.0, kappa = 20):
     # Get configurations
     cfgs = get_configs(folder=folder, algos=[algorithm], epochs=epochs, cost_limit=cost_limit, seed=seed, 
-                       save_freq = save_freq)
+                       save_freq = save_freq, early_stop_before=early_stop_before, beta=beta, kappa=kappa)
 
     # Initialize agents
     agents = get_agents(folder, [algorithm], env_id, cfgs, curr_changes)
@@ -160,7 +174,7 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
     for agent in agents:
         train_agent(agent, eval_episodes, render_episodes, True, [int(epochs/4), int(epochs/2), int(3 * epochs/4), epochs])
 
-def use_params(algorithm, end_task, algorithm_type, seed):
+def use_params(algorithm, end_task, algorithm_type, seed, exp, beta = 1.0, kappa = 20):
     if end_task <= 2:
         epochs = 500
     elif end_task == 6:
@@ -174,44 +188,63 @@ def use_params(algorithm, end_task, algorithm_type, seed):
         env_id = f'SafetyPointFrom{end_task if end_task < 6 else "T"}HM{end_task if end_task < 6 else "T"}-v0'
         # env_id = f'SafetyPointFrom0HM{end_task if end_task < 6 else "T"}-v0'
     elif algorithm_type == "adaptive_curriculum":
-        env_id = f'SafetyPointFrom0HMA{end_task if end_task < 6 else "T"}-v0'
+        env_id = f'SafetyPointFrom{end_task if end_task < 6 else "T"}HMA{end_task if end_task < 6 else "T"}-v0'
     else:
-        raise Exception("Invalid algorithm type, must be either 'baseline' or 'curriculum'.")
+        raise Exception("Invalid algorithm type, must be 'baseline', 'curriculum' or 'adaptive_curriculum'.")
 
     run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
                     seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
-                    env_id=env_id, folder=f"{folder_base}/{algorithm_type}", curr_changes=curr_changes)
+                    env_id=env_id, folder=f"{folder_base}/{algorithm_type}{'/beta-'+str(beta)+'/kappa-'+str(kappa) if exp <= 2 else ''}", 
+                    curr_changes=curr_changes, early_stop_before=6 if exp<=2 else 0, beta=beta, kappa=kappa)
 
 if __name__ == '__main__':
+    warnings.filterwarnings("ignore")
     eval_episodes = 5
     render_episodes = 3
     cost_limit = 5.0
     steps_per_epoch = 1000
     save_freq = 10
     epochs = 3000
-    repetitions = 15
+    repetitions = 10
     # baseline_algorithms = []#["PPO", "CPO", "OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
     # curr_algorithms = ["PPOLag"]#["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
     baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
     curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    folder_base = "incremental_static_curriculum"
+    adapt_curr_algorithms = ["PPOLag"]
+    folder_base = "tune_beta_kappa_reset"
     curr_changes = [10, 20, 40, 100, 300, 700]
-    seeds = [5905, 7337, 572, 5689, 3968] # [175, 4678, 9733, 3743, 7596] # [int(rand.random() * 10000) for i in range(repetitions)]
+    seeds = [5905, 7337, 572, 5689, 3968, 175, 4678, 9733, 3743, 7596] # [int(rand.random() * 10000) for i in range(repetitions)]
     betas = [0.5, 1.0, 1.5]
     kappas = [5, 10, 20]
 
     on_server = torch.cuda.is_available()
 
-    # # Repeat experiments
-    # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    # os.environ["WANDB__SERVICE_WAIT"] = "300"
-    # for end_task in range(0, len(curr_changes) + 1):
-    #     with Pool(8) as p:
-    #         args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds, [1.0], [10]))
-    #         args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds, [1.0], [10]))
-    #         args = args_curr #+ args_base
-    #         p.starmap(use_params, args)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--exp', dest='exp', type=int, help='Choose experiment', default=0)
+    args = parser.parse_args()
+    exp = args.exp
 
+    if exp == 1:
+        # Repeat experiments
+        wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+        os.environ["WANDB__SERVICE_WAIT"] = "300"
+        seeds = [5905, 7337, 572, 5689, 3968]
+        for end_task in range(0, len(curr_changes) + 1):
+            with Pool(8) as p:
+                args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, exp, betas, kappas))
+                p.starmap(use_params, args_curr)
+    elif exp == 2:
+        # Repeat experiments
+        wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+        os.environ["WANDB__SERVICE_WAIT"] = "300"
+        seeds = [175, 4678, 9733, 3743, 7596]
+        for end_task in range(0, len(curr_changes) + 1):
+            with Pool(8) as p:
+                args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, exp, betas, kappas))
+                p.starmap(use_params, args_curr)
+    # elif exp == 3:
+
+                
     # with Pool(8) as p:
     #     # args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds, [1.0], [10]))
     #     args_curr = list(product(curr_algorithms, [4, 6, 5], ["curriculum"], seeds, [1.0], [10]))
@@ -243,22 +276,22 @@ if __name__ == '__main__':
     #         args = args_curr + args_base
     #         p.starmap(use_params, args)
 
-    # use_params(*("PPOLag", 4, "curriculum", 1142, 1.0, 10))
+    # use_params(*("PPOLag", 3, "adaptive_curriculum", 1142))
 
-    # # Repeat experiments
-    # for end_task in range(4, 5):
-    #     use_params(*("PPOLag", end_task, "curriculum", 1142, 0.5, 10))
+    # Repeat experiments
+    # for end_task in range(0, 3):
+    #     use_params(*("PPOLag", end_task, "adaptive_curriculum", 1142, 100, 2, 2))
 
     # Plot the results
-    train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    train_df['end_task'] = train_df['end_task'].astype(str)
-    train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    train_df = plot_incremental_train(folder=folder_base, combined_df=train_df, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
-    eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
+    # train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    # train_df['end_task'] = train_df['end_task'].astype(str)
+    # train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    # train_df = plot_incremental_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
+    # eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
     # eval_df["type"] = eval_df["type"].replace("ablation", "baseline").replace("lr reset", "curriculum")
-    eval_df['end_task'] = eval_df['end_task'].astype(str)
-    eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
-    eval_df = plot_incremental_eval(folder=folder_base, combined_df=eval_df, curr_changes=curr_changes, cost_limit=cost_limit)
+    # eval_df['end_task'] = eval_df['end_task'].astype(str)
+    # eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
+    # eval_df = plot_incremental_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
     # print_incremental_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
     # train_df['end_task'] = train_df['end_task'].astype(str)
     # eval_df['end_task'] = eval_df['end_task'].astype(str)

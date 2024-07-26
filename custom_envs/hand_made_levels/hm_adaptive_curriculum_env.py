@@ -279,7 +279,6 @@ class HMAdaptiveCurriculumEnv(CMDP):
             self.evaluating = True
             self._env = eval(f"self._env_{self.current_task}")
         elif not self.evaluating:
-            print(self.distribution)
             next_task = np.random.choice(list(self.distribution.keys()), p=list(self.distribution.values()))
             self.current_task = next_task
             self._env = eval(f"self._env_{self.current_task}")
@@ -343,9 +342,15 @@ class HMAdaptiveCurriculumEnv(CMDP):
         if done_task and cost <= self.beta * 5.0:
             self.completed_tasks += 1
 
+        print("self.completed_tasks", self.completed_tasks)
+        print("self.beta", self.beta)
+        print("self.kappa", self.kappa)
+
         if self.completed_tasks >= self.kappa:
             self.completed_tasks = 0
             self.update_distribution()
+            return True
+        return False
 
     def update_distribution(self):
         keys = list(self.distribution.keys())
