@@ -34,6 +34,8 @@ class HMLevelBase(BaseTask):
                                  (2, -1, 3, 1),
                                  (2, -0.5, 3, 0.5),
                                  ]
+        
+
         # self.agent.locations = [(2.5, 0)]
 
         # # Show start locations

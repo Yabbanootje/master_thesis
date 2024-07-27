@@ -214,7 +214,7 @@ if __name__ == '__main__':
     baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
     curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
     adapt_curr_algorithms = ["PPOLag"]
-    folder_base = "incremental_static_curriculum"
+    folder_base = "incremental_static_curriculum_r"
     curr_changes = [10, 20, 40, 100, 300, 700]
     seeds = [5905, 7337, 572, 5689, 3968, 175, 4678, 9733, 3743, 7596] # [int(rand.random() * 10000) for i in range(repetitions)]
     betas = [0.5, 1.0, 1.5]
@@ -303,21 +303,26 @@ if __name__ == '__main__':
 
     # use_params(*("PPOLag", 3, "adaptive_curriculum", 1142))
 
-    # Repeat experiments
-    # for end_task in range(0, 3):
-    #     use_params(*("PPOLag", end_task, "adaptive_curriculum", 1142, 100, 2, 2))
+    # # Repeat experiments
+    # for end_task in range(0, 7):
+    #     use_params(*("PPOLag", end_task, "baseline", 1142, 100, 2, 2))
 
     # Plot the results
+    train_df = None
     train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
     train_df['end_task'] = train_df['end_task'].astype(str)
-    # train_df = train_df.drop(columns=[col for col in train_df.columns if "Unnamed" in col])
-    # train_df = plot_incremental_train(folder=folder_base, combined_df=train_df, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
-    # train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    # train_df['seed'] = train_df['seed'].astype(str)
+    # # train_df = train_df.drop(columns=[col for col in train_df.columns if "Unnamed" in col])
+    train_df["type"] = train_df["type"].replace("baseline", "baseline R").replace("curriculum", "curriculum R").replace("adaptive_curriculum", "curriculum")
+    train_df = plot_incremental_train(folder=folder_base, combined_df=train_df, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
+    train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    eval_df = None
     eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
-    # eval_df["type"] = eval_df["type"].replace("ablation", "baseline").replace("lr reset", "curriculum")
+    eval_df["type"] = eval_df["type"].replace("baseline", "baseline R").replace("curriculum", "curriculum R").replace("adaptive_curriculum", "curriculum")
     eval_df['end_task'] = eval_df['end_task'].astype(str)
-    # eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
+    # eval_df['seed'] = eval_df['seed'].astype(str)
     eval_df = plot_incremental_eval(folder=folder_base, combined_df=eval_df, curr_changes=curr_changes, cost_limit=cost_limit)
+    eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
     # print_incremental_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
     # train_df['end_task'] = train_df['end_task'].astype(str)
     # eval_df['end_task'] = eval_df['end_task'].astype(str)

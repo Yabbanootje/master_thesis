@@ -27,7 +27,7 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
             paths = [entry.path for entry in os.scandir(os.path.join(directory, algorithm))]
             for path in paths:
                 path = path.replace("\\", "/")
-                # print(path)
+                print(path)
                 df = pd.read_csv(os.path.join(path, "progress.csv")).rename(columns=
                     {"Metrics/EpRet": "return", "Metrics/EpCost": "cost", "Metrics/EpLen": "length"}
                 )[['return', 'cost', 'length']]
@@ -101,29 +101,73 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
             plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}.pdf")
             plt.close()
 
-    # # Create plots for whole data
-    # create_plot(combined_df=combined_df)
+    # Create plots for whole data
+    create_plot(combined_df=combined_df)
 
     # # Create plots for each algorithm
     # for algo in combined_df["Algorithm"].unique():
     #     create_plot(combined_df=combined_df[combined_df['Algorithm'] == algo], additional_folder=algo, additional_title_text=algo)
 
-    # print(combined_df["end_task"].unique())
-    # for end_task in combined_df["end_task"].unique():
-    #     if end_task == "T":
-    #         idx = 6
-    #     else:
-    #         idx = int(end_task)
-        # create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], curr_changes=curr_changes[:idx], additional_folder="HM" + str(end_task), 
-        #             additional_title_text="HM" + str(end_task))
+    print(combined_df["end_task"].unique())
+    for end_task in combined_df["end_task"].unique():
+        if end_task == "T":
+            idx = 6
+        else:
+            idx = int(end_task)
+        create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], curr_changes=curr_changes[:idx], additional_folder="HM" + str(end_task), 
+                    additional_title_text="HM" + str(end_task))
         
         # create_plot(combined_df=combined_df[(combined_df['end_task'] == end_task) & (combined_df['seed'].isin(map(str,[5905, 7337, 572, 5689, 3968])))], curr_changes=curr_changes[:idx], 
         #             additional_folder="FairHM" + str(end_task), additional_title_text="FairHM" + str(end_task))
-        
-    def create_subplot_grid(combined_df, curr_changes, additional_folder="", additional_file_text="", additional_title_text=""):
+
+    def create_subplot_grid_3_by_3(combined_df, curr_changes, additional_folder="", additional_file_text="", additional_title_text=""):
         end_tasks = combined_df['end_task'].unique()
         
         # Create a 3x3 subplot grid
+        fig, axes = plt.subplots(nrows=3, ncols=3, figsize=(12, 6.4), dpi=200)
+        for ax_row, metric in zip(axes, ["return", "cost", "regret"]):
+            for ax, end_task in zip(ax_row, end_tasks):
+                sns.set_style("whitegrid")
+                
+                sns.lineplot(data=combined_df[combined_df['end_task'] == end_task], x='step', y=metric, hue='type', errorbar="sd" if use_std else "se", ax=ax)
+                
+                if end_task == "T":
+                    idx = 6
+                else:
+                    idx = int(end_task)
+                for change in curr_changes[:idx]:
+                    ax.axvline(x=change, color="gray", linestyle='-')
+                
+                if metric == 'cost':
+                    ax.axhline(y=cost_limit, color='black', linestyle=':', label=f'Cost Limit ({cost_limit})')
+                    
+                ax.set_xlabel("x1000 Steps")
+                ax.get_legend().remove()
+                if end_task == "4":
+                    ax.set_ylabel(metric.replace('_', ' ').capitalize())
+                else:
+                    ax.set_ylabel('')
+                if metric == "return":
+                    ax.set_title(f"Task {end_task}")
+                if metric == "cost" and end_task == "T":
+                    handles, labels = ax.get_legend_handles_labels()
+                    ax.legend(handles, labels, loc=(1.01, 0.01), ncol=1)
+        
+        plt.tight_layout(pad=2)
+        if not os.path.isdir(f"figures/{folder}/{additional_folder}"):
+            os.makedirs(f"figures/{folder}/{additional_folder}")
+        plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}grid.png")
+        plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}grid.pdf")
+        plt.close()
+
+    # Call the function to create the grid of plots
+    # create_subplot_grid_3_by_3(combined_df=combined_df, curr_changes=curr_changes)
+    # create_subplot_grid_3_by_3(combined_df=combined_df[combined_df["seed"].isin(map(str, [5905, 7337, 572, 5689, 3968]))], curr_changes=curr_changes, additional_file_text="fair_")
+        
+    def create_subplot_grid_3_by_6(combined_df, curr_changes, additional_folder="", additional_file_text="", additional_title_text=""):
+        end_tasks = combined_df['end_task'].unique()
+        
+        # Create a 3x6 subplot grid
         fig, axes = plt.subplots(nrows=3, ncols=6, figsize=(24, 6.4), dpi=200)
         for ax_row, metric in zip(axes, ["return", "cost", "regret"]):
             for ax, end_task in zip(ax_row, end_tasks):
@@ -161,7 +205,7 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
         plt.close()
 
     # Call the function to create the grid of plots
-    create_subplot_grid(combined_df=combined_df[combined_df["Algorithm"] == "PPOLag"], curr_changes=curr_changes, additional_folder="PPOLag")
+    create_subplot_grid_3_by_6(combined_df=combined_df[combined_df["Algorithm"] == "PPOLag"], curr_changes=curr_changes, additional_folder="PPOLag")
 
     def create_subspiderplot_grid(combined_df, curr_changes, additional_folder="", additional_file_text="", additional_title_text=""):
         end_tasks = combined_df['end_task'].unique()
@@ -369,27 +413,71 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, combined_df=None, in
             plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}{metric}s{zoomed}_eval.pdf")
             plt.close()
 
-    # # Create plots for whole data
-    # create_plot(combined_df=combined_df)
+    # Create plots for whole data
+    create_plot(combined_df=combined_df)
 
     # Create plots for each environment
-    # print(combined_df["end_task"].unique())
-    # for end_task in combined_df["end_task"].unique():
-    #     if end_task == "T":
-    #         idx = 6
-    #     else:
-    #         idx = int(end_task)
-    #     create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], curr_changes=curr_changes[:idx], additional_folder="HM" + str(end_task), 
-    #                 additional_title_text="HM" + str(end_task))
+    print(combined_df["end_task"].unique())
+    for end_task in combined_df["end_task"].unique():
+        if end_task == "T":
+            idx = 6
+        else:
+            idx = int(end_task)
+        create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], curr_changes=curr_changes[:idx], additional_folder="HM" + str(end_task), 
+                    additional_title_text="HM" + str(end_task))
         
-    #     create_plot(combined_df=combined_df[(combined_df['end_task'] == end_task) & (combined_df['seed'].isin([5905, 7337, 572, 5689, 3968]))], curr_changes=curr_changes[:idx], 
-    #                 additional_folder="FairHM" + str(end_task), additional_title_text="FairHM" + str(end_task))
+        # create_plot(combined_df=combined_df[(combined_df['end_task'] == end_task) & (combined_df['seed'].isin([5905, 7337, 572, 5689, 3968]))], curr_changes=curr_changes[:idx], 
+        #             additional_folder="FairHM" + str(end_task), additional_title_text="FairHM" + str(end_task))
 
     # # Create plots for each algorithm
     # for algo in combined_df["Algorithm"].unique():
     #     create_plot(combined_df=combined_df[combined_df['Algorithm'] == algo], additional_folder=algo, additional_title_text=algo)
 
-    def create_subplot_grid(combined_df, curr_changes, additional_folder="", additional_file_text="", additional_title_text=""):
+    def create_subplot_grid_3_by_3(combined_df, curr_changes, additional_folder="", additional_file_text="", additional_title_text=""):
+        end_tasks = combined_df['end_task'].unique()
+        
+        # Create a 3x3 subplot grid
+        fig, axes = plt.subplots(nrows=3, ncols=3, figsize=(12, 6.4), dpi=200)
+        for ax_row, metric in zip(axes, ["return", "cost", "regret"]):
+            for ax, end_task in zip(ax_row, end_tasks):
+                sns.set_style("whitegrid")
+                
+                sns.lineplot(data=combined_df[combined_df['end_task'] == end_task], x='step', y=metric, hue='type', errorbar="sd" if use_std else "se", ax=ax)
+                
+                if end_task == "T":
+                    idx = 6
+                else:
+                    idx = int(end_task)
+                for change in curr_changes[:idx]:
+                    ax.axvline(x=change, color="gray", linestyle='-')
+                
+                if metric == 'cost':
+                    ax.axhline(y=cost_limit, color='black', linestyle=':', label=f'Cost Limit ({cost_limit})')
+                    
+                ax.set_xlabel("x1000 Steps")
+                ax.get_legend().remove()
+                if end_task == "4":
+                    ax.set_ylabel(metric.replace('_', ' ').capitalize())
+                else:
+                    ax.set_ylabel('')
+                if metric == "return":
+                    ax.set_title(f"Task {end_task}")
+                if metric == "cost" and end_task == "T":
+                    handles, labels = ax.get_legend_handles_labels()
+                    ax.legend(handles, labels, loc=(1.01, 0.01), ncol=1)
+        
+        plt.tight_layout(pad=2)
+        if not os.path.isdir(f"figures/{folder}/{additional_folder}"):
+            os.makedirs(f"figures/{folder}/{additional_folder}")
+        plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}grid_eval.png")
+        plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}grid_eval.pdf")
+        plt.close()
+
+    # Call the function to create the grid of plots
+    # create_subplot_grid_3_by_3(combined_df=combined_df, curr_changes=curr_changes)
+    # create_subplot_grid_3_by_3(combined_df=combined_df[combined_df["seed"].isin(map(str, [5905, 7337, 572, 5689, 3968]))], curr_changes=curr_changes, additional_file_text="fair_")
+
+    def create_subplot_grid_3_by_6(combined_df, curr_changes, additional_folder="", additional_file_text="", additional_title_text=""):
         end_tasks = combined_df['end_task'].unique()
         
         # Create a 3x3 subplot grid
@@ -430,7 +518,7 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, combined_df=None, in
         plt.close()
 
     # Call the function to create the grid of plots
-    create_subplot_grid(combined_df=combined_df[combined_df["Algorithm"] == "PPOLag"], curr_changes=curr_changes, additional_folder="PPOLag")
+    create_subplot_grid_3_by_6(combined_df=combined_df[combined_df["Algorithm"] == "PPOLag"], curr_changes=curr_changes, additional_folder="PPOLag")
 
     def create_subspiderplot_grid(combined_df, curr_changes, additional_folder="", additional_file_text="", additional_title_text=""):
         end_tasks = combined_df['end_task'].unique()
@@ -511,8 +599,8 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, combined_df=None, in
         plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}spider_grid_eval.pdf")
         plt.close()
 
-    # Call the function to create the grid of plots
-    create_subspiderplot_grid(combined_df=combined_df[combined_df["Algorithm"].isin(["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO"])], curr_changes=curr_changes)
+    # # Call the function to create the grid of plots
+    # create_subspiderplot_grid(combined_df=combined_df[combined_df["Algorithm"].isin(["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO"])], curr_changes=curr_changes)
 
     return combined_df
 
