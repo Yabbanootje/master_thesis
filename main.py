@@ -182,6 +182,8 @@ def use_params(algorithm, end_task, algorithm_type, seed, exp, beta = 1.0, kappa
             epochs = 3000
         else:
             epochs = 2000
+    else:
+        epochs = 3000
 
     if algorithm_type == "baseline":
         env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
