@@ -72,7 +72,7 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
             },
         }
 
-        if "adaptive_curriculum" == os.path.basename(folder):
+        if "adaptive_curriculum" == os.path.basename(folder) or "kappa" in os.path.basename(folder):
             env_cfgs = {
                 'beta': beta,
                 'kappa': kappa,
