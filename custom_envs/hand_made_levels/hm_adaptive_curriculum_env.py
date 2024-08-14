@@ -157,7 +157,7 @@ class HMAdaptiveCurriculumEnv(CMDP):
         # TODO have distribution only include tasks between start and end
         tasks = list(self._task_to_int.keys())[self._task_to_int[self._start_task]:self._task_to_int[self._end_task] + 1]
         self.distribution = dict(map(lambda i,j : (i,j), tasks, 
-                                     [0.0 if task != int(self._start_task) else 1.0 for task in range(self._task_to_int[self._start_task], 
+                                     [0.0 if task != self._task_to_int[self._start_task] else 1.0 for task in range(self._task_to_int[self._start_task], 
                                                                                                       self._task_to_int[self._end_task] + 1)]))
         self.changed_task = True
         self.current_task = self._start_task
