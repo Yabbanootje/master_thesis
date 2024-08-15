@@ -233,7 +233,7 @@ if __name__ == '__main__':
         wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
         os.environ["WANDB__SERVICE_WAIT"] = "300"
         seeds = [5905, 7337, 572, 5689, 3968]
-        for end_task in range(5, len(curr_changes) + 1):
+        for end_task in range(6, len(curr_changes) + 1):
             with Pool(8) as p:
                 args_curr = list(product(adapt_curr_algorithms, [end_task], ["adaptive_curriculum"], seeds, [exp], betas, kappas))
                 p.starmap(use_params, args_curr)
@@ -243,7 +243,7 @@ if __name__ == '__main__':
         wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
         os.environ["WANDB__SERVICE_WAIT"] = "300"
         seeds = [175, 4678, 9733, 3743, 7596]
-        for end_task in range(5, len(curr_changes) + 1):
+        for end_task in range(6, len(curr_changes) + 1):
             with Pool(8) as p:
                 args_curr = list(product(adapt_curr_algorithms, [end_task], ["adaptive_curriculum"], seeds, [exp], betas, kappas))
                 p.starmap(use_params, args_curr)
