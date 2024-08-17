@@ -236,7 +236,7 @@ if __name__ == '__main__':
         for end_task in range(6, len(curr_changes) + 1):
             with Pool(8) as p:
                 args_curr = list(product(adapt_curr_algorithms, [end_task], ["adaptive_curriculum"], seeds, [exp], betas, kappas))
-                args_curr.remove(("PPOLag", 6, "adaptive_curriculum", 5689, 2, 1.0, 10))
+                args_curr.remove(("PPOLag", 6, "adaptive_curriculum", 5689, 1, 1.0, 10))
                 p.starmap(use_params, args_curr)
     elif exp == 2:
         folder_base = "tune_beta_kappa_reset"
