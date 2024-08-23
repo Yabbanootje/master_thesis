@@ -178,7 +178,7 @@ def use_params(algorithm, end_task, algorithm_type, seed, exp, beta = 1.0, kappa
     if exp > 2:
         if end_task <= 2:
             epochs = 500
-        elif end_task == 6:
+        elif end_task >= 5:
             epochs = 3000
         else:
             epochs = 2000
@@ -214,7 +214,7 @@ if __name__ == '__main__':
     baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
     curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
     adapt_curr_algorithms = ["PPOLag"]
-    folder_base = "tune_beta_kappa_reset"
+    folder_base = "incremental_adaptive_curriculum"
     curr_changes = [10, 20, 40, 100, 300, 700]
     seeds = [5905, 7337, 572, 5689, 3968, 175, 4678, 9733, 3743, 7596] # [int(rand.random() * 10000) for i in range(repetitions)]
     betas = [0.5, 1.0, 1.5]
@@ -255,10 +255,10 @@ if __name__ == '__main__':
         wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
         os.environ["WANDB__SERVICE_WAIT"] = "300"
         seeds = [5905, 7337, 572, 5689, 3968]
-        for end_task in range(0, len(curr_changes) + 1):
+        for end_task in range(4, len(curr_changes) + 1):
             with Pool(8) as p:
-                args_curr = list(product(curr_algorithms if end_task != 0 else [], [end_task], ["curriculum"], seeds, [exp], [1.0], [20]))
-                args_adapt_curr = list(product(curr_algorithms if end_task != 0 else ["PPOEarlyTerminated"], [end_task], ["adaptive_curriculum"], seeds, [exp], [1.0], [20]))
+                args_curr = list(product(curr_algorithms if end_task != 4 else [], [end_task], ["curriculum"], seeds, [exp], [1.0], [20]))
+                args_adapt_curr = list(product(curr_algorithms if end_task != 4 else ["PPOEarlyTerminated"], [end_task], ["adaptive_curriculum"], seeds, [exp], [1.0], [20]))
                 p.starmap(use_params, args_curr + args_adapt_curr)
     elif exp == 4:
         folder_base = "incremental_adaptive_curriculum"
