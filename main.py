@@ -260,7 +260,7 @@ if __name__ == '__main__':
                 args_curr = list(product(curr_algorithms if end_task != 4 else [], [end_task], ["curriculum"], seeds, [exp], [1.0], [20]))
                 args_adapt_curr = list(product(curr_algorithms if end_task != 4 else ["PPOEarlyTerminated"], [end_task], ["adaptive_curriculum"], seeds, [exp], [1.0], [20]))
                 if end_task == 4:
-                    args_adapt_curr = args_adapt_curr + product(["FOCOPS"], [end_task], ["adaptive_curriculum"], [3968], [exp], [1.0], [20])
+                    args_adapt_curr = args_adapt_curr + list(product(["FOCOPS"], [end_task], ["adaptive_curriculum"], [3968], [exp], [1.0], [20]))
                 p.starmap(use_params, args_curr + args_adapt_curr)
     elif exp == 4:
         folder_base = "incremental_adaptive_curriculum"
