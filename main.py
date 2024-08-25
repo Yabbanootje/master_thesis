@@ -268,10 +268,12 @@ if __name__ == '__main__':
         wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
         os.environ["WANDB__SERVICE_WAIT"] = "300"
         seeds = [175, 4678, 9733, 3743, 7596]
-        for end_task in range(0, len(curr_changes) + 1):
+        for end_task in range(4, len(curr_changes) + 1):
             with Pool(8) as p:
-                args_curr = list(product(curr_algorithms if end_task != 0 else [], [end_task], ["curriculum"], seeds, [exp], [1.0], [20]))
-                args_adapt_curr = list(product(curr_algorithms if end_task != 0 else ["PPOEarlyTerminated"], [end_task], ["adaptive_curriculum"], seeds, [exp], [1.0], [20]))
+                args_curr = list(product(curr_algorithms if end_task != 4 else [], [end_task], ["curriculum"], seeds, [exp], [1.0], [20]))
+                args_adapt_curr = list(product(curr_algorithms if end_task != 4 else [], [end_task], ["adaptive_curriculum"], seeds, [exp], [1.0], [20]))
+                if end_task == 4:
+                    args_adapt_curr = args_adapt_curr + list(product(["PPOEarlyTerminated"], [end_task], ["adaptive_curriculum"], [9733, 7596], [exp], [1.0], [20]))
                 p.starmap(use_params, args_curr + args_adapt_curr)
                 
     # with Pool(8) as p:
