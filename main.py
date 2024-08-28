@@ -270,7 +270,7 @@ if __name__ == '__main__':
                         args_adapt_curr.remove(("PPOLag", 5, "adaptive_curriculum", seed, exp, 1.0, 20))
                     for seed in [7337, 5689, 572, 5905]:
                         args_adapt_curr.remove(("FOCOPS", 5, "adaptive_curriculum", seed, exp, 1.0, 20))
-                # p.starmap(use_params, args_curr + args_adapt_curr)
+                p.starmap(use_params, args_curr + args_adapt_curr)
     elif exp == 4:
         folder_base = "incremental_adaptive_curriculum"
         # Repeat experiments
