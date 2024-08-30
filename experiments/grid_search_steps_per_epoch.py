@@ -1,21 +1,21 @@
-from ...master_thesis.main import *
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from main import *
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--steps_per_epoch', dest='steps_per_epoch', type=int, help='Add steps_per_epoch')
-    args = parser.parse_args()
-
+    folder_base = "grid_search_2"
     eval_episodes = 3
     cost_limit = 1.0
     epochs = 100
     repetitions = 5
-    baseline_algorithms = ["PPOLag"] # ["PPO", "PPOLag", "P3O"]
-    curr_algorithms = ["PPOLag"] # ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
+    baseline_algorithms = ["PPOLag"]
+    curr_algorithms = ["PPOLag"]
 
     # Grid search params
     steps_per_epochs = [1000, 2000]
     parameters = ["steps_per_epochs", "lag_multiplier_inits", "lag_multiplier_lrs", "update_iterss", "nn_sizes"]
 
+    # Best curriculum parameters
     promising_parameters = [(0.001, 0.1, 1, 64),
                             (0.001, 0.01, 1, 64), # Best
                             (0.01, 0.1, 1, 256),
@@ -32,18 +32,16 @@ if __name__ == '__main__':
                                                       "Evaluation Regret",
                                                       "Return Curr", "Cost Curr", "Regret Curr", "Evaluation Return Curr",
                                                       "Evaluation Cost Curr", 
-                                                      "Evaluation Regret Curr"] # , "eval_length"
+                                                      "Evaluation Regret Curr"]
                                                       ).set_index(parameters)
 
-    # for grid_params in product(cost_limits, lag_multiplier_inits, lag_multiplier_lrs, steps_per_epochs, update_iterss, nn_sizes):
-        # (cost_limit, lag_multiplier_init, lag_multiplier_lr, steps_per_epoch, update_iters, nn_size) = grid_params
+    # Traing agents and save data
     for promising_parameter_combo in promising_parameters:
         for steps_per_epoch in steps_per_epochs:
             (lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size) = promising_parameter_combo
             grid_params = (cost_limit, lag_multiplier_init, lag_multiplier_lr, steps_per_epoch, update_iters, nn_size)
             # Create folder
-            folder_name = "grid_search_2/test-half_curriculum-" + str(grid_params)
-            # folder_name = folder_name + "---" + str(datetime.datetime.now()).replace(' ', '-')
+            folder_name = folder_base + "/test-half_curriculum-" + str(grid_params)
 
             # Repeat experiments
             for i in range(repetitions):
@@ -74,6 +72,7 @@ if __name__ == '__main__':
             train_df = plot_train(folder_name, curr_changes, cost_limit, include_weak=False)
             eval_df = plot_eval(folder_name, curr_changes, cost_limit, include_weak=False, save_freq=save_freq)
 
+            # Get values for baseline
             filtered_train_df = train_df[train_df['type'] == "baseline"] # "curriculum"
             filtered_eval_df = eval_df[eval_df['type'] == "baseline"] # "curriculum"
             mean_train_df = filtered_train_df.groupby(["step"]).mean(numeric_only=True)
@@ -89,6 +88,7 @@ if __name__ == '__main__':
             regret_train = mean_train_df["regret"].iloc[-1]
             regret_eval = mean_eval_df["regret"].iloc[-1]
 
+            # Get values for curriculum
             filtered_train_df_curr = train_df[train_df['type'] == "curriculum"]
             filtered_eval_df_curr = eval_df[eval_df['type'] == "curriculum"]
             mean_train_df_curr = filtered_train_df_curr.groupby(["step"]).mean(numeric_only=True)
@@ -111,15 +111,15 @@ if __name__ == '__main__':
                                     "Return Curr": return__curr, "Cost Curr": cost_curr, "Regret Curr": regret_train_curr, 
                                     'Evaluation Return Curr': eval_return_curr,
                                     'Evaluation Cost Curr': eval_cost_curr, "Evaluation Regret Curr": regret_eval_curr,
-                                    }, #, 'eval_length': eval_length
+                                    },
                                     index = [0]).set_index(parameters)       
 
             last_means = pd.concat([last_means, parameter_means])
 
-    last_means.to_csv("app/figures/grid_search_2/last_means.csv")
+    last_means.to_csv(f"app/figures/{folder_base}/last_means.csv")
 
     # Load data
-    last_means = pd.read_csv("app/figures/grid_search_2/last_means.csv").set_index(parameters)
+    last_means = pd.read_csv(f"app/figures/{folder_base}/last_means.csv").set_index(parameters)
 
     last_means = last_means[["Return", "Cost", "Regret", "Evaluation Return", "Evaluation Cost", "Evaluation Regret"]]
     last_means = last_means.sort_values(by=["Evaluation Return"])
@@ -136,13 +136,12 @@ if __name__ == '__main__':
         last_means[column] = (last_means[column] - last_means[column].min()) / (last_means[column].max() - last_means[column].min())
 
     # Plotting the heatmap
-    plt.figure(figsize=(12, 13)) # figsize=(11, 5)
+    plt.figure(figsize=(12, 13))
     plt.imshow(last_means.values, cmap='viridis', aspect='auto')
     plt.grid(False)
 
     # Add labels and ticks
     plt.title('Heatmap of final epoch performance')
-    # plt.title('Performance heatmap of the top 20 baseline agents based on evaluation return')
     plt.ylabel('Parameter Combinations\n(steps_per_epoch, lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size)')
     plt.xlabel('Metrics')
     plt.yticks(ticks=np.arange(len(last_means.index)), labels=last_means.index, rotation='horizontal')
@@ -165,17 +164,18 @@ if __name__ == '__main__':
                                        (0.001, 0.035, 50, 64),
                                        ]
     
-    promising_parameters = [(0.1, 0.01, 1, 64), # seems to be one of few that is better with a lower cost limit
-                            (0.01, 0.01, 1, 64), # decent when looking at statistics, but when looking at evaluation it is very poor
+    promising_parameters = [(0.1, 0.01, 1, 64),
+                            (0.01, 0.01, 1, 64),
                             (0.001, 0.01, 1, 64),
                             (0.1, 0.01, 1, 256),
                             (0.001, 0.01, 1, 256),
-                            (0.1, 0.01, 10, 64), # seems to be one of few that is better with a lower cost limit
+                            (0.1, 0.01, 10, 64),
                             (0.01, 0.01, 10, 64),
                             (0.001, 0.01, 10, 64),
                             (0.1, 0.01, 10, 256),
                             ]
     
+    # Get indices in heatmap corresponding to the promising parameters
     promising_indices_curriculum = []
     for index, i in zip(last_means.index, range(len(annotation))):
         if tuple(index[i] for i in range(len(index)) if i != 0) in promising_parameters_curriculum:
@@ -186,6 +186,7 @@ if __name__ == '__main__':
         if tuple(index[i] for i in range(len(index)) if i != 0) in promising_parameters:
             promising_indices.append(i)
 
+    # Color the text in the heatmap according to which promising parameters it belongs to
     for i in range(len(annotation)):
         for j in range(len(annotation[0])):
             if i in promising_indices and i in promising_indices_curriculum:
@@ -198,6 +199,6 @@ if __name__ == '__main__':
                 plt.text(j, i, f'{annotation[i, j]:.2f}', ha='center', va='center', color='white')
 
     plt.tight_layout()
-    plt.savefig(f"app/figures/grid_search_2/baseline_heatmap_log_costs_more_colors.png")
+    plt.savefig(f"app/figures/{folder_base}/baseline_heatmap_log_costs_more_colors.png")
     plt.show()
     plt.close()

@@ -1,5 +1,5 @@
-import sys
-sys.path.insert(0, 'C:\\Users\\20192169\\Documents\\GitHub\\master_thesis')
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from main import *
 
 if __name__ == '__main__':
@@ -57,7 +57,7 @@ if __name__ == '__main__':
                                                       "Evaluation Regret",
                                                       "Return Curr", "Cost Curr", "Regret Curr", "Evaluation Return Curr",
                                                       "Evaluation Cost Curr", 
-                                                      "Evaluation Regret Curr"] # , "eval_length"
+                                                      "Evaluation Regret Curr"]
                                                       ).set_index(parameters)
     
     for grid_params in product(cost_limits, lag_multiplier_inits, lag_multiplier_lrs, steps_per_epochs, update_iterss, nn_sizes):
@@ -109,7 +109,7 @@ if __name__ == '__main__':
                                 "Return Curr": return__curr, "Cost Curr": cost_curr, "Regret Curr": regret_train_curr, 
                                 'Evaluation Return Curr': eval_return_curr,
                                 'Evaluation Cost Curr': eval_cost_curr, "Evaluation Regret Curr": regret_eval_curr,
-                                }, #, 'eval_length': eval_length
+                                },
                                 index = [0]).set_index(parameters)       
 
         last_means = pd.concat([last_means, parameter_means])
