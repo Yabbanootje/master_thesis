@@ -46,10 +46,10 @@ if __name__ == '__main__':
             # Repeat experiments
             for i in range(repetitions):
                 # Get configurations
-                base_cfgs = get_configs(folder=folder_name + "/baseline", algos=baseline_algorithms, epochs=epochs, cost_limit=cost_limit, random=True,
+                base_cfgs = get_configs(folder=folder_name + "/baseline", algos=baseline_algorithms, epochs=epochs, cost_limit=cost_limit,
                                         steps_per_epoch = steps_per_epoch, update_iters = update_iters, nn_size = nn_size, safe_freq = 20,
                                         lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
-                curr_cfgs = get_configs(folder=folder_name + "/curriculum", algos=curr_algorithms, epochs=epochs, cost_limit=cost_limit, random=True,
+                curr_cfgs = get_configs(folder=folder_name + "/curriculum", algos=curr_algorithms, epochs=epochs, cost_limit=cost_limit,
                                         steps_per_epoch = steps_per_epoch, update_iters = update_iters, nn_size = nn_size, safe_freq = 20,
                                         lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
 

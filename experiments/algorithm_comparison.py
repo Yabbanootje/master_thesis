@@ -1,4 +1,6 @@
-from ...master_thesis.main import *
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from main import *
 
 if __name__ == '__main__':
     eval_episodes = 5
@@ -14,24 +16,29 @@ if __name__ == '__main__':
     curr_changes = [10, 20, 40, 100]
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
 
-    # Repeat experiments
-    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    with Pool(8) as p:
-        args_base = list(product(baseline_algorithms, ["baseline"], seeds))
-        args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
-        args = args_curr + args_base
-        p.starmap(use_params, args)
+    # # Repeat experiments
+    # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+    # with Pool(8) as p:
+    #     args_base = list(product(baseline_algorithms, ["baseline"], seeds))
+    #     args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
+    #     args = args_curr + args_base
+    #     p.starmap(use_params, args)
 
     # Plot the results
-    train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
-    eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
-    print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
 
-    train_df.to_csv(f"app/figures/{folder_base}/comparison/train_df.csv")
-    eval_df.to_csv(f"app/figures/{folder_base}/comparison/eval_df.csv")
+    # train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    # train_df['end_task'] = train_df['end_task'].astype(str)
+    # eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
+    # eval_df['end_task'] = "4"
+    # train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False, combined_df=train_df)
+    # eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, combined_df=eval_df)
+    # print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
 
-    train_df = pd.read_csv(f"app/figures/{folder_base}/comparison/train_df.csv")
-    eval_df = pd.read_csv(f"app/figures/{folder_base}/comparison/eval_df.csv")
+    # train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    # eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
+
+    train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
 
     def plot_metrics(train_df, eval_df, combine=True, exclude_outlier=True):
         if combine:
@@ -61,7 +68,7 @@ if __name__ == '__main__':
                     plot_legend = True
 
                 sns.scatterplot(data=pivot_df, x='baseline', y='curriculum', hue='Algorithm', style="set", 
-                                markers=["o", "$\circ$"], legend=plot_legend, ax=ax, s=100)
+                                legend=plot_legend, ax=ax, s=100)
 
                 ax.grid(False)
 
@@ -89,9 +96,8 @@ if __name__ == '__main__':
             plt.legend(loc=(1.01, 0.01), ncol=1)
             plt.suptitle('Scatterplot of baseline performance vs. curriculum performance')
             plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-            plt.savefig(f"app/figures/{folder_base}/comparison/comparison{'_outlier' if not exclude_outlier else ''}.png")
-            plt.savefig(f"app/figures/{folder_base}/comparison/comparison{'_outlier' if not exclude_outlier else ''}.pdf")
-            plt.show()
+            plt.savefig(f"./figures/{folder_base}/comparison/comparison{'_outlier' if not exclude_outlier else ''}.png")
+            plt.savefig(f"./figures/{folder_base}/comparison/comparison{'_outlier' if not exclude_outlier else ''}.pdf")
             plt.close()
 
         else:
@@ -114,13 +120,13 @@ if __name__ == '__main__':
                     if metric == "regret":
                         plot_legend = True
 
-                    if "non" in set:
-                        markers = ["o"]
-                    else:
-                        markers = ["$\circ$"]
+                    # if "non" in set:
+                        # markers = ["o"]
+                    # else:
+                    #     markers = ["$\circ$"]
 
                     sns.scatterplot(data=pivot_df, x='baseline', y='curriculum', hue='Algorithm', style='Algorithm',
-                                    markers=markers, legend=plot_legend, ax=ax, s=100)
+                                    markers=["o"], legend=plot_legend, ax=ax, s=100)
 
                     ax.grid(False)
 
@@ -150,13 +156,12 @@ if __name__ == '__main__':
                 plt.legend(loc=(1.01, 0.01), ncol=1)
                 plt.suptitle('Scatterplot of baseline performance vs. curriculum performance')
                 plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-                plt.savefig(f"app/figures/{folder_base}/comparison/{set}comparison{'_outlier' if not exclude_outlier else ''}.png")
-                plt.savefig(f"app/figures/{folder_base}/comparison/{set}comparison{'_outlier' if not exclude_outlier else ''}.pdf")
-                plt.show()
+                plt.savefig(f"./figures/{folder_base}/comparison/{set}comparison{'_outlier' if not exclude_outlier else ''}.png")
+                plt.savefig(f"./figures/{folder_base}/comparison/{set}comparison{'_outlier' if not exclude_outlier else ''}.pdf")
                 plt.close()
 
     # Plot non-evaluation metrics
     plot_metrics(train_df, eval_df)
-    plot_metrics(train_df, eval_df, combine=False)
+    # plot_metrics(train_df, eval_df, combine=False)
     plot_metrics(train_df, eval_df, exclude_outlier=False)
-    plot_metrics(train_df, eval_df, combine=False, exclude_outlier=False)
+    # plot_metrics(train_df, eval_df, combine=False, exclude_outlier=False)

@@ -6,6 +6,7 @@ if __name__ == '__main__':
     folder_base = "grid_search"
     eval_episodes = 3
     cost_limit = 5.0
+    safe_freq = 20
     epochs = 100
     repetitions = 3
     baseline_algorithms = ["PPOLag"]
@@ -30,11 +31,11 @@ if __name__ == '__main__':
         # Repeat experiments
         for i in range(repetitions):
             # Get configurations
-            base_cfgs = get_configs(folder=folder_name + "/baseline", algos=baseline_algorithms, epochs=epochs, cost_limit=cost_limit, random=True,
-                                    steps_per_epoch = steps_per_epoch, update_iters = update_iters, nn_size = nn_size, safe_freq = 20,
+            base_cfgs = get_configs(folder=folder_name + "/baseline", algos=baseline_algorithms, epochs=epochs, cost_limit=cost_limit,
+                                    steps_per_epoch = steps_per_epoch, update_iters = update_iters, nn_size = nn_size,
                                     lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
-            curr_cfgs = get_configs(folder=folder_name + "/curriculum", algos=curr_algorithms, epochs=epochs, cost_limit=cost_limit, random=True,
-                                    steps_per_epoch = steps_per_epoch, update_iters = update_iters, nn_size = nn_size, safe_freq = 20,
+            curr_cfgs = get_configs(folder=folder_name + "/curriculum", algos=curr_algorithms, epochs=epochs, cost_limit=cost_limit,
+                                    steps_per_epoch = steps_per_epoch, update_iters = update_iters, nn_size = nn_size,
                                     lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
 
             # Initialize agents
@@ -192,7 +193,7 @@ if __name__ == '__main__':
         # Put textual values inside of the heatmap
         for i in range(len(annotation)):
             for j in range(len(annotation[0])):
-                plt.text(j, i, f'{annotation[i, j]:.2f}', ha='center', va='center', color='white')
+                plt.text(j, i, f'{annotation[i, j]:.2f}', ha='center', va='center')#, color='white')
 
         # Color the y-axis according to which promising parameters it belongs
         for i in range(len(annotation)):
@@ -207,12 +208,14 @@ if __name__ == '__main__':
 
         plt.tight_layout()
         plt.savefig(f"figures/{folder_base}/{algo_type}_heatmap_log_costs_color_ticks.png")
+        plt.savefig(f"figures/{folder_base}/{algo_type}_heatmap_log_costs_color_ticks.pdf")
         plt.close()
 
     
     # Plot the sorted heatmaps
     def plot_metrics(metrics, filename_prefix):
         fig, axs = plt.subplots(3, 1, figsize=(13, 7))
+        last_means = pd.read_csv(f"./figures/{folder_base}/last_means.csv").set_index(parameters)
         
         for ax, metric in zip(axs, metrics):
             ascending = False
@@ -245,14 +248,14 @@ if __name__ == '__main__':
 
             for i in range(len(annotation)):
                 for j in range(len(annotation[0])):
-                    ax.text(j, i, f'{annotation[i, j]:.2f}', ha='center', va='center', rotation="vertical", color='white')
+                    ax.text(j, i, f'{annotation[i, j]:.2f}', ha='center', va='center', rotation="vertical")#, color='white')
 
         # Adjust layout and colorbar
         # fig.colorbar(im, ax=axs, orientation='vertical', fraction=0.02, pad=0.1, label='Mean of the performance\nin the final epoch')
         plt.suptitle('Comparison heatmap of final epoch performance')
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        plt.savefig(f"app/figures/{folder_base}/comparison/{filename_prefix}_comparison.png")
-        plt.show()
+        plt.savefig(f"./figures/{folder_base}/comparison/{filename_prefix}_comparison.png")
+        plt.savefig(f"./figures/{folder_base}/comparison/{filename_prefix}_comparison.pdf")
         plt.close()
 
     # Define the metric groups
@@ -269,6 +272,8 @@ if __name__ == '__main__':
     # Plot the bar charts
     def plot_metrics(metrics, filename_prefix):
         fig, axs = plt.subplots(3, 1, figsize=(13, 7))
+        last_means = pd.read_csv(f"./figures/{folder_base}/last_means.csv").set_index(parameters)
+        last_means = last_means.sort_values(by='Evaluation Return', ascending=False)
         
         for ax, metric in zip(axs, metrics):
             # Get annotation for heatmap
@@ -294,8 +299,8 @@ if __name__ == '__main__':
         # fig.colorbar(im, ax=axs, orientation='vertical', fraction=0.02, pad=0.1, label='Mean of the performance\nin the final epoch')
         plt.suptitle('Relative final epoch performance of curriculum agents')
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        plt.savefig(f"app/figures/{folder_base}/comparison/{filename_prefix}_comparison_bar.png")
-        plt.show()
+        plt.savefig(f"./figures/{folder_base}/comparison/{filename_prefix}_comparison_bar.png")
+        plt.savefig(f"./figures/{folder_base}/comparison/{filename_prefix}_comparison_bar.pdf")
         plt.close()
 
     # Plot non-evaluation metrics

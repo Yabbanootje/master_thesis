@@ -49,6 +49,7 @@ def plot_adapt_tune_train(folder, curr_changes, cost_limit, include_weak=False, 
                     paths = [entry.path for entry in os.scandir(os.path.join(kappa_path, algorithm))]
                     for path in paths:
                         path = path.replace("\\", "/")
+                        print(path)
                         df = pd.read_csv(os.path.join(path, "progress.csv")).rename(columns=
                             {"Metrics/EpRet": "return", "Metrics/EpCost": "cost", "Metrics/EpLen": "length", "Current_task": "current_task"}
                         )[['return', 'cost', 'length', 'current_task']]
@@ -86,7 +87,7 @@ def plot_adapt_tune_train(folder, curr_changes, cost_limit, include_weak=False, 
         
     last_change = curr_changes[-1]
 
-    def create_plot(combined_df, additional_folder = "", additional_file_text = "", additional_title_text = ""):
+    def create_plot(combined_df, smooth = False, additional_folder = "", additional_file_text = "", additional_title_text = ""):
         for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret', 'current_task']:
             # Plotting using Seaborn
             sns.set_style("whitegrid")
@@ -99,7 +100,12 @@ def plot_adapt_tune_train(folder, curr_changes, cost_limit, include_weak=False, 
                 plt.ylim(0, 2 * cost_limit)
                 zoomed = "_zoom"
 
-            sns.lineplot(data=combined_df, x='step', y=metric, hue='beta_kappa', errorbar="sd" if use_std else "se")
+            if smooth:
+                for hue in combined_df["beta_kappa"].unique():
+                    sns.regplot(data=combined_df[combined_df["beta_kappa"] == hue], x='step', y=metric, scatter=False, label=hue, order=20)
+            else:
+                sns.lineplot(data=combined_df, x='step', y=metric, hue='beta_kappa', errorbar="sd" if use_std else "se")
+
             if include_seeds:
                 ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='seed', estimator=None, legend=False)
 
@@ -155,9 +161,11 @@ def plot_adapt_tune_train(folder, curr_changes, cost_limit, include_weak=False, 
     # Create plots for whole data
     # create_plot(combined_df=combined_df)
 
-    # # Create plots for each environment
-    # for end_task in combined_df["end_task"].unique():
-    #     create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], additional_folder="HM" + end_task, additional_title_text="HM" + end_task)
+    # Create plots for each environment
+    for end_task in combined_df["end_task"].unique():
+        # create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], additional_folder="HM" + end_task, additional_title_text="HM" + end_task)
+        create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], smooth=True, additional_folder="HM" + end_task, 
+                    additional_title_text="HM" + end_task, additional_file_text="smooth_")
 
     # # Create plots for each algorithm
     # for beta_kappa in combined_df["beta_kappa"].unique():
@@ -166,8 +174,10 @@ def plot_adapt_tune_train(folder, curr_changes, cost_limit, include_weak=False, 
     #     include_seeds = False
 
     # create_plot(combined_df=combined_df[(combined_df['beta_kappa'] == "1.5-5") & (combined_df["seed"] == "4678")], additional_folder="best_seed", additional_title_text="")
-    # create_plot(combined_df=combined_df[(combined_df['beta_kappa'].isin(["1.5-5", "0.5-5", "0.5-20", "0.5-10", "1.0-20"]))], additional_folder="best_params", additional_title_text="")
-    create_subplot_grid(combined_df=combined_df[(combined_df['beta_kappa'].isin(["1.5-5", "0.5-5", "0.5-20", "0.5-10", "1.0-20"]))], additional_folder="best_params", additional_title_text="")
+    # create_plot(combined_df=combined_df[(combined_df['end_task'] == "T") & (combined_df['beta_kappa'].isin(["1.5-5", "1.5-20", "0.5-20", "0.5-10", "1.0-20"]))], additional_folder="best_params", additional_title_text="")
+    create_plot(combined_df=combined_df[(combined_df['end_task'] == "T") & (combined_df['beta_kappa'].isin(["1.5-5", "1.5-20", "0.5-20", "0.5-10", "1.0-20"]))], 
+                smooth=True, additional_folder="best_params", additional_title_text="", additional_file_text="smooth_")
+    # create_subplot_grid(combined_df=combined_df[(combined_df['end_task'] == "T") & (combined_df['beta_kappa'].isin(["1.5-5", "1.5-20", "0.5-20", "0.5-10", "1.0-20"]))], additional_folder="best_params", additional_title_text="")
 
     return combined_df
 
@@ -242,6 +252,7 @@ def plot_adapt_tune_eval(folder, curr_changes, cost_limit, include_weak=False, i
 
                     for path in eval_paths:
                         path = path.replace("\\", "/")
+                        print(path)
                         epochs = [entry.name for entry in os.scandir(path)]
 
                         returns = []
@@ -271,6 +282,9 @@ def plot_adapt_tune_eval(folder, curr_changes, cost_limit, include_weak=False, i
                                 
                         df = pd.DataFrame({'return': returns, 'cost': costs, 'length': lengths, 'step': steps})
                         df['Algorithm'] = algorithm.split("-")[0]
+                        end_version_pattern = r'HMR?A?(\d+|T)'
+                        end_version = re.search(end_version_pattern, algorithm.split("-")[1])
+                        df['end_task'] = end_version.group(1)
                         df['type'] = 'adaptive_curriculum'
                         df['beta'] = beta_value
                         df['kappa'] = kappa_value
@@ -301,7 +315,7 @@ def plot_adapt_tune_eval(folder, curr_changes, cost_limit, include_weak=False, i
     if not os.path.isdir(f"figures/" + folder):
         os.makedirs(f"figures/" + folder)
 
-    def create_plot(combined_df, additional_folder = "", additional_file_text = "", additional_title_text = ""):
+    def create_plot(combined_df, smooth = False, additional_folder = "", additional_file_text = "", additional_title_text = ""):
         for metric in ['return', 'cost', 'length', 'cost_zoom', 'regret']:
             sns.set_style("whitegrid")
             plt.figure(figsize=(10, 5), dpi=200)
@@ -313,7 +327,11 @@ def plot_adapt_tune_eval(folder, curr_changes, cost_limit, include_weak=False, i
                 plt.ylim(0, 2 * cost_limit)
                 zoomed = "_zoom"
 
-            sns.lineplot(data=combined_df, x='step', y=metric, hue='beta_kappa', errorbar="sd" if use_std else "se")
+            if smooth:
+                for hue in combined_df["beta_kappa"].unique():
+                    sns.regplot(data=combined_df[combined_df["beta_kappa"] == hue], x='step', y=metric, scatter=False, label=hue, order=20)
+            else:
+                sns.lineplot(data=combined_df, x='step', y=metric, hue='beta_kappa', errorbar="sd" if use_std else "se")
             # if include_seeds:
             #     if include_repetitions:
             #         ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', errorbar=None, estimator=None, legend=False)
@@ -331,7 +349,7 @@ def plot_adapt_tune_eval(folder, curr_changes, cost_limit, include_weak=False, i
             # if include_seeds:
             #     plt.setp(ax.lines[2:], alpha=0.2)
             plt.tight_layout(pad=2)
-            plt.title(f"{metric.replace('_', ' ').capitalize() if metric != 'length' else 'Episode' + metric}s of{' ' + additional_title_text if additional_title_text != '' else ''} agents using an adaptive curriculum during evalutaion")
+            plt.title(f"{metric.replace('_', ' ').capitalize() if metric != 'length' else 'Episode' + metric}s of{' ' + additional_title_text if additional_title_text != '' else ''} agents using an adaptive curriculum during evaluation")
             plt.xlabel("x1000 Steps")
             plt.ylabel(metric.replace('_', ' ').capitalize())
             if not os.path.isdir(f"figures/{folder}/{additional_folder}"):
@@ -341,18 +359,21 @@ def plot_adapt_tune_eval(folder, curr_changes, cost_limit, include_weak=False, i
             plt.close()
 
     # Create plots for whole data
-    create_plot(combined_df=combined_df)
+    # create_plot(combined_df=combined_df)
 
-    # # Create plots for each environment
-    # for end_task in combined_df["end_task"].unique():
-    #     create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], additional_folder="HM" + end_task, additional_title_text="HM" + end_task)
+    # Create plots for each environment
+    for end_task in combined_df["end_task"].unique():
+        # create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], additional_folder="HM" + end_task, additional_title_text="HM" + end_task)
+        create_plot(combined_df=combined_df[combined_df['end_task'] == end_task], smooth = True, additional_folder="HM" + end_task, additional_title_text="HM" + end_task, additional_file_text="smooth_")
 
     # # Create plots for each algorithm
     # for algo in combined_df["Algorithm"].unique():
     #     create_plot(combined_df=combined_df[combined_df['Algorithm'] == algo], additional_folder=algo, additional_title_text=algo)    
 
-    create_plot(combined_df=combined_df[(combined_df['beta_kappa'] == "1.5-5") & (combined_df["seed"] == "4678")], additional_folder="best_seed", additional_title_text="")
-    create_plot(combined_df=combined_df[(combined_df['beta_kappa'].isin(["1.5-5", "0.5-5", "0.5-20", "0.5-10", "1.0-20"]))], additional_folder="best_params", additional_title_text="")
+    # create_plot(combined_df=combined_df[(combined_df['beta_kappa'] == "1.5-5") & (combined_df["seed"] == "4678")], additional_folder="best_seed", additional_title_text="")
+    # create_plot(combined_df=combined_df[(combined_df['end_task'] == "T") & (combined_df['beta_kappa'].isin(["1.5-5", "1.5-20", "0.5-20", "0.5-10", "1.0-20"]))], additional_folder="best_params", additional_title_text="")
+    create_plot(combined_df=combined_df[(combined_df['end_task'] == "T") & (combined_df['beta_kappa'].isin(["1.5-5", "1.5-20", "0.5-20", "0.5-10", "1.0-20"]))], 
+                smooth=True, additional_folder="best_params", additional_title_text="", additional_file_text="smooth_")
 
     return combined_df
 

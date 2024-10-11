@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, use_std=False):
+def plot_train(folder, curr_changes, cost_limit, combined_df=None, include_weak=False, include_seeds=False, use_std=False):
     # Get folder names for all algorithms
     baseline_dir = f"results/" + folder + "/baseline"
     curr_dir = f"results/" + folder + "/curriculum"
@@ -34,19 +34,22 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
                 dfs.append(df)
         return pd.concat(dfs)
 
-    dfs = []
-    if os.path.isdir(baseline_dir):
-        baseline_df = read_and_concat(baseline_dir, os.listdir(baseline_dir), 'baseline')
-        dfs.append(baseline_df)
-    if os.path.isdir(curr_dir):
-        curr_df = read_and_concat(curr_dir, os.listdir(curr_dir), 'curriculum')
-        dfs.append(curr_df)
-    if os.path.isdir(adapt_curr_dir):
-        adapt_curr_df = read_and_concat(adapt_curr_dir, os.listdir(adapt_curr_dir), 'adaptive_curriculum')
-        dfs.append(adapt_curr_df)
+    if combined_df is not None:
+        combined_df = combined_df
+    else:
+        dfs = []
+        if os.path.isdir(baseline_dir):
+            baseline_df = read_and_concat(baseline_dir, os.listdir(baseline_dir), 'baseline')
+            dfs.append(baseline_df)
+        if os.path.isdir(curr_dir):
+            curr_df = read_and_concat(curr_dir, os.listdir(curr_dir), 'curriculum')
+            dfs.append(curr_df)
+        if os.path.isdir(adapt_curr_dir):
+            adapt_curr_df = read_and_concat(adapt_curr_dir, os.listdir(adapt_curr_dir), 'adaptive_curriculum')
+            dfs.append(adapt_curr_df)
 
-    # Combine both baseline and curriculum dataframes
-    combined_df = pd.concat(dfs).reset_index(names="step")
+        # Combine both baseline and curriculum dataframes
+        combined_df = pd.concat(dfs).reset_index(names="step")
     
     if not os.path.isdir(f"figures/" + folder):
         os.makedirs(f"figures/" + folder)
@@ -102,7 +105,7 @@ def plot_train(folder, curr_changes, cost_limit, include_weak=False, include_see
 
     return combined_df
 
-def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
+def plot_eval(folder, curr_changes, cost_limit, combined_df=None, include_weak=False, include_seeds=False, include_repetitions=False, use_std=False):
     def extract_values(pattern, text):
         return [float(match.group(1)) for match in re.finditer(pattern, text)]
 
@@ -161,18 +164,23 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
                 dfs.append(df)
         return pd.concat(dfs)
 
-    dfs = []
-    if os.path.isdir(baseline_dir):
-        baseline_df = read_and_concat(baseline_dir, os.listdir(baseline_dir), 'baseline')
-        dfs.append(baseline_df)
-    if os.path.isdir(curr_dir):
-        curr_df = read_and_concat(curr_dir, os.listdir(curr_dir), 'curriculum')
-        dfs.append(curr_df)
-    if os.path.isdir(adapt_curr_dir):
-        adapt_curr_df = read_and_concat(adapt_curr_dir, os.listdir(adapt_curr_dir), 'adaptive_curriculum')
-        dfs.append(adapt_curr_df)
+    if combined_df is not None:
+        # Combine both baseline and curriculum dataframes
+        # combined_df = pd.concat([combined_df, pd.concat([baseline_df, curr_df]).reset_index(drop=True)])
+        combined_df = combined_df
+    else:
+        dfs = []
+        if os.path.isdir(baseline_dir):
+            baseline_df = read_and_concat(baseline_dir, os.listdir(baseline_dir), 'baseline')
+            dfs.append(baseline_df)
+        if os.path.isdir(curr_dir):
+            curr_df = read_and_concat(curr_dir, os.listdir(curr_dir), 'curriculum')
+            dfs.append(curr_df)
+        if os.path.isdir(adapt_curr_dir):
+            adapt_curr_df = read_and_concat(adapt_curr_dir, os.listdir(adapt_curr_dir), 'adaptive_curriculum')
+            dfs.append(adapt_curr_df)
 
-    combined_df = pd.concat(dfs).reset_index(drop=True)
+        combined_df = pd.concat(dfs).reset_index(drop=True)
     
     if not os.path.isdir(f"figures/" + folder):
         os.makedirs(f"figures/" + folder)
@@ -207,7 +215,7 @@ def plot_eval(folder, curr_changes, cost_limit, include_weak=False, include_seed
             if include_seeds:
                 plt.setp(ax.lines[2:], alpha=0.2)
             plt.tight_layout(pad=2)
-            plt.title(f"{metric.replace('_', ' ').capitalize() if metric != 'length' else 'Episode' + metric}s of{' ' + additional_title_text if additional_title_text != '' else ''} agents using curriculum and baseline agent during evalutaion")
+            plt.title(f"{metric.replace('_', ' ').capitalize() if metric != 'length' else 'Episode' + metric}s of{' ' + additional_title_text if additional_title_text != '' else ''} agents using curriculum and baseline agent during evaluation")
             plt.xlabel("x1000 Steps")
             plt.ylabel(metric.replace('_', ' ').capitalize())
             if not os.path.isdir(f"figures/{folder}/{additional_folder}"):

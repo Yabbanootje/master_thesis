@@ -58,10 +58,10 @@ if __name__ == '__main__':
             # Repeat experiments
             for i in range(repetitions):
                 # Get configurations
-                base_cfgs = get_configs(folder=folder_name + "/baseline", algos=baseline_algorithms, epochs=epochs, cost_limit=cost_limit, random=True,
+                base_cfgs = get_configs(folder=folder_name + "/baseline", algos=baseline_algorithms, epochs=epochs, cost_limit=cost_limit,
                                         steps_per_epoch = steps_per_epoch, update_iters = update_iters, nn_size = nn_size, safe_freq = 20,
                                         lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
-                curr_cfgs = get_configs(folder=folder_name + "/curriculum", algos=curr_algorithms, epochs=epochs, cost_limit=cost_limit, random=True,
+                curr_cfgs = get_configs(folder=folder_name + "/curriculum", algos=curr_algorithms, epochs=epochs, cost_limit=cost_limit,
                                         steps_per_epoch = steps_per_epoch, update_iters = update_iters, nn_size = nn_size, safe_freq = 20,
                                         lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
 
@@ -160,14 +160,16 @@ if __name__ == '__main__':
         plt.grid(False)
 
         # Add labels and ticks
-        plt.title('Heatmap of final epoch performance')
-        plt.ylabel('Parameter Combinations\n(cost_limit, lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size)')
-        plt.xlabel('Metrics')
-        plt.yticks(ticks=np.arange(len(last_means.index)), labels=last_means.index, rotation='horizontal')
+        plt.title('Heatmap of final epoch performance', size=14)
+        plt.ylabel('Parameter Combinations\n(cost_limit, lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size)', size=12)
+        plt.xlabel('Metrics', size=12)
+        plt.yticks(ticks=np.arange(len(last_means.index)), labels=last_means.index, rotation='horizontal', fontsize=11)
         plt.xticks(ticks=np.arange(len(last_means.columns)), labels=[col.replace(" Curr", "") for col in last_means.columns])
 
         # Show colorbar
-        plt.colorbar(label='Normalized mean of the performance in the final epoch')
+        cbar = plt.colorbar()
+        cbar.ax.tick_params(labelsize=12)
+        cbar.set_label(label='Normalized mean of the performance in the final epoch', size=12)
     
 
         # Add original values as text
@@ -209,7 +211,7 @@ if __name__ == '__main__':
         # Put textual values inside of the heatmap
         for i in range(len(annotation)):
             for j in range(len(annotation[0])):
-                plt.text(j, i, f'{annotation[i, j]:.2f}', ha='center', va='center', color='white')
+                plt.text(j, i, f'{annotation[i, j]:.2f}', fontsize=14, ha='center', va='center')#, color='white')
 
         # Color the y-axis according to which promising parameters it belongs
         for i in range(len(annotation)):
@@ -224,5 +226,5 @@ if __name__ == '__main__':
 
         plt.tight_layout()
         plt.savefig(f"figures/{folder_base}/{algo_type}_heatmap_log_costs_color_ticks.png")
-        plt.show()
+        plt.savefig(f"figures/{folder_base}/{algo_type}_heatmap_log_costs_color_ticks.pdf")
         plt.close()
