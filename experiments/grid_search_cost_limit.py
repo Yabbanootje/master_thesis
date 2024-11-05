@@ -1,11 +1,12 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from plotting.plot_functions_grid_search import *
+from plotting.plot_functions import plot_train, plot_eval
 from main import *
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     folder_base = "grid_search_cost_limit"
     eval_episodes = 3
-    cost_limits = [1.0, 5.0]
     steps_per_epoch = 1000
     safe_freq = 20
     epochs = 100
@@ -13,11 +14,12 @@ if __name__ == '__main__':
     baseline_algorithms = ["PPOLag"]
     curr_algorithms = ["PPOLag"]
 
-    # Grid search params
+    # Grid search parameters
+    cost_limits = [1.0, 5.0]
     parameters = ["cost_limits", "lag_multiplier_inits", "lag_multiplier_lrs", "update_iterss", "nn_sizes"]
 
-    promising_parameters_curriculum = [
-                                       (0.001, 0.1, 1, 64), 
+    # Best parameters for curriculum agents from grid_search experiments
+    promising_parameters_curriculum = [(0.001, 0.1, 1, 64), 
                                        (0.001, 0.01, 1, 64),
                                        (0.01, 0.1, 1, 256),
                                        (0.1, 0.01, 1, 256),
@@ -29,6 +31,7 @@ if __name__ == '__main__':
                                        (0.001, 0.035, 50, 64),
                                        ]
     
+    # Best parameters for baseline agents from grid_search experiments
     promising_parameters = [(0.1, 0.01, 1, 64),
                             (0.01, 0.01, 1, 64),
                             (0.001, 0.01, 1, 64),
@@ -40,6 +43,7 @@ if __name__ == '__main__':
                             (0.1, 0.01, 10, 256),
                             ]
 
+    # Create dataframe to record the metrics at the end of training
     last_means = pd.DataFrame(columns = parameters + ["Return", "Cost", "Regret", "Evaluation Return", "Evaluation Cost", 
                                                       "Evaluation Regret",
                                                       "Return Curr", "Cost Curr", "Regret Curr", "Evaluation Return Curr",
@@ -47,12 +51,13 @@ if __name__ == '__main__':
                                                       "Evaluation Regret Curr"]
                                                       ).set_index(parameters)
 
-    # Traing agents and save data
+    # Traing agents and record results
     for promising_parameter_combo in promising_parameters:
         for cost_limit in cost_limits:
             (lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size) = promising_parameter_combo
+
+            # Create folder for the parameter combination
             grid_params = (cost_limit, lag_multiplier_init, lag_multiplier_lr, steps_per_epoch, update_iters, nn_size)
-            # Create folder
             folder_name = folder_base + "/test-half_curriculum-" + str(grid_params)
 
             # Repeat experiments
@@ -66,8 +71,8 @@ if __name__ == '__main__':
                                         lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
 
                 # Initialize agents
-                baseline_env_id = 'SafetyPointHM3-v0'
-                curr_env_id = 'SafetyPointHM0-v0'
+                baseline_env_id = "SafetyPointHM3-v0"
+                curr_env_id = "SafetyPointHM0-v0"
 
                 baseline_agents = get_agents(baseline_algorithms, baseline_env_id, base_cfgs)
                 curriculum_agents = get_agents(curr_algorithms, curr_env_id, curr_cfgs)
@@ -85,8 +90,8 @@ if __name__ == '__main__':
             eval_df = plot_eval(folder_name, curr_changes, cost_limit, include_weak=False, save_freq=save_freq)
 
             # Get values for baseline
-            filtered_train_df = train_df[train_df['type'] == "baseline"]
-            filtered_eval_df = eval_df[eval_df['type'] == "baseline"]
+            filtered_train_df = train_df[train_df["type"] == "baseline"]
+            filtered_eval_df = eval_df[eval_df["type"] == "baseline"]
             mean_train_df = filtered_train_df.groupby(["step"]).mean(numeric_only=True)
             mean_eval_df = filtered_eval_df.groupby(["step"]).mean(numeric_only=True)
 
@@ -101,8 +106,8 @@ if __name__ == '__main__':
             regret_eval = mean_eval_df["regret"].iloc[-1]
 
             # Get values for curriculum
-            filtered_train_df_curr = train_df[train_df['type'] == "curriculum"]
-            filtered_eval_df_curr = eval_df[eval_df['type'] == "curriculum"]
+            filtered_train_df_curr = train_df[train_df["type"] == "curriculum"]
+            filtered_eval_df_curr = eval_df[eval_df["type"] == "curriculum"]
             mean_train_df_curr = filtered_train_df_curr.groupby(["step"]).mean(numeric_only=True)
             mean_eval_df_curr = filtered_eval_df_curr.groupby(["step"]).mean(numeric_only=True)
 
@@ -116,31 +121,34 @@ if __name__ == '__main__':
             regret_train_curr = mean_train_df_curr["regret"].iloc[-1]
             regret_eval_curr = mean_eval_df_curr["regret"].iloc[-1]
 
+            # Record results
             parameter_means = pd.DataFrame(data = {"cost_limits": cost_limit, "lag_multiplier_inits": lag_multiplier_init, 
                                     "lag_multiplier_lrs": lag_multiplier_lr, "update_iterss": update_iters, "nn_sizes": nn_size, 
-                                    "Return": return_, "Cost": cost, "Regret": regret_train, 'Evaluation Return': eval_return,
-                                    'Evaluation Cost': eval_cost, "Evaluation Regret": regret_eval,
+                                    "Return": return_, "Cost": cost, "Regret": regret_train, "Evaluation Return": eval_return,
+                                    "Evaluation Cost": eval_cost, "Evaluation Regret": regret_eval,
                                     "Return Curr": return__curr, "Cost Curr": cost_curr, "Regret Curr": regret_train_curr, 
-                                    'Evaluation Return Curr': eval_return_curr,
-                                    'Evaluation Cost Curr': eval_cost_curr, "Evaluation Regret Curr": regret_eval_curr,
+                                    "Evaluation Return Curr": eval_return_curr,
+                                    "Evaluation Cost Curr": eval_cost_curr, "Evaluation Regret Curr": regret_eval_curr,
                                     },
                                     index = [0]).set_index(parameters)       
-
             last_means = pd.concat([last_means, parameter_means])
 
-    last_means.to_csv(f"app/figures/{folder_base}/last_means.csv")
+    # Save results
+    last_means.to_csv(f"./figures/{folder_base}/last_means.csv")
 
 
     # Plot heatmap using nine best baseline parameters
     for algo_type in ["baseline", "curriculum"]:
-        # Load data
+        # Load results
         last_means = pd.read_csv(f"./figures/{folder_base}/last_means.csv").set_index(parameters)
 
         if algo_type == "baseline":
-            last_means = last_means.sort_values(by=["Evaluation Return"])[["Return", "Cost", "Regret", "Evaluation Return", "Evaluation Cost", "Evaluation Regret"]]
+            last_means = last_means.sort_values(by=["Evaluation Return"])[["Return", "Cost", "Regret", "Evaluation Return", 
+                                                                           "Evaluation Cost", "Evaluation Regret"]]
         else:
             last_means = last_means.sort_values(by=["Evaluation Return Curr"])[["Return Curr", "Cost Curr", "Regret Curr", 
-                                                                                "Evaluation Return Curr", "Evaluation Cost Curr", "Evaluation Regret Curr"]]
+                                                                                "Evaluation Return Curr", "Evaluation Cost Curr", 
+                                                                                "Evaluation Regret Curr"]]
     
         # Get annotation for heatmap
         annotation = last_means.to_numpy()
@@ -155,54 +163,29 @@ if __name__ == '__main__':
 
         # Plotting the heatmap
         fig = plt.figure(figsize=(12, 13))
-        ax_img = plt.imshow(last_means.values, cmap='viridis', aspect='auto')
+        ax_img = plt.imshow(last_means.values, cmap="viridis", aspect="auto")
         ax = ax_img.axes
         plt.grid(False)
 
         # Add labels and ticks
-        plt.title('Heatmap of final epoch performance', size=14)
-        plt.ylabel('Parameter Combinations\n(cost_limit, lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size)', size=12)
-        plt.xlabel('Metrics', size=12)
-        plt.yticks(ticks=np.arange(len(last_means.index)), labels=last_means.index, rotation='horizontal', fontsize=11)
+        plt.title("Heatmap of final epoch performance", size=14)
+        plt.ylabel("Parameter Combinations\n(cost_limit, lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size)", size=12)
+        plt.xlabel("Metrics", size=12)
+        plt.yticks(ticks=np.arange(len(last_means.index)), labels=last_means.index, rotation="horizontal", fontsize=11)
         plt.xticks(ticks=np.arange(len(last_means.columns)), labels=[col.replace(" Curr", "") for col in last_means.columns])
 
         # Show colorbar
         cbar = plt.colorbar()
         cbar.ax.tick_params(labelsize=12)
-        cbar.set_label(label='Normalized mean of the performance in the final epoch', size=12)
-    
-
-        # Add original values as text
-        promising_parameters_curriculum = [
-                                        (0.001, 0.1, 1, 64), 
-                                        (0.001, 0.01, 1, 64),
-                                        (0.01, 0.1, 1, 256),
-                                        (0.1, 0.01, 1, 256),
-                                        (0.01, 0.01, 1, 256),
-                                        (0.001, 0.01, 10, 64),
-                                        (0.1, 0.05, 10, 64),
-                                        (0.1, 0.05, 50, 64),
-                                        (0.01, 0.035, 1, 256),
-                                        (0.001, 0.035, 50, 64),
-                                        ]
-        
-        promising_parameters = [(0.1, 0.01, 1, 64),
-                                (0.01, 0.01, 1, 64),
-                                (0.001, 0.01, 1, 64),
-                                (0.1, 0.01, 1, 256),
-                                (0.001, 0.01, 1, 256),
-                                (0.1, 0.01, 10, 64),
-                                (0.01, 0.01, 10, 64),
-                                (0.001, 0.01, 10, 64),
-                                (0.1, 0.01, 10, 256),
-                                ]
-        
-        # Get indices in heatmap corresponding to the promising parameters
+        cbar.set_label(label="Normalized mean of the performance in the final epoch", size=12)
+          
+        # Get indices in heatmap corresponding to the promising parameters for curriculum agents
         promising_indices_curriculum = []
         for index, i in zip(last_means.index, range(len(annotation))):
             if tuple(index[i] for i in range(len(index)) if i != 0) in promising_parameters_curriculum:
                 promising_indices_curriculum.append(i)
 
+        # Get indices in heatmap corresponding to the promising parameters for baseline agents
         promising_indices = []
         for index, i in zip(last_means.index, range(len(annotation))):
             if tuple(index[i] for i in range(len(index)) if i != 0) in promising_parameters:
@@ -211,9 +194,9 @@ if __name__ == '__main__':
         # Put textual values inside of the heatmap
         for i in range(len(annotation)):
             for j in range(len(annotation[0])):
-                plt.text(j, i, f'{annotation[i, j]:.2f}', fontsize=14, ha='center', va='center')#, color='white')
+                plt.text(j, i, f"{annotation[i, j]:.2f}", fontsize=14, ha="center", va="center")
 
-        # Color the y-axis according to which promising parameters it belongs
+        # Color the y-axis labels according to which promising parameters it belongs
         for i in range(len(annotation)):
             if i in promising_indices and i in promising_indices_curriculum:
                 ax.get_yticklabels()[i].set_color("red")
