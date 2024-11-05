@@ -11,9 +11,9 @@ from itertools import product
 from omnisafe.utils.config import get_default_kwargs_yaml
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 from custom_envs.hand_made_levels.hm_adaptive_curriculum_env import HMAdaptiveCurriculumEnv
-from plot_functions import *
-from plot_functions_incremental import *
-from plot_functions_adapt_tuning import *
+# from plot_functions import *
+# from plot_functions_incremental import *
+# from plot_functions_adapt_tuning import *
 import warnings
 
 def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps_per_epoch = 1000, 
