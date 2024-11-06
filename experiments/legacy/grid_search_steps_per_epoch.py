@@ -1,3 +1,5 @@
+# This file corresponds to a legacy experiment that was not used in the final version of the thesis
+
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from plotting.plot_functions_grid_search import *
@@ -51,7 +53,7 @@ if __name__ == "__main__":
                                                       "Evaluation Regret Curr"]
                                                       ).set_index(parameters)
 
-    # Traing agents and record results
+    # Train agents and record results
     for promising_parameter_combo in promising_parameters_curriculum:
         for steps_per_epoch in steps_per_epochs:
             (lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size) = promising_parameter_combo

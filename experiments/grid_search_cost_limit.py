@@ -1,8 +1,11 @@
+# This file corresponds to the experiments performed in section 6.2.2 of the thesis
+
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from plotting.plot_functions_grid_search import *
 from plotting.plot_functions import plot_train, plot_eval
 from main import *
+from experiments.grid_search import get_results
 
 if __name__ == "__main__":
     folder_base = "grid_search_cost_limit"
@@ -51,7 +54,7 @@ if __name__ == "__main__":
                                                       "Evaluation Regret Curr"]
                                                       ).set_index(parameters)
 
-    # Traing agents and record results
+    # Train agents and record results
     for promising_parameter_combo in promising_parameters:
         for cost_limit in cost_limits:
             (lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size) = promising_parameter_combo
@@ -64,10 +67,10 @@ if __name__ == "__main__":
             for i in range(repetitions):
                 # Get configurations
                 base_cfgs = get_configs(folder=folder_name + "/baseline", algos=baseline_algorithms, epochs=epochs, cost_limit=cost_limit,
-                                        steps_per_epoch = steps_per_epoch, update_iters = update_iters, nn_size = nn_size, safe_freq = 20,
+                                        steps_per_epoch = steps_per_epoch, update_iters = update_iters, nn_size = nn_size, safe_freq = safe_freq,
                                         lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
                 curr_cfgs = get_configs(folder=folder_name + "/curriculum", algos=curr_algorithms, epochs=epochs, cost_limit=cost_limit,
-                                        steps_per_epoch = steps_per_epoch, update_iters = update_iters, nn_size = nn_size, safe_freq = 20,
+                                        steps_per_epoch = steps_per_epoch, update_iters = update_iters, nn_size = nn_size, safe_freq = safe_freq,
                                         lag_multiplier_init = lag_multiplier_init, lag_multiplier_lr = lag_multiplier_lr)
 
                 # Initialize agents
@@ -89,48 +92,9 @@ if __name__ == "__main__":
             train_df = plot_train(folder_name, curr_changes, cost_limit, include_weak=False)
             eval_df = plot_eval(folder_name, curr_changes, cost_limit, include_weak=False, save_freq=save_freq)
 
-            # Get values for baseline
-            filtered_train_df = train_df[train_df["type"] == "baseline"]
-            filtered_eval_df = eval_df[eval_df["type"] == "baseline"]
-            mean_train_df = filtered_train_df.groupby(["step"]).mean(numeric_only=True)
-            mean_eval_df = filtered_eval_df.groupby(["step"]).mean(numeric_only=True)
-
-            return_ = mean_train_df["return"].iloc[-1]
-            cost = mean_train_df["cost"].iloc[-1]
-            eval_return = mean_eval_df["return"].iloc[-1]
-            eval_cost = mean_eval_df["cost"].iloc[-1]
-            eval_length = mean_eval_df["length"].iloc[-1]
-            auc_cost = np.trapz(mean_train_df["cost"], dx=1)
-            auc_eval_cost = np.trapz(mean_eval_df["cost"], dx=save_freq)
-            regret_train = mean_train_df["regret"].iloc[-1]
-            regret_eval = mean_eval_df["regret"].iloc[-1]
-
-            # Get values for curriculum
-            filtered_train_df_curr = train_df[train_df["type"] == "curriculum"]
-            filtered_eval_df_curr = eval_df[eval_df["type"] == "curriculum"]
-            mean_train_df_curr = filtered_train_df_curr.groupby(["step"]).mean(numeric_only=True)
-            mean_eval_df_curr = filtered_eval_df_curr.groupby(["step"]).mean(numeric_only=True)
-
-            return__curr = mean_train_df_curr["return"].iloc[-1]
-            cost_curr = mean_train_df_curr["cost"].iloc[-1]
-            eval_return_curr = mean_eval_df_curr["return"].iloc[-1]
-            eval_cost_curr = mean_eval_df_curr["cost"].iloc[-1]
-            eval_length_curr = mean_eval_df_curr["length"].iloc[-1]
-            auc_cost_curr = np.trapz(mean_train_df_curr["cost"], dx=1)
-            auc_eval_cost_curr = np.trapz(mean_eval_df_curr["cost"], dx=save_freq)
-            regret_train_curr = mean_train_df_curr["regret"].iloc[-1]
-            regret_eval_curr = mean_eval_df_curr["regret"].iloc[-1]
-
             # Record results
-            parameter_means = pd.DataFrame(data = {"cost_limits": cost_limit, "lag_multiplier_inits": lag_multiplier_init, 
-                                    "lag_multiplier_lrs": lag_multiplier_lr, "update_iterss": update_iters, "nn_sizes": nn_size, 
-                                    "Return": return_, "Cost": cost, "Regret": regret_train, "Evaluation Return": eval_return,
-                                    "Evaluation Cost": eval_cost, "Evaluation Regret": regret_eval,
-                                    "Return Curr": return__curr, "Cost Curr": cost_curr, "Regret Curr": regret_train_curr, 
-                                    "Evaluation Return Curr": eval_return_curr,
-                                    "Evaluation Cost Curr": eval_cost_curr, "Evaluation Regret Curr": regret_eval_curr,
-                                    },
-                                    index = [0]).set_index(parameters)       
+            parameter_means = get_results(train_df=train_df, eval_df=eval_df, parameters=parameters, 
+                                          parameter_values=(cost_limit, lag_multiplier_init, lag_multiplier_lr, update_iters, nn_size))
             last_means = pd.concat([last_means, parameter_means])
 
     # Save results

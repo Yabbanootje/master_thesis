@@ -1,6 +1,38 @@
+# This file corresponds to legacy code that has since been incroporated by another file (long_training.py)
+# This code was part of the experiments performed in section 6.2.3 of the thesis
+
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from plotting.plot_functions import plot_train, plot_eval
 from main import *
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+def save_profile():
+    with open('app/test/my_job_output_231165.txt', 'r') as file:
+        lines = file.readlines()
+
+    # Extract data from each line
+    data = []
+    for line in lines:
+        line = line.strip()
+        if line:  # Check if the line is not empty
+            parts = line.split()
+            if parts[0] != "ncalls":
+                ncalls = parts[0].split("/")[0]
+                tottime = float(parts[1])
+                percall = float(parts[2])
+                cumtime = float(parts[3])
+                percall_1 = float(parts[4])
+                function = ' '.join(parts[5:])
+                data.append([ncalls, tottime, percall, cumtime, percall_1, function])
+
+    # Create DataFrame
+    df = pd.DataFrame(data, columns=['ncalls', 'tottime', 'percall', 'cumtime', 'percall.1', 'filename:lineno(function)'])
+    df = df.sort_values("cumtime", ascending=False).reset_index()
+
+    df.to_csv("app/test/test.csv")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -12,44 +44,29 @@ if __name__ == '__main__':
     cost_limit = 5.0
     steps_per_epoch = 1000
     safe_freq = 10
-    epochs = 500
+    epochs = 800
     repetitions = 10
-    baseline_algorithms = ["PPOLag"]
-    curr_algorithms = ["PPOLag"]
-    folder_base = "long_training/half_curr"
+    baseline_algorithms = ["PPOLag"] # ["PPO", "PPOLag", "P3O"]
+    curr_algorithms = ["PPOLag"] # ["PPOEarlyTerminated", "PPOLag", "CPPOPID", "CPO", "IPO", "P3O"]
+    folder_base = "longer_training/half_curr"
 
     # Grid search params
     parameters = ["cost_limits", "lag_multiplier_inits", "lag_multiplier_lrs", "steps_per_epochs", 
                   "update_iterss", "nn_sizes"]
     
     promising_parameters = [
-                            (0.1, 0.01, 1, 64),
-                            (0.01, 0.01, 1, 64),
-                            (0.001, 0.01, 1, 64),
+                            # (0.1, 0.01, 1, 64),
+                            # (0.01, 0.01, 1, 64),
+                            # (0.001, 0.01, 1, 64),
                             (0.1, 0.01, 1, 256),
-                            (0.001, 0.01, 1, 256),
+                            # (0.001, 0.01, 1, 256),
                             (0.1, 0.01, 10, 64),
                             ]
-    
-    if args.experiment == 1:
-        promising_parameters = promising_parameters[:2]
-    elif args.experiment == 2:
-        promising_parameters = promising_parameters[2:4]
-    elif args.experiment == 3:
-        promising_parameters = promising_parameters[4:]
-    
-    # Grid search params
-    parameters = ["lag_multiplier_inits", "lag_multiplier_lrs", 
-                  "update_iterss", "nn_sizes"]
 
-    promising_parameters = [
-                            (0.1, 0.01, 1, 64),
-                            (0.01, 0.01, 1, 64),
-                            (0.001, 0.01, 1, 64),
-                            (0.1, 0.01, 1, 256),
-                            (0.001, 0.01, 1, 256),
-                            (0.1, 0.01, 10, 64),
-                            ]
+    if args.experiment == 1:
+        promising_parameters = promising_parameters[:1]
+    elif args.experiment == 2:
+        promising_parameters = promising_parameters[1:]
     
     last_means = pd.DataFrame(columns = parameters + ["Return", "Cost", "Regret", "Evaluation Return", "Evaluation Cost", 
                                                       "Evaluation Regret",
@@ -139,13 +156,13 @@ if __name__ == '__main__':
 
         last_means = pd.concat([last_means, parameter_means])
 
-    last_means.to_csv("app/figures/long_training/last_means.csv")
+    last_means.to_csv("app/figures/longer_training/last_means.csv")
 
     # Load data
-    last_means = pd.read_csv("app/figures/long_training/last_means.csv").set_index(parameters)
+    last_means = pd.read_csv("app/figures/longer_training/last_means.csv").set_index(parameters)
 
-    last_means = last_means[["Return", "Cost", "Regret", "Evaluation Return", "Evaluation Cost", "Evaluation Regret"]]
-    last_means = last_means.sort_values(by=["Evaluation Return"])
+    last_means = last_means[["Return Curr", "Cost Curr", "Regret Curr", "Evaluation Return Curr", "Evaluation Cost Curr", "Evaluation Regret Curr"]]
+    last_means = last_means.sort_values(by=["Evaluation Return Curr"])
     
     # Get annotation for heatmap
     annotation = last_means.to_numpy()
@@ -210,6 +227,6 @@ if __name__ == '__main__':
                 plt.text(j, i, f'{annotation[i, j]:.2f}', ha='center', va='center', color='white')
 
     plt.tight_layout()
-    plt.savefig(f"app/figures/long_training/baseline_heatmap_log_costs_more_colors.png")
+    plt.savefig(f"app/figures/longer_training/curriculum_heatmap_log_costs_more_colors.png")
     plt.show()
     plt.close()

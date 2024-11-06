@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_heatmap(folder_base, algo_type, parameters, promising_parameters, promising_parameters_curriculum):
+def plot_heatmap(folder_base, algo_type, parameters, promising_parameters, promising_parameters_curriculum, figsize=(12, 13)):
     # Load results
     last_means = pd.read_csv(f"./figures/{folder_base}/last_means.csv").set_index(parameters)
 
@@ -27,7 +27,7 @@ def plot_heatmap(folder_base, algo_type, parameters, promising_parameters, promi
         last_means[column] = (last_means[column] - last_means[column].min()) / (last_means[column].max() - last_means[column].min())
 
     # Plotting the heatmap
-    fig = plt.figure(figsize=(12, 13))
+    fig = plt.figure(figsize=figsize)
     ax_img = plt.imshow(last_means.values, cmap="viridis", aspect="auto")
     ax = ax_img.axes
     plt.grid(False)
