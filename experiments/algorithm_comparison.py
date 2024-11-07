@@ -1,8 +1,17 @@
+# This file corresponds to the experiments performed in section 6.3.1 of the thesis
+# Note that the results from the thesis cannot be replicated exactly with this file,
+# as the improvements made to the curriculum (such as the learning rate reset) were
+# implemented these experiments and there is no way to opt-out of these improvements
+
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from plotting.plot_functions import plot_train, plot_eval, print_eval
 from main import *
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     eval_episodes = 5
     render_episodes = 3
     cost_limit = 5.0
@@ -10,74 +19,75 @@ if __name__ == '__main__':
     save_freq = 10
     epochs = 1000
     repetitions = 15
-    baseline_algorithms = ["PPO", "PPOLag", "CPO", "FOCOPS", "OnCRPO"] # ["PPO", "PPOLag", "CPO", "FOCOPS", "OnCRPO", "CUP", "PCPO", "PPOEarlyTerminated"]
+    baseline_algorithms = ["PPO", "PPOLag", "CPO", "FOCOPS", "OnCRPO", "CUP", "PCPO", "PPOEarlyTerminated"]
     curr_algorithms = ["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
     folder_base = "algorithm_comparison"
     curr_changes = [10, 20, 40, 100]
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
 
-    # # Repeat experiments
-    # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    # with Pool(8) as p:
-    #     args_base = list(product(baseline_algorithms, ["baseline"], seeds))
-    #     args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
-    #     args = args_curr + args_base
-    #     p.starmap(use_params, args)
+    # Repeat experiments
+    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
+    with Pool(8) as p:
+        args_base = list(product(baseline_algorithms, ["baseline"], seeds))
+        args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
+        args = args_curr + args_base
+        p.starmap(use_params, args)
+
+
+    # Make sure that the types are correct
+    train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    train_df["end_task"] = train_df["end_task"].astype(str)
+    eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
+    eval_df["end_task"] = eval_df["end_task"].astype(str)
 
     # Plot the results
+    train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False, combined_df=train_df)
+    eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, combined_df=eval_df)
+    print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
 
-    # train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    # train_df['end_task'] = train_df['end_task'].astype(str)
-    # eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
-    # eval_df['end_task'] = "4"
-    # train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False, combined_df=train_df)
-    # eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, combined_df=eval_df)
-    # print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
+    # Save results
+    train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
 
-    # train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    # eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
 
-    train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
-
-    def plot_metrics(train_df, eval_df, combine=True, exclude_outlier=True):
-        if combine:
-            fig, axs = plt.subplots(1, 3, figsize=(13, 5))
+    # Function to create the scatter plots that have baseline performance on the x-axis and
+    # curriculum performance on the y-axis
+    def plot_scatter(train_df, eval_df, exclude_outlier=True):
+        # Create a figre for both the training and evaluation results
+        for df, set in zip([train_df, eval_df], ["non_evaluation_", "evaluation_"]):
+            # Create a subplot for each metric
+            fig, axs = plt.subplots(1, 3, figsize=(13, 4))
             for ax, metric in zip(axs, ["return", "cost", "regret"]):
-                filtered_train_df = train_df[train_df["step"] == train_df["step"].max()]
-                filtered_eval_df = eval_df[eval_df["step"] == eval_df["step"].max()]
-                mean_train_df = filtered_train_df.groupby(["Algorithm", "type"]).mean(numeric_only=True)
-                mean_eval_df = filtered_eval_df.groupby(["Algorithm", "type"]).mean(numeric_only=True)
+                # Only take the results at the end of training
+                filtered_df = df[df["step"] == df["step"].max()]
+                # Take the mean over the repetitions
+                mean_df = filtered_df.groupby(["Algorithm", "type"]).mean(numeric_only=True)
                 
-                pivot_train_df = mean_train_df.reset_index()
-                pivot_train_df = pivot_train_df.pivot(index='Algorithm', columns='type', values=metric)
-                pivot_train_df = pivot_train_df.fillna(0)
-                pivot_eval_df = mean_eval_df.reset_index()
-                pivot_eval_df = pivot_eval_df.pivot(index='Algorithm', columns='type', values=metric)
-                pivot_eval_df = pivot_eval_df.fillna(0)
+                # Reshape the dataframe to make integration into seaborn easier
+                pivot_df = mean_df.reset_index()
+                pivot_df = pivot_df.pivot(index='Algorithm', columns='type', values=metric)
+                pivot_df = pivot_df.fillna(0)
 
-                pivot_train_df["set"] = "Training"
-                pivot_eval_df["set"] = "Evaluation"
-                pivot_df = pd.concat([pivot_train_df, pivot_eval_df], ignore_index=False)
+                # Exclude the outlier that makes reading the other values difficult
+                if metric == "regret" and set == "evaluation_" and exclude_outlier:
+                    pivot_df = pivot_df[pivot_df["baseline"] < 4000]
 
-                if metric == "cost" and exclude_outlier:
-                    pivot_df = pivot_df[pivot_df["baseline"] < 100]
-
+                # Only plot legend for the last subplot
                 plot_legend = False
                 if metric == "regret":
                     plot_legend = True
 
-                sns.scatterplot(data=pivot_df, x='baseline', y='curriculum', hue='Algorithm', style="set", 
-                                legend=plot_legend, ax=ax, s=100)
-
+                # Create the scatterplot
+                sns.scatterplot(data=pivot_df, x='baseline', y='curriculum', hue='Algorithm', style='Algorithm',
+                                markers=["o"], legend=plot_legend, ax=ax, s=100)
                 ax.grid(False)
 
                 # Add labels and ticks
                 ax.set_title(f'{metric}')
                 ax.set_ylabel('Curriculum')
                 ax.set_xlabel('Baseline')
-                # ax.set_yticks(np.arange(2))
 
+                # Force same range on both axis
                 if ax.get_xlim()[1] > ax.get_ylim()[1]:
                     ax.set_xlim(0)
                     ax.set_ylim(0, ax.get_xlim()[1])
@@ -86,82 +96,24 @@ if __name__ == '__main__':
                     ax.set_ylim(0)
                 ax.set_aspect('equal', adjustable='box')
                 
+                # Add diagonal
                 ax.axline((0, 0), slope=1, color="black", linestyle="--", zorder=1, label='Diagonal')
-                ax.axvline(pivot_train_df.loc['PPO', 'baseline'], linestyle="-.", color="#8c564b", label='PPO Train')
-                ax.axhline(pivot_train_df.loc['PPO', 'baseline'], linestyle="-.", color="#8c564b")
-                ax.axvline(pivot_eval_df.loc['PPO', 'baseline'], linestyle=":", color="#8c564b", label='PPO Evaluation')
-                ax.axhline(pivot_eval_df.loc['PPO', 'baseline'], linestyle=":", color="#8c564b")
+                # Add PPO lines
+                if "non" in set:
+                    ax.axvline(pivot_df.loc['PPO', 'baseline'], linestyle="-.", color="#8c564b", label='PPO Train')
+                    ax.axhline(pivot_df.loc['PPO', 'baseline'], linestyle="-.", color="#8c564b")
+                else:
+                    ax.axvline(pivot_df.loc['PPO', 'baseline'], linestyle=":", color="#8c564b", label='PPO Evaluation')
+                    ax.axhline(pivot_df.loc['PPO', 'baseline'], linestyle=":", color="#8c564b")
 
-            # Adjust layout and colorbarplt.legend(loc=(1.01, 0.01), ncol=1)
+            # Adjust layout and colorbar
             plt.legend(loc=(1.01, 0.01), ncol=1)
             plt.suptitle('Scatterplot of baseline performance vs. curriculum performance')
             plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-            plt.savefig(f"./figures/{folder_base}/comparison/comparison{'_outlier' if not exclude_outlier else ''}.png")
-            plt.savefig(f"./figures/{folder_base}/comparison/comparison{'_outlier' if not exclude_outlier else ''}.pdf")
+            plt.savefig(f"./figures/{folder_base}/comparison/{set}comparison{'_outlier' if not exclude_outlier else ''}.png")
+            plt.savefig(f"./figures/{folder_base}/comparison/{set}comparison{'_outlier' if not exclude_outlier else ''}.pdf")
             plt.close()
 
-        else:
-            for df, set in zip([train_df, eval_df], ["non_evaluation_", "evaluation_"]):
-                fig, axs = plt.subplots(1, 3, figsize=(13, 4))
-                for ax, metric in zip(axs, ["return", "cost", "regret"]):
-                    filtered_df = df[df["step"] == df["step"].max()]
-                    mean_df = filtered_df.groupby(["Algorithm", "type"]).mean(numeric_only=True)
-                    
-                    pivot_df = mean_df.reset_index()
-                    pivot_df = pivot_df.pivot(index='Algorithm', columns='type', values=metric)
-                    pivot_df = pivot_df.fillna(0)
-
-                    if metric == "cost" and exclude_outlier:
-                        pivot_df = pivot_df[pivot_df["baseline"] < 100]
-                    if metric == "regret" and set == "evaluation_" and exclude_outlier:
-                        pivot_df = pivot_df[pivot_df["baseline"] < 4000]
-
-                    plot_legend = False
-                    if metric == "regret":
-                        plot_legend = True
-
-                    # if "non" in set:
-                        # markers = ["o"]
-                    # else:
-                    #     markers = ["$\circ$"]
-
-                    sns.scatterplot(data=pivot_df, x='baseline', y='curriculum', hue='Algorithm', style='Algorithm',
-                                    markers=["o"], legend=plot_legend, ax=ax, s=100)
-
-                    ax.grid(False)
-
-                    # Add labels and ticks
-                    ax.set_title(f'{metric}')
-                    ax.set_ylabel('Curriculum')
-                    ax.set_xlabel('Baseline')
-                    # ax.set_yticks(np.arange(2))
-
-                    if ax.get_xlim()[1] > ax.get_ylim()[1]:
-                        ax.set_xlim(0)
-                        ax.set_ylim(0, ax.get_xlim()[1])
-                    else:
-                        ax.set_xlim(0, ax.get_ylim()[1])
-                        ax.set_ylim(0)
-                    ax.set_aspect('equal', adjustable='box')
-                    
-                    ax.axline((0, 0), slope=1, color="black", linestyle="--", zorder=1, label='Diagonal')
-                    if "non" in set:
-                        ax.axvline(pivot_df.loc['PPO', 'baseline'], linestyle="-.", color="#8c564b", label='PPO Train')
-                        ax.axhline(pivot_df.loc['PPO', 'baseline'], linestyle="-.", color="#8c564b")
-                    else:
-                        ax.axvline(pivot_df.loc['PPO', 'baseline'], linestyle=":", color="#8c564b", label='PPO Evaluation')
-                        ax.axhline(pivot_df.loc['PPO', 'baseline'], linestyle=":", color="#8c564b")
-
-                # Adjust layout and colorbar
-                plt.legend(loc=(1.01, 0.01), ncol=1)
-                plt.suptitle('Scatterplot of baseline performance vs. curriculum performance')
-                plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-                plt.savefig(f"./figures/{folder_base}/comparison/{set}comparison{'_outlier' if not exclude_outlier else ''}.png")
-                plt.savefig(f"./figures/{folder_base}/comparison/{set}comparison{'_outlier' if not exclude_outlier else ''}.pdf")
-                plt.close()
-
     # Plot non-evaluation metrics
-    plot_metrics(train_df, eval_df)
-    # plot_metrics(train_df, eval_df, combine=False)
-    plot_metrics(train_df, eval_df, exclude_outlier=False)
-    # plot_metrics(train_df, eval_df, combine=False, exclude_outlier=False)
+    plot_scatter(train_df, eval_df, exclude_outlier=False)
+    plot_scatter(train_df, eval_df)
