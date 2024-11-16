@@ -12,7 +12,7 @@ def plot_train(folder, curr_changes, cost_limit, combined_df=None, include_weak=
     curr_dir = f"results/" + folder + "/curriculum"
     adapt_curr_dir = f"results/" + folder + "/adaptive_curriculum"
 
-    # Function to read progress csv and concatenate
+    # Function to read progress csv and concatenate results into a dataframe
     def read_and_concat(directory, algorithms, algorithm_type):
         dfs = []
         for algorithm in algorithms:
@@ -25,7 +25,7 @@ def plot_train(folder, curr_changes, cost_limit, combined_df=None, include_weak=
                 df['Algorithm'] = algorithm.split("-")[0]
                 end_version_pattern = r'HMR?A?(\d+|T)'
                 end_version = re.search(end_version_pattern, algorithm.split("-")[1])
-                df['end_task'] = end_version.group(1)
+                df['end_task'] = str(end_version.group(1))
                 df['type'] = algorithm_type
                 df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-1].split("-")[1]
                 df['regret_per_epoch'] = (df["cost"] - cost_limit).clip(lower=0.0)
@@ -152,7 +152,7 @@ def plot_eval(folder, curr_changes, cost_limit, combined_df=None, include_weak=F
                 df['Algorithm'] = algorithm.split("-")[0]
                 end_version_pattern = r'HMR?A?(\d+|T)'
                 end_version = re.search(end_version_pattern, algorithm.split("-")[1])
-                df['end_task'] = end_version.group(1)
+                df['end_task'] = str(end_version.group(1))
                 df['type'] = algorithm_type
                 df['seed'] = str(path).split("/" if "/" in str(path) else '\\')[-2].split("-")[1]
                 df['regret_per_epoch'] = (df["cost"] - cost_limit).clip(lower=0.0)
