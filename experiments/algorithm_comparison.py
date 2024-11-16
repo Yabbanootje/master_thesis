@@ -28,21 +28,15 @@ if __name__ == "__main__":
     # Repeat experiments
     wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
     with Pool(8) as p:
-        args_base = list(product(baseline_algorithms, ["baseline"], seeds))
-        args_curr = list(product(curr_algorithms, ["curriculum"], seeds))
+        args_base = list(product(baseline_algorithms, [4], ["baseline"], seeds))
+        args_curr = list(product(curr_algorithms, [4], ["curriculum"], seeds))
         args = args_curr + args_base
         p.starmap(use_params, args)
 
 
-    # Make sure that the types are correct
-    train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    train_df["end_task"] = train_df["end_task"].astype(str)
-    eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
-    eval_df["end_task"] = eval_df["end_task"].astype(str)
-
     # Plot the results
-    train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False, combined_df=train_df)
-    eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, combined_df=eval_df)
+    train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
+    eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
     print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
 
     # Save results
