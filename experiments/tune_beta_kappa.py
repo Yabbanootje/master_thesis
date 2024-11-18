@@ -1,6 +1,13 @@
+# This file corresponds to the experiments performed in section 6.4.1 of the thesis
+
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from plotting.plot_functions import plot_train, plot_eval, print_eval
+from plotting.plot_functions_adapt_tuning import *
 from main import *
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
@@ -11,8 +18,6 @@ if __name__ == '__main__':
     save_freq = 10
     epochs = 3000
     repetitions = 10
-    # baseline_algorithms = []#["PPO", "CPO", "OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
-    # curr_algorithms = ["PPOLag"]#["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
     baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
     curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
     adapt_curr_algorithms = ["PPOLag"]
@@ -22,59 +27,20 @@ if __name__ == '__main__':
     betas = [0.5, 1.0, 1.5]
     kappas = [5, 10, 20]
 
-    on_server = torch.cuda.is_available()
+    # Repeat experiments
+    for end_task in range(6, len(curr_changes) + 1):
+        with Pool(8) as p:
+            args_curr = list(product(adapt_curr_algorithms, [end_task], ["adaptive_curriculum"], seeds, [exp], betas, kappas))
+            p.starmap(use_params, args_curr)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--exp', dest='exp', type=int, help='Choose experiment', default=0)
-    args = parser.parse_args()
-    exp = args.exp
-
-    if exp == 1:
-        folder_base = "tune_beta_kappa_reset"
-        # Repeat experiments
-        wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-        os.environ["WANDB__SERVICE_WAIT"] = "300"
-        seeds = [5905, 7337, 572, 5689, 3968]
-        for end_task in range(6, len(curr_changes) + 1):
-            with Pool(8) as p:
-                args_curr = list(product(adapt_curr_algorithms, [end_task], ["adaptive_curriculum"], seeds, [exp], betas, kappas))
-                args_curr.remove(("PPOLag", 6, "adaptive_curriculum", 5689, 1, 1.0, 10))
-                p.starmap(use_params, args_curr)
-    elif exp == 2:
-        folder_base = "tune_beta_kappa_reset"
-        # Repeat experiments
-        wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-        os.environ["WANDB__SERVICE_WAIT"] = "300"
-        seeds = [175, 4678, 9733, 3743, 7596]
-        for end_task in range(6, len(curr_changes) + 1):
-            with Pool(8) as p:
-                args_curr = list(product(adapt_curr_algorithms, [end_task], ["adaptive_curriculum"], seeds, [exp], betas, kappas))
-                args_curr.remove(("PPOLag", 6, "adaptive_curriculum", 3743, 2, 0.5, 20))
-                p.starmap(use_params, args_curr)
-
-    # Plot the results
-    # train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    # train_df['end_task'] = train_df['end_task'].astype(str)
-    # train_df['seed'] = train_df['seed'].astype(str)
-    # train_df = plot_adapt_tune_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
-    # train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    train_df['end_task'] = train_df['end_task'].astype(str)
-    train_df['seed'] = train_df['seed'].astype(str)
-    
-    # eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
-    # eval_df["type"] = eval_df["type"].replace("baseline", "baseline R").replace("curriculum", "curriculum R").replace("adaptive_curriculum", "curriculum")
-    # eval_df['end_task'] = eval_df['end_task'].astype(str)
-    # eval_df = plot_adapt_tune_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
-    # eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
-    # print_adapt_tune_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
-    eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
-    # eval_df["type"] = eval_df["type"].replace("baseline", "baseline R").replace("curriculum", "curriculum R").replace("adaptive_curriculum", "curriculum")
-    eval_df['end_task'] = eval_df['end_task'].astype(str)
-    eval_df = eval_df[eval_df["step"] > 0]
+    # Plot and save the results
+    train_df = plot_adapt_tune_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
+    train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    eval_df = plot_adapt_tune_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
+    eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
 
 
-    # Create a figure with return, cost, regret and current task
+    # Create a summarizing figure (Figure 6.12) with return, cost, regret and current task
     fig = plt.figure(figsize=(12, 6), dpi=200)
 
     # Create a GridSpec with 4 rows and 3 columns
@@ -85,65 +51,67 @@ if __name__ == '__main__':
     additional_folder = "best_params"
     additional_file_text = ""
 
-    # # Define your dataframes
-    # dataframes = [train_df[(train_df["end_task"] == "T") & (train_df['beta_kappa'].isin(["1.5-5", "1.5-20", "0.5-20", "0.5-10", "1.0-20"]))], 
-    #               eval_df[(eval_df["end_task"] == "T") & (eval_df['beta_kappa'].isin(["1.5-5", "1.5-20", "0.5-20", "0.5-10", "1.0-20"]))]]
-    # metrics = ["return", "regret", "current_task"]
+    # Select five most promising parameter combinations
+    dataframes = [train_df[(train_df["end_task"] == "T") & (train_df['beta_kappa'].isin(["1.5-5", "1.5-20", "0.5-20", "0.5-10", "1.0-20"]))], 
+                  eval_df[(eval_df["end_task"] == "T") & (eval_df['beta_kappa'].isin(["1.5-5", "1.5-20", "0.5-20", "0.5-10", "1.0-20"]))]]
+    
+    # The metrics to be used
+    metrics = ["return", "regret", "current_task"]
 
-    # # Iterate through the dataframes and metrics
-    # for row_idx, combined_df in enumerate(dataframes):
-    #     # combined_df = combined_df[combined_df['beta_kappa'].isin(["1.5-5", "0.5-5", "0.5-20", "0.5-10", "1.0-20"])]
+    # Iterate through the dataframes and metrics
+    for row_idx, combined_df in enumerate(dataframes):
+        # Create subplots for each metric
+        for col_idx, metric in enumerate(metrics):
+            if metric == "current_task" and row_idx == 0:
+                # Place the "current_task" plot in the middle of the right column, spanning rows
+                ax = plt.subplot(gs[0:4, 2])
+            elif metric == "current_task":
+                # Last column should only contain one figure
+                break
+            else:
+                # Place "return" and "regret" plots in the corresponding rows and columns
+                ax = plt.subplot(gs[row_idx * 2:row_idx * 2 + 2, col_idx])
 
-    #     # Create subplots for each metric
-    #     for col_idx, metric in enumerate(metrics):
-    #         if metric == "current_task" and row_idx == 0:
-    #             # Place the "current_task" plot in the middle of the right column, spanning rows
-    #             ax = plt.subplot(gs[0:4, 2])
-    #         elif metric == "current_task":
-    #             break
-    #         else:
-    #             # Place "return" and "regret" plots in the corresponding rows and columns
-    #             ax = plt.subplot(gs[row_idx * 2:row_idx * 2 + 2, col_idx])
+            if metric == "regret" and row_idx == 1:
+                # Cost works better than regret for evaluation data
+                metric = "cost"
+            if row_idx == 1:
+                # Average the evaluation episodes
+                combined_df[metric] = combined_df.groupby(["beta_kappa", "seed"])[metric].transform(lambda x: x.rolling(window=25, min_periods=1, center=True).mean())
 
-    #         if metric == "regret" and row_idx == 1:
-    #             metric = "cost"
-    #         if row_idx == 1:
-    #             print(combined_df[combined_df["step"] <= 90].head(20))
-    #             combined_df[metric] = combined_df.groupby(["beta_kappa", "seed"])[metric].transform(lambda x: x.rolling(window=25, min_periods=1, center=True).mean())
-    #             print(combined_df[combined_df["step"] <= 90].head(20))
+            # Plot the results
+            sns.lineplot(data=combined_df, x='step', y=metric, hue='beta_kappa', errorbar="sd" if False else "se", ax=ax)
 
-    #         # sns.set_style("whitegrid")
-    #         sns.lineplot(data=combined_df, x='step', y=metric, hue='beta_kappa', errorbar="sd" if False else "se", ax=ax)
+            # Add cost limit
+            if metric == 'cost':
+                ax.axhline(y=cost_limit, color='black', linestyle=':', label=f'Cost Limit ({cost_limit})')
 
-    #         if metric == 'cost':
-    #             ax.axhline(y=cost_limit, color='black', linestyle=':', label=f'Cost Limit ({cost_limit})')
+            # Set the labels, titles and legend
+            ax.set_xlabel("x1000 Steps")
+            if row_idx == 0 and metric == "return":
+                ax.set_ylabel("Training")
+            elif row_idx == 1 and metric == "return":
+                ax.set_ylabel("Evaluation")
+            else:
+                ax.set_ylabel("")
+            ax.get_legend().remove()
+            ax.set_title(metric.replace('_', ' ').capitalize())
+            if metric == "current_task":
+                handles, labels = ax.get_legend_handles_labels()
+                ax.legend(handles, labels, title="beta-kappa", loc=(1.01, 0.01), ncol=1)
 
-    #         ax.set_xlabel("x1000 Steps")
-    #         if row_idx == 0 and metric == "return":
-    #             ax.set_ylabel("Training")
-    #         elif row_idx == 1 and metric == "return":
-    #             ax.set_ylabel("Evaluation")
-    #         else:
-    #             ax.set_ylabel("")
-    #         ax.get_legend().remove()
-    #         ax.set_title(metric.replace('_', ' ').capitalize())
-    #         if metric == "current_task":
-    #             handles, labels = ax.get_legend_handles_labels()
-    #             ax.legend(handles, labels, title="beta-kappa", loc=(1.01, 0.01), ncol=1)
-    #         # ax.set_xlim(xmin=0)
-
-    # # plt.title(f"Performance of adaptive agents using different betas and kappas")
-    # fig.suptitle("Performance of adaptive agents using different betas and kappas")
-    # plt.tight_layout(pad=2)
-    # if not os.path.isdir(f"figures/{folder}/{additional_folder}"):
-    #     os.makedirs(f"figures/{folder}/{additional_folder}")
-    # plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}grid.png")
-    # plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}grid.pdf")
-    # plt.close()
+    # Save the plot
+    fig.suptitle("Performance of adaptive agents using different betas and kappas")
+    plt.tight_layout(pad=2)
+    if not os.path.isdir(f"figures/{folder}/{additional_folder}"):
+        os.makedirs(f"figures/{folder}/{additional_folder}")
+    plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}grid.png")
+    plt.savefig(f"figures/{folder}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}grid.pdf")
+    plt.close()
 
 
-
-    # Define your dataframes
+    # Create a figure that shows the task progression of the five best parameter combinations (Figure B.15)
+    # Select five most promising parameter combinations
     dataframes = [train_df[(train_df["end_task"] == "T") & (train_df['beta_kappa'].isin(["1.5-5", "1.5-20", "0.5-20", "0.5-10", "1.0-20"]))], 
                   eval_df[(eval_df["end_task"] == "T") & (eval_df['beta_kappa'].isin(["1.5-5", "1.5-20", "0.5-20", "0.5-10", "1.0-20"]))]]
 
@@ -154,7 +122,7 @@ if __name__ == '__main__':
     # Map the lineplot onto the FacetGrid
     g.map_dataframe(sns.lineplot, x='step', y="current_task", errorbar="sd" if False else "se", estimator=None, units='seed', alpha=0.4)
 
-    # Adjust the plot (optional)
+    # Set labels and titles
     g.set_axis_labels("x1000 Steps", "Current Task", fontsize=14)
     g.set_titles("beta-kappa: {col_name}", size=14)
 
@@ -162,7 +130,7 @@ if __name__ == '__main__':
     for ax in g.axes.flatten():
         ax.tick_params(labelbottom=True)
 
-    # plt.title(f"Performance of adaptive agents using different betas and kappas")
+    # Save the plot
     fig.suptitle("Performance of adaptive agents using different betas and kappas")
     plt.tight_layout(pad=2)
     if not os.path.isdir(f"figures/{folder}/{additional_folder}"):
