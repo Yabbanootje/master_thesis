@@ -89,8 +89,8 @@ if __name__ == "__main__":
 
             # Plot the results
             curr_changes = [10, 20, 30]
-            train_df = plot_train(folder_name, curr_changes, cost_limit, include_weak=False)
-            eval_df = plot_eval(folder_name, curr_changes, cost_limit, include_weak=False, save_freq=save_freq)
+            train_df = plot_train(folder_name, curr_changes, cost_limit)
+            eval_df = plot_eval(folder_name, curr_changes, cost_limit, save_freq=save_freq)
 
             # Record results
             parameter_means = get_results(train_df=train_df, eval_df=eval_df, parameters=parameters, 

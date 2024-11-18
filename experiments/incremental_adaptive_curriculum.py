@@ -2,7 +2,6 @@
 
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from plotting.plot_functions import plot_train, plot_eval, print_eval
 from plotting.plot_functions_incremental import *
 from main import *
 import pandas as pd
@@ -36,7 +35,7 @@ if __name__ == '__main__':
     # Plot the results
     train_df = plot_incremental_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
     eval_df = plot_incremental_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
-    print_incremental_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
+    print_incremental_results(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq)
 
 
     # Create a figure that shows the task progression of the four algorithms (Figure 6.15)

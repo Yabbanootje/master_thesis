@@ -2,7 +2,6 @@
 
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from plotting.plot_functions import plot_train, plot_eval, print_eval
 from plotting.plot_functions_adapt_tuning import *
 from main import *
 import pandas as pd
@@ -34,9 +33,9 @@ if __name__ == '__main__':
             p.starmap(use_params, args_curr)
 
     # Plot and save the results
-    train_df = plot_adapt_tune_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
+    train_df = plot_adapt_tune_train(folder=folder_base, cost_limit=cost_limit)
     train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    eval_df = plot_adapt_tune_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
+    eval_df = plot_adapt_tune_eval(folder=folder_base, cost_limit=cost_limit)
     eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
 
 

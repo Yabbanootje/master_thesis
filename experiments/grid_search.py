@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
         # Plot the results and get data
         curr_changes = [10, 20, 30]
-        train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
+        train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
         eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, save_freq=save_freq)
 
         # Record results
