@@ -2,11 +2,9 @@ import omnisafe
 import torch
 import shutil
 import os
-import argparse
 import random as rand
 import re
 from multiprocessing.pool import Pool
-import wandb
 from itertools import product
 from omnisafe.utils.config import get_default_kwargs_yaml
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
