@@ -27,9 +27,11 @@ if __name__ == '__main__':
     # Repeat experiments
     for end_task in range(0, len(curr_changes) + 1):
         with Pool(8) as p:
-            args_curr = list(product(curr_algorithms, [end_task], ["curriculum"], seeds, [exp], [1.0], [20]))
-            args_adapt_curr = list(product(curr_algorithms, [end_task], ["adaptive_curriculum"], seeds, [exp], [1.0], [20]))
-            p.starmap(use_params, args_curr + args_adapt_curr)
+            args_curr = list(product([folder_base], [cost_limit], seeds, [save_freq], [epochs], curr_algorithms, ["curriculum"], 
+                                    [curr_changes], [eval_episodes], [render_episodes], [end_task]))
+            args_adapt_curr = list(product([folder_base], [cost_limit], seeds, [save_freq], [epochs], adapt_curr_algorithms, 
+                                     ["adaptive_curriculum"], [curr_changes], [eval_episodes], [render_episodes], [end_task]))
+            p.starmap(run_experiment, args_curr + args_adapt_curr)
 
 
     # Plot the results

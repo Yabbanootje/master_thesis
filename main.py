@@ -11,38 +11,55 @@ from itertools import product
 from omnisafe.utils.config import get_default_kwargs_yaml
 from custom_envs.hand_made_levels.hm_curriculum_env import HMCurriculumEnv
 from custom_envs.hand_made_levels.hm_adaptive_curriculum_env import HMAdaptiveCurriculumEnv
-# from plot_functions import *
-# from plot_functions_incremental import *
-# from plot_functions_adapt_tuning import *
 import warnings
 
-def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps_per_epoch = 1000, 
+def get_configs(folder, algorithms, epochs, cost_limit, seed, save_freq = None, steps_per_epoch = 1000, 
                 update_iters = 1, nn_size = 256, lag_multiplier_init = 0.1, lag_multiplier_lr = 0.01,
-                focops_eta = 0.02, focops_lam = 1.5, beta = 1.0, kappa = 20, early_stop_before = 0):
+                beta = 1.0, kappa = 20, early_stop_before = 0):
     """
-    steps_per_epoch (int): the number of steps before the policy is updated
-    update_iters (int): the number of update iterations per update
+    Function to get a list of configs for each of the given algorithms.
 
-    early_stop_before (int): the first task in the sequence that we do not want to stop early
+    Parameters:
+        folder (str): the relative folder path.
+        algorithms ([str]): list of the algorithm names from Omnisafe to create config for.
+        epochs (int): amount of epochs agent should be trained for.
+        cost_limit (int): the cost_limit to be used in the environments.
+        seed (int): the seed for training the agents.
+        save_freq (int | None, optional): amount of epochs between saves of the model. If None, only at the start and end of training.
+        steps_per_epoch (int, optional): the number of steps before the policy is updated.
+        update_iters (int), optional: the number of update iterations per update.
+        nn_size (int, optional): the amount of neurons in given to the first and second hidden layers.
+        lag_multiplier_init (float, optional): initial value of the Lagrangian multiplier if applicable.
+        lag_multiplier_lr (float, optional): learning rate of the Lagrangian multiplier if applicable.
+        beta (float, optional): fraction of the cost_limit that should be satisfied for kappa epochs, as described in the thesis. 
+            Only applies to adaptive curricula.
+        kappa (int, optional): amount of epochs in which the agent should be below beta x cost_limit, as described in the thesis.
+            Only applies to adaptive curricula.
+        early_stop_before (int, optional): the first task in the sequence where we do not want to stop training after the agent is ready for
+            the next task. Is used to speed up training, if it is not necessary to train earlier tasks to the last epoch and 
+            instead it is preferable to immediately start training the agent on the next task in the sequence.
+            Only applies to adaptive curricula.
     """
 
+    # If save_freq is not given only save at the start and end
     if save_freq == None:
         save_freq = epochs
 
+    # Use cuda if available
     if torch.cuda.is_available():
         device = "cuda:0"
-        use_wandb = True
     else:
         device = "cpu"
-        use_wandb = False
 
+    # Configs to be returned
     custom_cfgs = []
 
-    for algo in algos:
-        # cfg_path = get_yaml_path(algo, "on-policy")
-        # kwargs = load_yaml(cfg_path)
+    # Create a config for each algorithm
+    for algo in algorithms:
+        # Retrieve the available configs
         kwargs = get_default_kwargs_yaml(algo, None, "on-policy").todict()
 
+        # Generic custom configs
         custom_cfg = {
             'seed': seed,
             'train_cfgs': {
@@ -52,12 +69,11 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
             'algo_cfgs': {
                 'steps_per_epoch': steps_per_epoch,
                 'update_iters': update_iters,
-                # 'penalty_coef': 0.05,
             },
             'logger_cfgs': {
-                'log_dir': f".{'/app' if on_server else ''}/results/" + folder,
+                'log_dir': f"./results/" + folder,
                 'save_model_freq': save_freq,
-                'use_wandb': use_wandb,
+                'use_wandb': False,
                 'wandb_project': folder.split("/")[0],
             },
             'model_cfgs': {
@@ -67,26 +83,19 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
                 'critic': {
                     'hidden_sizes': [nn_size, nn_size]
                 },
-                # 'linear_lr_decay': False,
-                # 'std_range': [0.1, 0.0]
             },
         }
 
-        if "adaptive_curriculum" == os.path.basename(folder) or "kappa" in os.path.basename(folder):
+        # If the agents are trained using an adaptive curriculum, add adaptive configs
+        if "adaptive_curriculum" == os.path.basename(folder):
             env_cfgs = {
                 'beta': beta,
                 'kappa': kappa,
                 'early_stop_before': early_stop_before,
             }
             custom_cfg["env_cfgs"] = env_cfgs
-        # TODO find a way to know inside policy_gradient that a static curriculum needs to be stopped
-        # else:
-        #     env_cfgs = {
-        #         'early_stop_before': early_stop_before,
-        #     }
-        #     custom_cfg["env_cfgs"] = env_cfgs
 
-        # Add cost_limit depending on specific algorithm, the cost is discounted
+        # Add cost_limit depending on specific algorithm and Lagrangian parameters if applicable
         if kwargs.get("lagrange_cfgs"):
             custom_cfg.update({'lagrange_cfgs': {
                 'cost_limit': cost_limit,
@@ -96,10 +105,6 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
             if kwargs["lagrange_cfgs"].get("lambda_lr"):
                 custom_cfg['lagrange_cfgs'].update({'lambda_lr': lag_multiplier_lr,})
         if kwargs.get("algo_cfgs"):
-            if kwargs["algo_cfgs"].get("focops_eta"):
-                custom_cfg["algo_cfgs"].update({'focops_eta': focops_eta,})
-            if kwargs["algo_cfgs"].get("focops_lam"):
-                custom_cfg["algo_cfgs"].update({'focops_lam': focops_lam,})
             if kwargs["algo_cfgs"].get("cost_limit"):
                 custom_cfg["algo_cfgs"].update({'cost_limit': cost_limit,})
 
@@ -110,62 +115,121 @@ def get_configs(folder, algos, epochs, cost_limit, seed, save_freq = None, steps
     return custom_cfgs
 
 def get_agents(folder, algorithms, env_id, cfgs, curr_changes):
+    """
+    Function to get a list of agents using the given algorithms and configs.
+
+    Parameters:
+        folder (str): the relative folder path.
+        algorithms ([str]): list of the algorithm names from Omnisafe to create config for. Should have the same length as cfgs.
+        env_id (str): id by which the environment will be created. For example, 'SafetyPointFrom0HMT', means that a static
+            curriculum will be created starting from task 0 all the way up to task T using the SafetyPoint environments from
+            Omnisafe.
+        cfgs ([dict]): list of configs to be used by the agents in the environment. Should have the same length as algorithms.
+        curr_changes ([int]): the epochs at which a task change to the next task should occur, needs to be a strictly increasing 
+            list. Only applicable to static curricula.
+    """
+    # Agents to be returned
     agents = []
+
+    # Give each algorithm its respective configs
     for algorithm, cfg in zip(algorithms, cfgs):
+        # Create Omnisafe agent using the configs
         agent = omnisafe.Agent(algorithm, env_id, custom_cfgs=cfg)
+
+        # Check whether a curriculum is necessary
         if "From" in env_id:
+            # Get the start task
             start_version_pattern = r'From(\d+|T)'
             start_version = re.search(start_version_pattern, env_id)
             start_task = start_version.group(1)
-
             if start_task == "T":
                 start_task = len(curr_changes)
             
             if int(start_task) != 0:
-                algo_folders = os.listdir(f"{'app/' if on_server else ''}results/" + folder)
+                # If start task is not the first, load the model that was trained on the task before the start task
+                algo_folders = os.listdir(f"results/" + folder)
                 algo_folder = [fldr for fldr in algo_folders if algorithm in fldr and any(prefix + str(int(start_task) - 1) in fldr for prefix in ["HM", "HMR", "HMA"])][0]
-                algo_path = os.path.join(f"{'app/' if on_server else ''}results/", folder, algo_folder)
+                algo_path = os.path.join(f"results/", folder, algo_folder)
                 seed_folder = [fldr for fldr in os.listdir(algo_path) if "seed-" + str(cfg.get("seed")).zfill(3) in fldr][0]
                 if "HMA" in env_id:
                     agent.agent.load(path=os.path.join(algo_path, seed_folder))
                 else:
                     agent.agent.load(epoch=curr_changes[int(start_task) - 1], path=os.path.join(algo_path, seed_folder))
+
         agents.append(agent)
 
     return agents
 
-def train_agent(agent, episodes = 1, render_episodes = 1, make_videos = False, epochs_to_render = []):
+def train_agent(agent, episodes = 1, render_episodes = 1, epochs_to_render = []):
+    """
+    Function to train the given agent with the given evaluation parameters.
+
+    Parameters:
+        agent (omnisafe.Agent): agent to be trained.
+        episodes (int, optional): amount of evaluation episodes.
+        render_episodes (int, optional): amount of evaluation episodes that should be rendered, which is done on new episodes.
+        epochs_to_render ([int], optional): specific epochs that should be rendered instead of all epochs that have a saved model.
+    """
+    # Train the agent
     agent.learn()
 
+    # Plot generic progress of the agent
     agent.plot(smooth=1)
 
+    # Evaluate the agent without rendered episodes
     if episodes >= 1:
         agent.evaluate(num_episodes=episodes)
 
-    if make_videos and render_episodes >= 1:
+    # Evaluate the agent with rendered episodes
+    if render_episodes >= 1:
         agent.render(num_episodes=render_episodes, render_mode='rgb_array', width=256, height=256, 
                      epochs_to_render=epochs_to_render)
-        
-    # Remove wandb folder
-    wandb_path = os.path.join(agent.agent.logger._log_dir, "wandb")
-    shutil.rmtree(wandb_path, ignore_errors=True)
 
-def remove_wandb(folder):
-    for type in ["baseline", "curriculum"]:
-        algo_folders = os.listdir(f"{'app/' if on_server else ''}results/" + folder + "/" + type)
-        for algo_folder in algo_folders:
-            algo_path = os.path.join(f"{'app/' if on_server else ''}results/", folder, type, algo_folder)
-            seed_folders = os.listdir(algo_path)
-            for seed_folder in seed_folders:
-                wandb_path = os.path.join(f"{'app/' if on_server else ''}results/", folder, type, algo_folder, seed_folder, "wandb")
-                print(wandb_path)
-                shutil.rmtree(wandb_path, ignore_errors = True)
+def run_experiment(folder_base, cost_limit, seed, save_freq, epochs, algorithm, algorithm_type, curr_changes, eval_episodes, 
+                   render_episodes, end_task, start_task = 0, beta = 1.0, kappa = 20, early_stop_before = 0):
+    """
+    Function to run experiments with the given parameters.
 
-def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, epochs, algorithm, env_id, folder, curr_changes,
-                   early_stop_before = 0, beta = 1.0, kappa = 20):
+    Parameters:
+        folder_base (str): the name of the folder where all experiments should be saved.
+        cost_limit (int): the cost_limit to be used in the environments.
+        seed (int): the seed for training the agents.
+        save_freq (int | None): amount of epochs between saves of the model. If None, only at the start and end of training.
+        epochs (int): amount of epochs agent should be trained for.
+        algorithm (str): the algorithm name from Omnisafe to train.
+        algorithm_type (str): the type of curriculum to be used with the algorithm.
+        curr_changes ([int]): the epochs at which a task change to the next task should occur, needs to be a strictly increasing 
+            list. Only applicable to static curricula.
+        eval_episodes (int): amount of evaluation episodes.
+        render_episodes (int): amount of evaluation episodes that should be rendered, which is done on new episodes.
+        end_task (int): task to start training from. Only applicable to static curricula.
+        start_task (int, optional): task to start training from. Only applicable to static curricula.
+        beta (float, optional): fraction of the cost_limit that should be satisfied for kappa epochs, as described in the thesis. 
+            Only applicable to adaptive curricula.
+        kappa (int, optional): amount of epochs in which the agent should be below beta x cost_limit, as described in the thesis.
+            Only applicable to adaptive curricula.
+        early_stop_before (int, optional): the first task in the sequence where we do not want to stop training after the agent is ready for
+            the next task. Is used to speed up training, if it is not necessary to train earlier tasks to the last epoch and 
+            instead it is preferable to immediately start training the agent on the next task in the sequence.
+            Only applicable to adaptive curricula.
+    """
+    
+    # Create the appropriate env_id depending on the type of curriculum
+    if algorithm_type == "baseline":
+        env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
+    elif algorithm_type == "curriculum":
+        env_id = f'SafetyPointFrom{start_task if end_task < 6 else "T"}HM{end_task if end_task < 6 else "T"}-v0'
+    elif algorithm_type == "adaptive_curriculum":
+        env_id = f'SafetyPointFrom{end_task if end_task < 6 else "T"}HMA{end_task if end_task < 6 else "T"}-v0'
+    else:
+        raise Exception("Invalid algorithm type, must be 'baseline', 'curriculum' or 'adaptive_curriculum'.")
+    
+    # Use a seperate folder for each type
+    folder=f"{folder_base}/{algorithm_type}"
+
     # Get configurations
     cfgs = get_configs(folder=folder, algos=[algorithm], epochs=epochs, cost_limit=cost_limit, seed=seed, 
-                       save_freq = save_freq, early_stop_before=early_stop_before, beta=beta, kappa=kappa)
+                       save_freq = save_freq, beta=beta, kappa=kappa, early_stop_before=early_stop_before)
 
     # Initialize agents
     agents = get_agents(folder, [algorithm], env_id, cfgs, curr_changes)
@@ -174,31 +238,6 @@ def run_experiment(eval_episodes, render_episodes, cost_limit, seed, save_freq, 
     for agent in agents:
         train_agent(agent, eval_episodes, render_episodes, True, [int(epochs/4), int(epochs/2), int(3 * epochs/4), epochs])
 
-def use_params(algorithm, end_task, algorithm_type, seed, exp, beta = 1.0, kappa = 20):
-    if exp > 2:
-        if end_task <= 2:
-            epochs = 500
-        elif end_task >= 5:
-            epochs = 3000
-        else:
-            epochs = 2000
-    else:
-        epochs = 3000
-
-    if algorithm_type == "baseline":
-        env_id = f'SafetyPointHM{end_task if end_task < 6 else "T"}-v0'
-    elif algorithm_type == "curriculum":
-        env_id = f'SafetyPointFrom{end_task if end_task < 6 else "T"}HM{end_task if end_task < 6 else "T"}-v0'
-        # env_id = f'SafetyPointFrom0HM{end_task if end_task < 6 else "T"}-v0'
-    elif algorithm_type == "adaptive_curriculum":
-        env_id = f'SafetyPointFrom{end_task if end_task < 6 else "T"}HMA{end_task if end_task < 6 else "T"}-v0'
-    else:
-        raise Exception("Invalid algorithm type, must be 'baseline', 'curriculum' or 'adaptive_curriculum'.")
-
-    run_experiment(eval_episodes=eval_episodes, render_episodes=render_episodes, cost_limit=cost_limit, 
-                    seed=seed, save_freq=save_freq, epochs=epochs, algorithm=algorithm, 
-                    env_id=env_id, folder=f"{folder_base}/{algorithm_type}{'/beta-'+str(beta)+'/kappa-'+str(kappa) if exp <= 2 else ''}", 
-                    curr_changes=curr_changes, early_stop_before=6 if exp<=2 else 0, beta=beta, kappa=kappa)
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
@@ -209,197 +248,11 @@ if __name__ == '__main__':
     save_freq = 10
     epochs = 3000
     repetitions = 10
-    # baseline_algorithms = []#["PPO", "CPO", "OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
-    # curr_algorithms = ["PPOLag"]#["OnCRPO", "CUP", "FOCOPS", "PCPO", "PPOEarlyTerminated", "PPOLag"]
     baseline_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated", "PPO", "CPO"]
     curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
-    adapt_curr_algorithms = ["PPOLag"]
+    adapt_curr_algorithms = ["PPOLag", "FOCOPS", "CUP", "PPOEarlyTerminated"]
     folder_base = "incremental_adaptive_curriculum"
     curr_changes = [10, 20, 40, 100, 300, 700]
     seeds = [5905, 7337, 572, 5689, 3968, 175, 4678, 9733, 3743, 7596] # [int(rand.random() * 10000) for i in range(repetitions)]
     betas = [0.5, 1.0, 1.5]
     kappas = [5, 10, 20]
-
-    on_server = torch.cuda.is_available()
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--exp', dest='exp', type=int, help='Choose experiment', default=0)
-    args = parser.parse_args()
-    exp = args.exp
-
-    if exp == 1:
-        folder_base = "tune_beta_kappa_reset"
-        # Repeat experiments
-        wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-        os.environ["WANDB__SERVICE_WAIT"] = "300"
-        seeds = [5905, 7337, 572, 5689, 3968]
-        for end_task in range(6, len(curr_changes) + 1):
-            with Pool(8) as p:
-                args_curr = list(product(adapt_curr_algorithms, [end_task], ["adaptive_curriculum"], seeds, [exp], betas, kappas))
-                args_curr.remove(("PPOLag", 6, "adaptive_curriculum", 5689, 1, 1.0, 10))
-                p.starmap(use_params, args_curr)
-    elif exp == 2:
-        folder_base = "tune_beta_kappa_reset"
-        # Repeat experiments
-        wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-        os.environ["WANDB__SERVICE_WAIT"] = "300"
-        seeds = [175, 4678, 9733, 3743, 7596]
-        for end_task in range(6, len(curr_changes) + 1):
-            with Pool(8) as p:
-                args_curr = list(product(adapt_curr_algorithms, [end_task], ["adaptive_curriculum"], seeds, [exp], betas, kappas))
-                args_curr.remove(("PPOLag", 6, "adaptive_curriculum", 3743, 2, 0.5, 20))
-                p.starmap(use_params, args_curr)
-    elif exp == 3:
-        folder_base = "incremental_adaptive_curriculum"
-        # Repeat experiments
-        wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-        os.environ["WANDB__SERVICE_WAIT"] = "300"
-        seeds = [5905, 7337, 572, 5689, 3968]
-        for end_task in range(5, len(curr_changes) + 1):
-            with Pool(8) as p:
-                args_curr = list(product(curr_algorithms if end_task != 4 else [], [end_task], ["curriculum"], seeds, [exp], [1.0], [20]))
-                args_adapt_curr = list(product(curr_algorithms if end_task != 4 else ["PPOEarlyTerminated"], [end_task], ["adaptive_curriculum"], seeds, [exp], [1.0], [20]))
-                if end_task == 5:
-                    # args_adapt_curr = args_adapt_curr + list(product(["FOCOPS"], [end_task], ["adaptive_curriculum"], [3968], [exp], [1.0], [20]))
-                    for seed in [7337, 5689, 572, 5905, 3968]:
-                        args_curr.remove(("CUP", 5, "curriculum", seed, exp, 1.0, 20))
-                        args_curr.remove(("PPOLag", 5, "curriculum", seed, exp, 1.0, 20))
-                        args_curr.remove(("FOCOPS", 5, "curriculum", seed, exp, 1.0, 20))
-
-                        args_adapt_curr.remove(("CUP", 5, "adaptive_curriculum", seed, exp, 1.0, 20))
-                        args_adapt_curr.remove(("PPOLag", 5, "adaptive_curriculum", seed, exp, 1.0, 20))
-                    for seed in [7337, 5689, 572, 5905]:
-                        args_adapt_curr.remove(("FOCOPS", 5, "adaptive_curriculum", seed, exp, 1.0, 20))
-                p.starmap(use_params, args_curr + args_adapt_curr)
-    elif exp == 4:
-        folder_base = "incremental_adaptive_curriculum"
-        # Repeat experiments
-        wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-        os.environ["WANDB__SERVICE_WAIT"] = "300"
-        seeds = [175, 4678, 9733, 3743, 7596]
-        for end_task in range(5, len(curr_changes) + 1):
-            with Pool(8) as p:
-                args_curr = list(product(curr_algorithms if end_task != 4 else [], [end_task], ["curriculum"], seeds, [exp], [1.0], [20]))
-                args_adapt_curr = list(product(curr_algorithms if end_task != 4 else [], [end_task], ["adaptive_curriculum"], seeds, [exp], [1.0], [20]))
-                if end_task == 5:
-                    # args_adapt_curr = args_adapt_curr + list(product(["PPOEarlyTerminated"], [end_task], ["adaptive_curriculum"], [9733, 7596], [exp], [1.0], [20]))
-                    for seed in [9733, 7596, 175]:
-                        args_curr.remove(("CUP", 5, "curriculum", seed, exp, 1.0, 20))
-                    for seed in [9733, 7596]:
-                        args_curr.remove(("PPOLag", 5, "curriculum", seed, exp, 1.0, 20))
-                    for seed in [3743]:
-                        args_curr.remove(("FOCOPS", 5, "curriculum", seed, exp, 1.0, 20))
-                        
-                p.starmap(use_params, args_curr + args_adapt_curr)
-    elif exp == 5:
-        folder_base = "incremental_adaptive_curriculum"
-        baseline_algorithms = ["PPOLag", "CUP", "PPO"]
-        # Repeat experiments
-        wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-        os.environ["WANDB__SERVICE_WAIT"] = "300"
-        seeds = [5905, 7337, 572, 5689, 3968]
-        with Pool(8) as p:
-            args_base = list(product(baseline_algorithms, [5], ["baseline"], seeds, [exp], [1.0], [20]))
-            p.starmap(use_params, args_base)
-    elif exp == 6:
-        folder_base = "incremental_adaptive_curriculum"
-        baseline_algorithms = ["PPOLag", "CUP", "PPO"]
-        # Repeat experiments
-        wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-        os.environ["WANDB__SERVICE_WAIT"] = "300"
-        seeds = [175, 4678, 9733, 3743, 7596]
-        with Pool(8) as p:
-            args_base = list(product(baseline_algorithms, [5], ["baseline"], seeds, [exp], [1.0], [20]))
-            p.starmap(use_params, args_base)
-    elif exp == 7:
-        folder_base = "incremental_adaptive_curriculum"
-        baseline_algorithms = ["PPOEarlyTerminated", "FOCOPS", "CPO"]
-        # Repeat experiments
-        wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-        os.environ["WANDB__SERVICE_WAIT"] = "300"
-        seeds = [5905, 7337, 572, 5689, 3968]
-        with Pool(8) as p:
-            args_base = list(product(baseline_algorithms, [5], ["baseline"], seeds, [exp], [1.0], [20]))
-            p.starmap(use_params, args_base)
-    elif exp == 8:
-        folder_base = "incremental_adaptive_curriculum"
-        baseline_algorithms = ["PPOEarlyTerminated", "FOCOPS", "CPO"]
-        # Repeat experiments
-        wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-        os.environ["WANDB__SERVICE_WAIT"] = "300"
-        seeds = [175, 4678, 9733, 3743, 7596]
-        with Pool(8) as p:
-            args_base = list(product(baseline_algorithms, [5], ["baseline"], seeds, [exp], [1.0], [20]))
-            p.starmap(use_params, args_base)
-                
-    # with Pool(8) as p:
-    #     # args_base = list(product(baseline_algorithms, [end_task], ["baseline"], seeds, [1.0], [10]))
-    #     args_curr = list(product(curr_algorithms, [4, 6, 5], ["curriculum"], seeds, [1.0], [10]))
-    #     args = args_curr #+ args_base
-    #     p.starmap(use_params, args)
-
-    # with Pool(3) as p:
-    #     args_base = list(product(baseline_algorithms, [6], ["baseline"], seeds, betas, kappas))
-    #     args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, betas, kappas))
-    #     # args = args_curr + args_base
-    #     args = [("PPOLag", 6, "adaptive_curriculum", int(rand.random() * 10000), 1.5, 10),
-    #             ("PPOLag", 6, "adaptive_curriculum", int(rand.random() * 10000), 1.5, 20),
-    #             ("PPOLag", 6, "adaptive_curriculum", int(rand.random() * 10000), 1.0, 20)]
-    #     p.starmap(use_params, args)
-
-    # # Repeat experiments
-    # wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
-    # # for seed in seeds:
-    # #     with Pool(8) as p:
-    # #         args_base = list(product(baseline_algorithms, [6], ["baseline"], seeds, betas, kappas))
-    # #         args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, betas, kappas))
-    # #         args = args_curr + args_base
-    # #         p.starmap(use_params, args)
-
-    # for seed in [int(rand.random() * 10000) for i in range(repetitions)]:
-    #     with Pool(8) as p:
-    #         args_base = list(product(baseline_algorithms, [6], ["baseline"], seeds, betas, kappas))
-    #         args_curr = list(product(curr_algorithms, [6], ["adaptive_curriculum"], seeds, betas, kappas))
-    #         args = args_curr + args_base
-    #         p.starmap(use_params, args)
-
-    # use_params(*("PPOLag", 3, "adaptive_curriculum", 1142))
-
-    # # Repeat experiments
-    # for end_task in range(0, 7):
-    #     use_params(*("PPOLag", end_task, "baseline", 1142, 100, 2, 2))
-
-    # # Plot the results
-    # train_df = None
-    # train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    # train_df['end_task'] = train_df['end_task'].astype(str)
-    # # train_df['seed'] = train_df['seed'].astype(str)
-    # # # train_df = train_df.drop(columns=[col for col in train_df.columns if "Unnamed" in col])
-    # train_df["type"] = train_df["type"].replace("baseline", "baseline R").replace("curriculum", "curriculum R").replace("adaptive_curriculum", "curriculum")
-    # train_df = plot_incremental_train(folder=folder_base, combined_df=train_df, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
-    # train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
-    # eval_df = None
-    # eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
-    # eval_df["type"] = eval_df["type"].replace("baseline", "baseline R").replace("curriculum", "curriculum R").replace("adaptive_curriculum", "curriculum")
-    # eval_df['end_task'] = eval_df['end_task'].astype(str)
-    # # eval_df['seed'] = eval_df['seed'].astype(str)
-    # eval_df = plot_incremental_eval(folder=folder_base, combined_df=eval_df, curr_changes=curr_changes, cost_limit=cost_limit)
-    # eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
-    # print_incremental_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)
-    # train_df['end_task'] = train_df['end_task'].astype(str)
-    # eval_df['end_task'] = eval_df['end_task'].astype(str)
-    # for end_task in train_df["end_task"].unique():
-    #     if end_task == "T":
-    #         idx = 6
-    #     else:
-    #         idx = int(end_task)
-    #     print_incremental_eval(folder=folder_base, train_df=train_df[train_df['end_task'] == str(end_task)], eval_df=eval_df[eval_df['end_task'] == str(end_task)], 
-    #                         save_freq=save_freq, cost_limit=cost_limit, additional_folder="HM" + str(end_task))
-
-    # # for i in range(7):
-    # #     use_params(*("PPOLag", i, "baseline", 42))
-
-    # # Plot the results
-    # train_df = plot_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit, include_weak=False)
-    # eval_df = plot_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
-    # print_eval(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq, cost_limit=cost_limit)

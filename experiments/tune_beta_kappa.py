@@ -29,8 +29,10 @@ if __name__ == '__main__':
     # Repeat experiments
     for end_task in range(6, len(curr_changes) + 1):
         with Pool(8) as p:
-            args_curr = list(product(adapt_curr_algorithms, [end_task], ["adaptive_curriculum"], seeds, [exp], betas, kappas))
-            p.starmap(use_params, args_curr)
+            args_adapt_curr = list(product([folder_base], [cost_limit], seeds, [save_freq], [epochs], adapt_curr_algorithms, 
+                                     ["adaptive_curriculum"], [curr_changes], [eval_episodes], [render_episodes], [end_task], [0], 
+                                     betas, kappas))
+            p.starmap(run_experiment, args_adapt_curr)
 
     # Plot and save the results
     train_df = plot_adapt_tune_train(folder=folder_base, cost_limit=cost_limit)

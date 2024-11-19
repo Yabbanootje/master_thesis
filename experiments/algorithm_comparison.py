@@ -26,12 +26,13 @@ if __name__ == "__main__":
     seeds = [int(rand.random() * 10000) for i in range(repetitions)]
 
     # Repeat experiments
-    wandb.login(key="4735a1d1ff8a58959d482ab9dd8f4a3396e2aa0e")
     with Pool(8) as p:
-        args_base = list(product(baseline_algorithms, [4], ["baseline"], seeds))
-        args_curr = list(product(curr_algorithms, [4], ["curriculum"], seeds))
+        args_base = list(product([folder_base], [cost_limit], seeds, [save_freq], [epochs], baseline_algorithms, ["baseline"], 
+                                 [curr_changes], [eval_episodes], [render_episodes], [4]))
+        args_curr = list(product([folder_base], [cost_limit], seeds, [save_freq], [epochs], curr_algorithms, ["curriculum"], 
+                                 [curr_changes], [eval_episodes], [render_episodes], [4]))
         args = args_curr + args_base
-        p.starmap(use_params, args)
+        p.starmap(run_experiment, args)
 
 
     # Plot the results
