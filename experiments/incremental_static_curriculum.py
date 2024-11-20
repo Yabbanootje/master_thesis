@@ -39,6 +39,10 @@ if __name__ == '__main__':
     train_df = plot_incremental_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
     eval_df = plot_incremental_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
     print_incremental_results(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq)
+
+    # Save results
+    train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
     
     
     # Get figures for ablation study from section 6.3.3

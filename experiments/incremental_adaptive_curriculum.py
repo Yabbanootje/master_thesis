@@ -39,6 +39,10 @@ if __name__ == '__main__':
     eval_df = plot_incremental_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
     print_incremental_results(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq)
 
+    # Save results
+    train_df.to_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    eval_df.to_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
+
 
     # Create a figure that shows the task progression of the four algorithms (Figure 6.15)
     fig = plt.figure(figsize=(18, 6), dpi=200)
