@@ -1,6 +1,6 @@
 # Master Thesis: Safe Step by Safe Step: Curriculum Learning in Constrained Reinforcement Learning
 
-This is the code repository for my master thesis, which can be found in the files above called "Master_Thesis.pdf".
+This is the code repository for my master thesis, which can be found in the same directory as this README named "Master_Thesis.pdf".
 
 ## Figures
 
