@@ -1,7 +1,7 @@
 Last epoch results:
 Return: 0.6629820003639907
 Cost: 13.037000018358231
-Evaluation return: 0.7728490571099873
+Evaluation return: 0.7728490571099872
 Evaluation cost: 21.82
 Evaluation episode length: 945.37
 

@@ -24,18 +24,20 @@ if __name__ == '__main__':
     curr_changes = [10, 20, 40, 100, 300, 700]
     seeds = [5905, 7337, 572, 5689, 3968, 175, 4678, 9733, 3743, 7596]
 
-    # Repeat experiments
-    for end_task in range(0, len(curr_changes) + 1):
-        with Pool(8) as p:
-            args_curr = list(product([folder_base], [cost_limit], seeds, [save_freq], [epochs], curr_algorithms, ["curriculum"], 
-                                    [curr_changes], [eval_episodes], [render_episodes], [end_task]))
-            args_adapt_curr = list(product([folder_base], [cost_limit], seeds, [save_freq], [epochs], adapt_curr_algorithms, 
-                                     ["adaptive_curriculum"], [curr_changes], [eval_episodes], [render_episodes], [end_task]))
-            p.starmap(run_experiment, args_curr + args_adapt_curr)
+    # # Repeat experiments
+    # for end_task in range(0, len(curr_changes) + 1):
+    #     with Pool(8) as p:
+    #         args_curr = list(product([folder_base], [cost_limit], seeds, [save_freq], [epochs], curr_algorithms, ["curriculum"], 
+    #                                 [curr_changes], [eval_episodes], [render_episodes], [end_task]))
+    #         args_adapt_curr = list(product([folder_base], [cost_limit], seeds, [save_freq], [epochs], adapt_curr_algorithms, 
+    #                                  ["adaptive_curriculum"], [curr_changes], [eval_episodes], [render_episodes], [end_task]))
+    #         p.starmap(run_experiment, args_curr + args_adapt_curr)
 
 
     # Plot the results
-    train_df = plot_incremental_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
+    train_df = pd.read_csv(f"./figures/{folder_base}/comparison/train_df.csv")
+    # eval_df = pd.read_csv(f"./figures/{folder_base}/comparison/eval_df.csv")
+    # train_df = plot_incremental_train(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
     eval_df = plot_incremental_eval(folder=folder_base, curr_changes=curr_changes, cost_limit=cost_limit)
     print_incremental_results(folder=folder_base, train_df=train_df, eval_df=eval_df, save_freq=save_freq)
 

@@ -9,4 +9,4 @@ All epochs results:
 AUC of the cost curve: 31493.298215025523
 AUC of the evaluation cost curve: 32828.76666666666
 Cost regret: 28330.255072212218
-Evaluation cost regret: 3906.9000000000005
+Evaluation cost regret: 3906.9
