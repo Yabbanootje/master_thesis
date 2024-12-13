@@ -15,7 +15,7 @@ from matplotlib.projections.polar import PolarAxes
 from matplotlib.spines import Spine
 from matplotlib.transforms import Affine2D
 
-def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, include_seeds=False, use_std=False):
+def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, include_seeds=False):
     # Get folder names for all algorithms
     baseline_dir = "results/" + folder + "/baseline"
     curr_dir = "results/" + folder + "/curriculum"
@@ -39,7 +39,7 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
                     df = pd.read_csv(os.path.join(path, "progress.csv")).rename(columns=
                         {"Metrics/EpRet": "return", "Metrics/EpCost": "cost", "Metrics/EpLen": "length", "Current_task": "current_task", "Completed_episodes": "completed_episodes"}
                     )[['return', 'cost', 'length', 'current_task', "completed_episodes"]]
-                    df['current_task'] = str(df['current_task'])
+                    df = df.astype({"current_task": str})
                 else:
                     df = pd.read_csv(os.path.join(path, "progress.csv")).rename(columns=
                         {"Metrics/EpRet": "return", "Metrics/EpCost": "cost", "Metrics/EpLen": "length"}
@@ -100,7 +100,7 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
                 zoomed = "_zoom"
 
             # Plot the lines
-            sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
+            sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="se")
             if include_seeds:
                 ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', estimator=None, legend=False)
 
@@ -153,7 +153,7 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
                 sns.set_style("whitegrid")
                 
                 # Plot the line for this end task and metric
-                sns.lineplot(data=combined_df[combined_df['end_task'] == end_task], x='step', y=metric, hue='type', errorbar="sd" if use_std else "se", ax=ax)
+                sns.lineplot(data=combined_df[combined_df['end_task'] == end_task], x='step', y=metric, hue='type', errorbar="se", ax=ax)
                 
                 # Plot the epochs at which a task change occurs
                 if end_task == "T":
@@ -203,7 +203,7 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
                 sns.set_style("whitegrid")
                 
                 # Plot the line for this end task and metric
-                sns.lineplot(data=combined_df[combined_df['end_task'] == end_task], x='step', y=metric, hue='type', errorbar="sd" if use_std else "se", ax=ax)
+                sns.lineplot(data=combined_df[combined_df['end_task'] == end_task], x='step', y=metric, hue='type', errorbar="se", ax=ax)
                 
                 # Plot the epochs at which a task change occurs
                 if end_task == "T":
@@ -244,7 +244,6 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
     # Function that creates a grid of spiderplots using the all end tasks and the three main metrics
     def create_subspiderplot_grid(combined_df, additional_folder="", additional_file_text=""):
         end_tasks = combined_df['end_task'].unique()
-        print(end_tasks)
         theta = radar_factory(4, frame='polygon')
         algorithms = ["FOCOPS", "CUP", "PPOEarlyTerminated", "PPOLag"]
         
@@ -256,8 +255,6 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
                 # Plot PPO
                 filtered_df = combined_df[(combined_df["Algorithm"] == "PPO") & (combined_df['end_task'] == end_task)]
                 mean_df = filtered_df.groupby(["step"]).mean(numeric_only=True)
-                print("    mean_df:", mean_df)
-                print("        algorithms:", len(algorithms), algorithms)
                 ppo_metrics = [mean_df[metric].iloc[-1] for _ in range(len(algorithms))]
                 ax.plot(theta, ppo_metrics, color="red")
 
@@ -301,7 +298,7 @@ def plot_incremental_train(folder, curr_changes, cost_limit, combined_df=None, i
 
     return combined_df
 
-def plot_incremental_eval(folder, curr_changes, cost_limit, combined_df=None, include_seeds=False, include_repetitions=False, use_std=False):
+def plot_incremental_eval(folder, curr_changes, cost_limit, combined_df=None, include_seeds=False, include_repetitions=False):
     # Get folder names for all algorithms
     baseline_dir = "results/" + folder + "/baseline"
     curr_dir = "results/" + folder + "/curriculum"
@@ -361,11 +358,8 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, combined_df=None, in
                         steps += [index for i in range(reps)]
 
                 # Save all results in a dataframe
-                print(len(returns))
-                print(len([int(cost < cost_limit and length < 1000) for cost, length in zip(costs, lengths)]))
                 df = pd.DataFrame({'return': returns, 'cost': costs, 'length': lengths, 'step': steps,
                                    'success': [int(cost < cost_limit and length < 1000) for cost, length in zip(costs, lengths)]})
-                print("df with success:", df)
                 df['Algorithm'] = algorithm.split("-")[0]
                 end_version_pattern = r'HMR?A?(\d+|T)'
                 end_version = re.search(end_version_pattern, algorithm.split("-")[1])
@@ -422,7 +416,7 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, combined_df=None, in
                 zoomed = "_zoom"
 
             # Plot the lines
-            sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="sd" if use_std else "se")
+            sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', errorbar="se")
             if include_seeds:
                 if include_repetitions:
                     ax = sns.lineplot(data=combined_df, x='step', y=metric, hue='Algorithm', style='type', units='seed', errorbar=None, estimator=None, legend=False)
@@ -479,7 +473,7 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, combined_df=None, in
                 sns.set_style("whitegrid")
                 
                 # Plot the line for this end task and metric
-                sns.lineplot(data=combined_df[combined_df['end_task'] == end_task], x='step', y=metric, hue='type', errorbar="sd" if use_std else "se", ax=ax)
+                sns.lineplot(data=combined_df[combined_df['end_task'] == end_task], x='step', y=metric, hue='type', errorbar="se", ax=ax)
                 
                 # Plot the epochs at which a task change occurs
                 if end_task == "T":
@@ -533,7 +527,7 @@ def plot_incremental_eval(folder, curr_changes, cost_limit, combined_df=None, in
                 sns.set_style("whitegrid")
                 
                 # Plot the line for this end task and metric
-                sns.lineplot(data=combined_df[combined_df['end_task'] == end_task], x='step', y=metric, hue='type', errorbar="sd" if use_std else "se", ax=ax)
+                sns.lineplot(data=combined_df[combined_df['end_task'] == end_task], x='step', y=metric, hue='type', errorbar="se", ax=ax)
                 
                 # Plot the epochs at which a task change occurs
                 if end_task == "T":
