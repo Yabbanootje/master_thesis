@@ -120,12 +120,11 @@ if __name__ == '__main__':
                     ax.set_ylabel(f"Task {end_task}", rotation=0, loc="top", fontsize=14)
                 else:
                     ax.set_ylabel('')
-                if metric == "regret" and end_task == "5":
+                if metric == "return" and end_task == "4":
                     handles, labels = ax.get_legend_handles_labels()
-                    ax.legend(handles, labels, loc=(1.01, 0.01), ncol=1)
+                    fig.legend(handles, labels, loc="upper center", ncol=len(labels), frameon=False)
         
         # Save the plot
-        # plt.legend(loc=(1.01, 0.01), ncol=1)
         plt.tight_layout(pad=2)
         if not os.path.isdir(f"figures/{folder_base}/{additional_folder}"):
             os.makedirs(f"figures/{folder_base}/{additional_folder}")
