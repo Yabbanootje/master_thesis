@@ -122,10 +122,11 @@ if __name__ == '__main__':
                     ax.set_ylabel('')
                 if metric == "return" and end_task == "4":
                     handles, labels = ax.get_legend_handles_labels()
-                    fig.legend(handles, labels, loc="upper center", ncol=len(labels), frameon=False)
+                    fig.subplots_adjust(top=0.3)
+                    fig.legend(handles, labels, loc="upper center", ncol=len(labels), frameon=False, fontsize=14)
         
         # Save the plot
-        plt.tight_layout(pad=2)
+        plt.tight_layout(pad=2, rect=[0, 0, 1, 0.97])
         if not os.path.isdir(f"figures/{folder_base}/{additional_folder}"):
             os.makedirs(f"figures/{folder_base}/{additional_folder}")
         plt.savefig(f"figures/{folder_base}/{additional_folder + '/' if additional_folder != '' else ''}{additional_file_text}grid.png")
