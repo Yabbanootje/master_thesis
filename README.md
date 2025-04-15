@@ -2,6 +2,8 @@
 
 This is the code repository for my master thesis, which can be found in the same directory as this README and the file is called "Master_Thesis.pdf".
 
+The thesis has also been condensed into a short paper, which was published as part of ICAART 2025. The paper is called "Making Reinforcement Learning Safer via Curriculum Learning", which can be found in this repository in the same directory as this README, where the file is called "ICAART_2025_Paper.pdf"
+
 ## Figures
 
 All figures used in the thesis and more can be found in the `figures` folder.
